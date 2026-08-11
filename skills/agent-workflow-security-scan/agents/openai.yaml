@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Workflow Security Gate"
+  short_description: "Enterprise Dify DSL security gate"
+  default_prompt: "Use $agent-workflow-security-scan to scan this internal Dify workflow DSL, enforce the quality gate, and produce evidence-backed findings."

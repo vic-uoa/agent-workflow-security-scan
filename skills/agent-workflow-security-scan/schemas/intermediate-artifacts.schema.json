@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-workflow-scan-artifacts:1.0.0",
+  "$ref": "#/$defs/artifactHeader",
+  "$defs": {
+    "artifactHeader": {
+      "type": "object",
+      "required": ["schema_version", "scan_id", "producer", "producer_version", "workflow_hash", "created_at"],
+      "properties": {
+        "schema_version": {"type": "string"},
+        "scan_id": {"type": "string", "pattern": "^SCAN-"},
+        "producer": {"type": "string"},
+        "producer_version": {"type": "string"},
+        "workflow_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "created_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "variableRef": {
+      "type": "object",
+      "required": ["producer_node_id", "variable_name", "consumer_node_id", "json_pointer"],
+      "properties": {
+        "producer_node_id": {"type": "string"},
+        "variable_name": {"type": "string"},
+        "consumer_node_id": {"type": "string"},
+        "json_pointer": {"type": "string"},
+        "consumer_field": {"type": "string"}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": ["id", "rule_id", "title", "status", "severity", "confidence", "node_ids", "evidence_refs", "dsl_locations", "message", "remediation"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^FINDING-"},
+        "rule_id": {"type": "string"},
+        "title": {"type": "string"},
+        "status": {"enum": ["CONFIRMED", "PROBABLE", "CANDIDATE", "COVERAGE_GAP", "NOT_APPLICABLE", "MITIGATED"]},
+        "severity": {"enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "node_ids": {"type": "array", "items": {"type": "string"}},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "dsl_locations": {"type": "array", "items": {"type": "string"}},
+        "message": {"type": "string"},
+        "remediation": {"type": "array", "items": {"type": "string"}},
+        "attack_family": {"type": "string"},
+        "standards": {"type": "array", "items": {"type": "string"}},
+        "attack_preconditions": {"type": "array", "items": {"type": "string"}},
+        "counter_evidence": {"type": "array", "items": {"type": "string"}},
+        "missing_context": {"type": "array", "items": {"type": "string"}},
+        "dynamic_test": {"type": ["string", "null"]}
+        ,"waived": {"type": "boolean"}
+        ,"waiver_id": {"type": ["string", "null"]}
+      }
+    },
+    "testCase": {
+      "type": "object",
+      "required": ["case_id", "generation_source", "target_nodes", "target_path", "rule_ids", "attack_techniques", "input", "preconditions", "expected_security_invariants", "forbidden_effects", "dynamic_level"],
+      "properties": {
+        "case_id": {"type": "string"},
+        "generation_source": {"enum": ["baseline", "boundary", "rule_targeted", "metamorphic"]},
+        "target_nodes": {"type": "array", "items": {"type": "string"}},
+        "target_path": {"type": "array", "items": {"type": "string"}},
+        "rule_ids": {"type": "array", "items": {"type": "string"}},
+        "attack_techniques": {"type": "array", "items": {"type": "string"}},
+        "input": {"type": "object"},
+        "preconditions": {"type": "array", "items": {"type": "string"}},
+        "expected_security_invariants": {"type": "array", "items": {"type": "string"}},
+        "forbidden_effects": {"type": "array", "items": {"type": "string"}},
+        "dynamic_level": {"enum": ["L0", "L1", "L2", "L3"]}
+      }
+    },
+    "attackPath": {
+      "type": "object",
+      "required": ["attack_path_id", "finding_id", "rule_ids", "path", "status", "severity", "test_case_ids", "description"],
+      "properties": {
+        "attack_path_id": {"type": "string"},
+        "finding_id": {"type": "string"},
+        "rule_ids": {"type": "array", "items": {"type": "string"}},
+        "entrypoint_node": {"type": ["string", "null"]},
+        "target_node": {"type": ["string", "null"]},
+        "path": {"type": "array", "items": {"type": "string"}},
+        "status": {"type": "string"},
+        "severity": {"type": "string"},
+        "attack_family": {"type": "string"},
+        "attack_preconditions": {"type": "array", "items": {"type": "string"}},
+        "missing_runtime_context": {"type": "array", "items": {"type": "string"}},
+        "test_case_ids": {"type": "array", "items": {"type": "string"}},
+        "description": {"type": "string"}
+      }
+    }
+  }
+}

@@ -1,0 +1,88 @@
+schema_version: 1.0.0
+rule_defaults:
+  applicability: internal_dify_workflow
+  confidence_policy: deterministic_evidence_or_hybrid_downgrade
+  evidence_policy: fact_id_node_id_and_dsl_pointer
+  remediation_family: auto_by_rule_prefix
+  dynamic_test_template: null
+  references:
+    - https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan
+  provenance: "Rule semantics independently adapted for static Dify DSL analysis; no upstream prompt text is embedded."
+rules:
+  - {id: FLOW-001, title: "断裂节点或变量引用", severity: MEDIUM, detectability: S, standards: [AISVS-C9]}
+  - {id: FLOW-002, title: "未知节点造成扫描盲区", severity: MEDIUM, detectability: S, standards: [AISVS-C9]}
+  - {id: FLOW-003, title: "不可信输入到高危工具", severity: HIGH, detectability: S, standards: [AISVS-9.2, ASI02]}
+  - {id: FLOW-004, title: "敏感数据可达外部边界", severity: HIGH, detectability: H, standards: [AISVS-C7, ASI03]}
+  - {id: FLOW-005, title: "间接 Prompt Injection 工具链", severity: HIGH, detectability: H, standards: [ASI01, AISVS-9.3]}
+  - {id: FLOW-006, title: "审批或过滤可绕过", severity: HIGH, detectability: S, standards: [AISVS-9.2, ASI02, ASI03]}
+  - {id: FLOW-007, title: "无界循环或级联调用", severity: MEDIUM, detectability: S, standards: [AISVS-9.1, ASI08]}
+  - {id: FLOW-008, title: "凭证进入模型可见上下文", severity: CRITICAL, detectability: S, standards: [AISVS-9.5.4, ASI03]}
+  - {id: FLOW-009, title: "敏感资产经模型到外部通道的复合外泄链", severity: CRITICAL, detectability: S, standards: [ASI01, ASI03], attack_family: web_exfiltration}
+  - {id: FLOW-010, title: "外部不可信内容经模型到代码执行", severity: CRITICAL, detectability: S, standards: [ASI01, ASI05], attack_family: unexpected_code_execution}
+  - {id: FLOW-011, title: "跨 Agent 消息缺少结构与信任校验", severity: HIGH, detectability: S, standards: [ASI07], attack_family: inter_agent_communication}
+  - {id: FLOW-012, title: "多级副作用链缺少故障隔离", severity: HIGH, detectability: H, standards: [ASI08, AISVS-9.1], attack_family: cascading_failure}
+  - {id: FLOW-013, title: "自主 Agent 缺少目标锁定和紧急停止边界", severity: HIGH, detectability: H, standards: [ASI10, AISVS-9.1], attack_family: rogue_agent}
+
+  - {id: IN-001, title: "输入字段缺少明确类型", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
+  - {id: IN-002, title: "输入缺少长度或数量限制", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
+  - {id: IN-003, title: "文件上传约束不足", severity: HIGH, detectability: S, standards: [AISVS-C2]}
+  - {id: IN-004, title: "未声明输入规范化", severity: LOW, detectability: M, standards: [AISVS-C2]}
+  - {id: IN-005, title: "对象输入允许未知字段", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
+  - {id: IN-006, title: "敏感输入缺少保护", severity: HIGH, detectability: H, standards: [AISVS-C2, AISVS-C7]}
+  - {id: IN-007, title: "用户输入进入高权限 Prompt", severity: HIGH, detectability: S, standards: [ASI01]}
+  - {id: IN-008, title: "未验证输入被持久化", severity: HIGH, detectability: H, standards: [AISVS-C8]}
+  - {id: IN-009, title: "直接 Prompt Injection 可达模型", severity: HIGH, detectability: S, standards: [ASI01], attack_family: direct_prompt_injection}
+
+  - {id: LLM-001, title: "不可信变量进入系统指令", severity: HIGH, detectability: S, standards: [ASI01]}
+  - {id: LLM-002, title: "指令与外部数据未隔离", severity: MEDIUM, detectability: H, standards: [ASI01]}
+  - {id: LLM-003, title: "间接内容可控制工具", severity: HIGH, detectability: S, standards: [ASI01, ASI02]}
+  - {id: LLM-004, title: "密钥或内部上下文暴露", severity: CRITICAL, detectability: S, standards: [ASI03]}
+  - {id: LLM-005, title: "自由文本直接控制工具", severity: HIGH, detectability: S, standards: [AISVS-9.3]}
+  - {id: LLM-006, title: "下游依赖结构化数据但无输出 Schema", severity: HIGH, detectability: S, standards: [AISVS-C7]}
+  - {id: LLM-007, title: "模型承担授权决策", severity: HIGH, detectability: H, standards: [AISVS-9.5.3, ASI03]}
+  - {id: LLM-008, title: "高影响决策无确定性复核", severity: HIGH, detectability: S, standards: [AISVS-9.2]}
+  - {id: LLM-009, title: "模型资源预算不完整", severity: MEDIUM, detectability: S, standards: [AISVS-9.1]}
+  - {id: LLM-010, title: "模型失败回退路径不安全", severity: MEDIUM, detectability: H, standards: [AISVS-9.6]}
+  - {id: LLM-011, title: "系统指令敏感内容存在泄露面", severity: HIGH, detectability: H, standards: [ASI03], attack_family: data_leakage}
+
+  - {id: TOOL-001, title: "工具能力无法确定", severity: MEDIUM, detectability: H, standards: [AISVS-9.3]}
+  - {id: TOOL-002, title: "高危工具参数由模型控制", severity: HIGH, detectability: S, standards: [AISVS-9.5]}
+  - {id: TOOL-003, title: "可控 URL 形成 SSRF 风险", severity: HIGH, detectability: S, standards: [ASI02]}
+  - {id: TOOL-004, title: "命令或代码注入风险", severity: CRITICAL, detectability: S, standards: [ASI05]}
+  - {id: TOOL-005, title: "SQL 或查询注入风险", severity: HIGH, detectability: S, standards: [ASI02]}
+  - {id: TOOL-006, title: "动态文件路径缺少目录约束", severity: HIGH, detectability: S, standards: [ASI02]}
+  - {id: TOOL-007, title: "敏感数据通过工具外传", severity: HIGH, detectability: H, standards: [ASI03]}
+  - {id: TOOL-008, title: "高影响操作缺少必经审批", severity: HIGH, detectability: S, standards: [AISVS-9.2]}
+  - {id: TOOL-009, title: "工具能力超出业务目的", severity: MEDIUM, detectability: H, standards: [ASI02]}
+  - {id: TOOL-010, title: "工具凭证处理不安全", severity: CRITICAL, detectability: S, standards: [AISVS-9.5.4, ASI03]}
+  - {id: TOOL-011, title: "工具输入缺少严格 Schema", severity: MEDIUM, detectability: S, standards: [AISVS-9.3]}
+  - {id: TOOL-012, title: "工具输出未经验证进入模型", severity: HIGH, detectability: S, standards: [AISVS-9.3]}
+  - {id: TOOL-013, title: "工具缺少超时或调用限制", severity: MEDIUM, detectability: S, standards: [AISVS-9.1]}
+  - {id: TOOL-014, title: "工具供应链或描述投毒风险", severity: HIGH, detectability: M, standards: [ASI04, AISVS-C10]}
+  - {id: TOOL-015, title: "高影响工具缺少对象级授权约束", severity: HIGH, detectability: H, standards: [ASI03, AISVS-9.5.3], attack_family: authorization_bypass}
+  - {id: TOOL-016, title: "用户可控身份或资源标识直达工具", severity: HIGH, detectability: S, standards: [ASI03], attack_family: authorization_bypass}
+  - {id: TOOL-017, title: "敏感载荷与动态网络目标形成外带通道", severity: CRITICAL, detectability: S, standards: [ASI03], attack_family: web_exfiltration}
+
+  - {id: OUT-001, title: "结构化输出缺少 Schema", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
+  - {id: OUT-002, title: "敏感信息可达外部输出", severity: HIGH, detectability: H, standards: [AISVS-C7]}
+  - {id: OUT-003, title: "系统 Prompt 或内部信息泄露", severity: HIGH, detectability: S, standards: [ASI03]}
+  - {id: OUT-004, title: "富文本输出缺少上下文编码", severity: HIGH, detectability: S, standards: [AISVS-C7]}
+  - {id: OUT-005, title: "模型生成危险链接或协议", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
+  - {id: OUT-006, title: "未验证输出进入下游执行者", severity: HIGH, detectability: S, standards: [AISVS-C7, ASI07]}
+  - {id: OUT-007, title: "RAG 引用不可追踪", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
+  - {id: OUT-008, title: "低置信或失败输出无回退", severity: MEDIUM, detectability: H, standards: [AISVS-C7]}
+  - {id: OUT-009, title: "动态 Markdown 链接或图片可形成隐蔽外带", severity: HIGH, detectability: S, standards: [ASI03, AISVS-C7], attack_family: web_exfiltration}
+  - {id: OUT-010, title: "面向人的高信任声明缺少来源证明", severity: MEDIUM, detectability: H, standards: [ASI09], attack_family: human_agent_trust_exploit}
+
+  - {id: KB-001, title: "知识检索数据集范围未限定", severity: HIGH, detectability: S, standards: [AISVS-8.1]}
+  - {id: KB-002, title: "缺少租户或业务元数据过滤", severity: HIGH, detectability: S, standards: [AISVS-8.1]}
+  - {id: KB-003, title: "检索 Top-K 或阈值扩大暴露面", severity: MEDIUM, detectability: S, standards: [AISVS-C8]}
+  - {id: KB-004, title: "知识内容进入高权限 Prompt", severity: HIGH, detectability: S, standards: [ASI01]}
+  - {id: KB-005, title: "知识内容经模型控制工具", severity: HIGH, detectability: S, standards: [ASI01, ASI02]}
+  - {id: KB-006, title: "知识敏感内容可达外部边界", severity: HIGH, detectability: H, standards: [AISVS-C8]}
+  - {id: KB-007, title: "未验证内容写入可信记忆", severity: HIGH, detectability: H, standards: [AISVS-8.2.3]}
+  - {id: KB-008, title: "知识来源元数据不可追踪", severity: MEDIUM, detectability: S, standards: [AISVS-C7, AISVS-C12]}
+  - {id: KB-009, title: "知识内容缺少注入隔离", severity: HIGH, detectability: H, standards: [AISVS-8.2]}
+  - {id: KB-010, title: "知识库运行控制不在 DSL 中", severity: INFO, detectability: M, standards: [AISVS-C8]}
+  - {id: KB-011, title: "持久记忆缺少用户或租户命名空间", severity: HIGH, detectability: S, standards: [ASI06, AISVS-8.1], attack_family: memory_poisoning}
+  - {id: KB-012, title: "不可信写入可被后续 Agent 读取", severity: HIGH, detectability: S, standards: [ASI06, ASI07], attack_family: memory_poisoning}

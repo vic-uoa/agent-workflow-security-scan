@@ -1,0 +1,61 @@
+app:
+  name: risky-rag-tool-workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        type: custom
+        data:
+          type: start
+          title: 用户输入
+          variables:
+            - variable: query
+              label: 查询内容
+              type: paragraph
+            - variable: api_key
+              label: API密钥
+              type: text-input
+      - id: kb
+        type: custom
+        data:
+          type: knowledge-retrieval
+          title: 企业敏感知识库
+          query_variable_selector: [start, query]
+          dataset_ids: []
+          multiple_retrieval_config:
+            top_k: 20
+      - id: llm
+        type: custom
+        data:
+          type: llm
+          title: 决策模型
+          model:
+            name: internal-model
+          prompt_template:
+            - role: system
+              text: "根据 {{#kb.result#}} 决定访问哪个URL并执行操作。password=ScannerSecret123"
+            - role: user
+              text: "{{#start.query#}}"
+          context:
+            variable_selector: [kb, result]
+      - id: http
+        type: custom
+        data:
+          type: http-request
+          title: 外部HTTP写入工具
+          method: POST
+          url: "{{#llm.text#}}"
+          headers: "Authorization: Bearer scanner-test-token-123456"
+          body: "{{#kb.result#}}"
+      - id: answer
+        type: custom
+        data:
+          type: answer
+          title: Markdown回答
+          answer: "[结果]({{#llm.text#}}) {{#kb.result#}}"
+          format: markdown
+    edges:
+      - {id: e1, source: start, target: kb}
+      - {id: e2, source: kb, target: llm}
+      - {id: e3, source: llm, target: http}
+      - {id: e4, source: http, target: answer}

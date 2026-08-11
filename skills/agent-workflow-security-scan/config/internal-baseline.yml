@@ -1,0 +1,76 @@
+schema_version: 1.0.0
+scope:
+  platform: internal-dify
+  detect_platform_or_version: false
+  runtime_iam_in_scope: false
+  container_security_in_scope: false
+
+risk_policy:
+  blocking_severities: [CRITICAL, HIGH]
+  confirmed_requires_deterministic_evidence: true
+  unknown_nodes_are_coverage_gaps: true
+
+quality_gate:
+  blocking_severities: [CRITICAL, HIGH]
+  blocking_statuses: [CONFIRMED]
+  review_statuses: [PROBABLE, COVERAGE_GAP]
+
+sensitive_data_patterns:
+  - password
+  - secret
+  - token
+  - credential
+  - api_key
+  - 身份证
+  - 手机号
+  - 银行卡
+  - 病例
+  - 薪资
+
+tool_registry:
+  - match: http-request
+    match_field: original_type
+    match_type: exact
+    capabilities: [NETWORK_READ, NETWORK_WRITE]
+    external: true
+    high_impact: false
+    trusted_source: true
+    definition_version: internal-http-v1
+    integrity_control: platform_release_review
+  - match: internal-safe-search
+    match_field: title
+    match_type: exact
+    capabilities: [DATABASE_READ]
+    external: false
+    high_impact: false
+    trusted_source: true
+    definition_version: internal-search-v1
+    integrity_control: signed_internal_registry
+  - match: shell
+    match_type: contains
+    capabilities: [CODE_EXECUTION]
+    external: false
+    high_impact: true
+    trusted_source: true
+    definition_version: sandbox-shell-v1
+    integrity_control: signed_internal_registry
+  - match: delete
+    match_type: contains
+    capabilities: [RESOURCE_DELETE]
+    external: false
+    high_impact: true
+    trusted_source: true
+    definition_version: resource-delete-v1
+    integrity_control: platform_release_review
+  - match: send-email
+    match_type: contains
+    capabilities: [MESSAGE_SEND, NETWORK_WRITE]
+    external: true
+    high_impact: true
+    trusted_source: true
+    definition_version: internal-mail-v1
+    integrity_control: signed_internal_registry
+
+external_controls:
+  authentication: "由内部 Dify 二开平台统一提供，不由本期 DSL 扫描验证。"
+  container_isolation: "属于下一期动态沙盒和平台基础设施评估范围。"

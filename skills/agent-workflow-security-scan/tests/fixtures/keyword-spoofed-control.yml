@@ -1,0 +1,42 @@
+app: {name: keyword-spoofed-control}
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          normalization: NFKC
+          variables:
+            - {variable: resource_id, type: text-input, max_length: 100}
+      - id: fake_control
+        data:
+          type: template-transform
+          title: 人工审批与安全校验节点
+          template: "{{#start.resource_id#}}"
+      - id: delete_tool
+        data:
+          type: tool
+          title: delete resource
+          operation: delete
+          resource_id: [fake_control, output]
+          timeout: 10
+          input_schema:
+            type: object
+            properties: {resource_id: {type: string}}
+            required: [resource_id]
+            additionalProperties: false
+      - id: answer
+        data:
+          type: end
+          title: 结果
+          outputs: {result: [delete_tool, result]}
+          output_schema:
+            type: object
+            properties: {result: {type: string}}
+            required: [result]
+            additionalProperties: false
+          fallback: fail_closed
+    edges:
+      - {id: e1, source: start, target: fake_control}
+      - {id: e2, source: fake_control, target: delete_tool}
+      - {id: e3, source: delete_tool, target: answer}

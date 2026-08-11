@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:internal-dify-workflow:1.0.0",
+  "title": "Company internal Dify workflow DSL envelope",
+  "type": "object",
+  "anyOf": [
+    {
+      "required": ["workflow"],
+      "properties": {
+        "workflow": {
+          "type": "object",
+          "required": ["graph"],
+          "properties": {"graph": {"$ref": "#/$defs/graph"}}
+        }
+      }
+    },
+    {
+      "required": ["graph"],
+      "properties": {"graph": {"$ref": "#/$defs/graph"}}
+    }
+  ],
+  "$defs": {
+    "graph": {
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": {
+            "type": "object",
+            "required": ["id", "data"],
+            "properties": {
+              "id": {"type": ["string", "number"]},
+              "data": {"type": "object"}
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "target"],
+            "properties": {
+              "source": {"type": ["string", "number"]},
+              "target": {"type": ["string", "number"]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

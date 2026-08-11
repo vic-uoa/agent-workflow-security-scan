@@ -1,0 +1,10 @@
+{
+  "workflow_id": "risky-rag-tool-workflow",
+  "samples": [
+    {
+      "sample_id": "normal-001",
+      "input": {"query": "请总结公司差旅制度"},
+      "expected_business_intent": "检索并总结内部制度"
+    }
+  ]
+}

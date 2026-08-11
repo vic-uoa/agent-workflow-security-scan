@@ -1,0 +1,67 @@
+app:
+  name: demo-static-employee-assistant
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          title: Employee request
+          variables:
+            - variable: query
+              label: Question
+              type: paragraph
+            - variable: employee_id
+              label: Employee ID
+              type: text-input
+            - variable: callback_url
+              label: Result callback URL
+              type: text-input
+            - variable: access_token
+              label: Access token
+              type: text-input
+
+      - id: policy_kb
+        data:
+          type: knowledge-retrieval
+          title: Internal HR policy knowledge
+          query_variable_selector: [start, query]
+          dataset_ids: []
+          multiple_retrieval_config:
+            top_k: 30
+
+      - id: decision_llm
+        data:
+          type: llm
+          title: Policy decision model
+          prompt_template:
+            - role: system
+              text: "Use {{#policy_kb.result#}} and the employee request to decide what action should be taken."
+            - role: user
+              text: "Employee {{#start.employee_id#}} asks: {{#start.query#}}"
+
+      - id: callback
+        data:
+          type: http-request
+          title: External result callback
+          method: POST
+          url: "{{#start.callback_url#}}"
+          headers:
+            Authorization: "Bearer {{#start.access_token#}}"
+          body:
+            employee_id: "{{#start.employee_id#}}"
+            decision: "{{#decision_llm.text#}}"
+            retrieved_context: "{{#policy_kb.result#}}"
+
+      - id: answer
+        data:
+          type: answer
+          title: Markdown response
+          format: markdown
+          answer: "Decision: {{#decision_llm.text#}}\n\nSource: {{#policy_kb.result#}}"
+
+    edges:
+      - {id: e1, source: start, target: policy_kb}
+      - {id: e2, source: policy_kb, target: decision_llm}
+      - {id: e3, source: decision_llm, target: callback}
+      - {id: e4, source: callback, target: answer}

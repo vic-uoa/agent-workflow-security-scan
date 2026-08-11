@@ -1,0 +1,32 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Generated scanner and packaging artifacts
+/outputs/
+/skills/*.zip
+/build/
+/dist/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs, temporary files, and editor metadata
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

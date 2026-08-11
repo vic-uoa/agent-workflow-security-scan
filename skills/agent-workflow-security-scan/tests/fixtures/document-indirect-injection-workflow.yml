@@ -1,0 +1,48 @@
+app: {name: document-indirect-injection}
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          normalization: NFKC
+          variables:
+            - variable: upload
+              type: file
+              size_limit: 1048576
+              allowed_extensions: [txt, pdf]
+      - id: extract
+        data:
+          type: document-extractor
+          title: 用户文档提取
+          variable_selector: [start, upload]
+      - id: llm
+        data:
+          type: llm
+          title: 文档处理 Agent
+          max_tokens: 500
+          timeout: 30
+          fallback: fail_closed
+          prompt_template:
+            - {role: system, text: "根据 {{#extract.text#}} 决定需要执行的动作。"}
+      - id: code
+        data:
+          type: code
+          title: 执行动作脚本
+          code: "{{#llm.text#}}"
+          timeout: 10
+      - id: answer
+        data:
+          type: end
+          outputs: {result: [code, result]}
+          output_schema:
+            type: object
+            properties: {result: {type: string}}
+            required: [result]
+            additionalProperties: false
+          fallback: fail_closed
+    edges:
+      - {id: e1, source: start, target: extract}
+      - {id: e2, source: extract, target: llm}
+      - {id: e3, source: llm, target: code}
+      - {id: e4, source: code, target: answer}

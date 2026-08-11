@@ -1,0 +1,7 @@
+waivers:
+  - waiver_id: W-EXAMPLE-001
+    finding_id: FINDING-replace-with-exact-id
+    workflow_hash: replace-with-64-character-workflow-hash
+    approver: security-owner@example.invalid
+    justification: "Example only: compensating control is tracked in the internal risk register."
+    expires_at: "2099-01-01T00:00:00Z"
