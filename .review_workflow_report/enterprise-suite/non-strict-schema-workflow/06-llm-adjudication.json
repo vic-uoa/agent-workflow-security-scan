@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-9e5e2a2a145a",
+  "producer": "deterministic-fallback",
+  "producer_version": "0.2.0",
+  "workflow_hash": "940a278ec9308bfbcfdd6c19575fa11946573d11874376bbebf4066214d9f7e6",
+  "created_at": "2026-08-12T06:19:22.321115+00:00",
+  "adjudication": {
+    "adjudications": [
+      {
+        "candidate_id": "CANDIDATE-8f84f3d9b496",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-1ce58e786784"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-82600a16c1b4",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-4251f6ea6034"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 自由文本输出可直接影响工具参数。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-7924a6629e77",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-b50035a187e1"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "下游工具依赖 LLM 输出，但节点未声明严格结构化输出。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-1fcf8b4bb548",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-7641c3cbfc99"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。",
+        "confidence": 0.88,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-ec9541af9f41",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-22f64fdc334c"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "未经严格结构验证的模型输出进入下游执行节点。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-32c4f7cf49fb",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-0c7f731b69a8"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "高影响工具存在不经过审批节点的可达路径。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-06e072a0edb3",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-3eadf75a309c"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-5f7f51add361",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-d2631fec976a"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具输入缺少可识别的严格 Schema。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      }
+    ],
+    "producer": "deterministic-fallback"
+  }
+}

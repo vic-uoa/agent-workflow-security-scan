@@ -1,0 +1,643 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-2abf61bb1006",
+  "producer": "deterministic-fallback",
+  "producer_version": "0.5.0",
+  "workflow_hash": "b01ee8c4c8fd5f2b2451863af5da83de2a25473ec076b2c1a4ff70d2dd414997",
+  "created_at": "2026-08-12T08:31:04.682385+00:00",
+  "adjudication": {
+    "adjudications": [
+      {
+        "candidate_id": "CANDIDATE-ac44a0e3a433",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-b7bf9a442b48",
+          "FACT-0cbfb4cb25d7"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“安全验证结果”在“网络与输出外发控制不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-b2c8910a1b13",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-e24a1cdc6ec9",
+          "FACT-59b8803d622d",
+          "FACT-2b10472c7144"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“动态代码执行”在“代码、命令或查询执行边界不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-4167c391c79e",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-20af87f21fb4",
+          "FACT-860ad7d07c74",
+          "FACT-9433c0005638"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“外部 HTTP 写入”在“网络与输出外发控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-1d229cd53957",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-e52b6f3d0fc8",
+          "FACT-7bb959489e1c"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“外部 HTTP 写入”在“高影响动作授权控制不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-c4f3dba9ea26",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-82b543f035e7"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-bb530156753d",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-2f7fa4ea7d74"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "上游 Agent 的自由文本被下游 Agent 信任，缺少消息 Schema、来源身份或不可信指令隔离。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-6d61f136dc33",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-220cc318c481",
+          "FACT-21295edac0d7"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“动态代码执行”在“失败处理与资源预算不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-19c086100571",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-9035832a63aa",
+          "FACT-3e87d9e6b774"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“管理员资源更新工具”在“失败处理与资源预算不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-bd57f7782f46",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-373095834ee0",
+          "FACT-e41aab121a54",
+          "FACT-ad5fb1532216"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“外部 HTTP 写入”在“失败处理与资源预算不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-f5c76802e6fd",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-05cb2346b895"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "自主 Agent 接收不可信上下文并可影响高危能力，但 DSL 未声明目标锁定、停止条件或紧急停止控制。",
+        "confidence": 0.82,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-aeceeb929cbb",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-55c4ecb9530d",
+          "FACT-4fc3be561f9a",
+          "FACT-dd03e9b6672c"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“客户身份与病例知识库”在“知识资产治理控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-53e680804aac",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-5e789ecef80b",
+          "FACT-c05db8c65fba",
+          "FACT-dbd72c86bd37",
+          "FACT-d86aad6daa5d"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“主 Agent”在“模型指令与数据边界不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-c82b0612bcb9",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-28374567e86b",
+          "FACT-78537ae3650d"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“安全验证结果”在“敏感数据保护控制不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 0.78,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-d8d207e64aa3",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-8c8ffc891d29",
+          "FACT-a12a34377474",
+          "FACT-369d8d150456"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“外部 HTTP 写入”在“敏感数据保护控制不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 0.78,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-c38ada692cf5",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-640c7a7c0c1f"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "检索内容进入模型前缺少可识别的注入筛查或隔离控制。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-775111413adb",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-4fd0bff93817",
+          "FACT-9d2680d268ef",
+          "FACT-0e4b8c3226a8"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“shared persistent memory store”在“记忆身份与隔离控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-b24b81f26ac4",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-ff152fafcb71"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+        "confidence": 0.72,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-d5214a6b130f",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-3cde63f04996",
+          "FACT-54881f611493",
+          "FACT-8370183c7953",
+          "FACT-e83017039b3c",
+          "FACT-e5908eb802da",
+          "FACT-4daddda1dcdd",
+          "FACT-7c0b493e125f"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“动态代码执行”在“结构化数据契约不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-bc054b70f0fe",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-e585d17c5bc6",
+          "FACT-355ae6eb6385",
+          "FACT-a5ad265c5b7c",
+          "FACT-c6fa63ea1420",
+          "FACT-4292394bf719",
+          "FACT-4b308e5974f1",
+          "FACT-a5be077e7813"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“外部 HTTP 写入”在“结构化数据契约不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-68e37f55e7f4",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-7f6fa15c65f3",
+          "FACT-273d4a07533c",
+          "FACT-457659234e01",
+          "FACT-f4929fb63e04",
+          "FACT-517d0058f40d",
+          "FACT-aacd07f794eb"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“管理员资源更新工具”在“高影响动作授权控制不足”方面存在 6 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-47a53f376c6b",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-2c8d768ad681",
+          "FACT-a2b9706db7dd",
+          "FACT-ffe205cb0b31",
+          "FACT-77f02bcfbb78",
+          "FACT-5327e9ed9634",
+          "FACT-371a0e0108d2"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“动态代码执行”在“高影响动作授权控制不足”方面存在 6 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-5f9b7fdb84d2",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-ceabf24a45ad"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "动态 URL/Host 缺少域名或地址 Allowlist。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-58f27270e026",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-5e4c852144bd",
+          "FACT-caa1117d6700",
+          "FACT-933bd4ac2531",
+          "FACT-db828845b05b",
+          "FACT-03cb64251cf0",
+          "FACT-c04a7004147f",
+          "FACT-52dea32ea1ca",
+          "FACT-324968fc9a7c",
+          "FACT-854f029a08ca",
+          "FACT-37b8f2b4a341",
+          "FACT-4fdf33318628"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“执行 Agent”在“外部内容信任边界不足”方面存在 5 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-9ea2e3bd13ad",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-4220ca37e1f2"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具输出未经严格 Schema 验证进入 LLM 上下文。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-43112bea8239",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-32ec521974a7"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-5f88c1039622",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-4f7611f183a5"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-c7cb2821937b",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-ad5e359aba8b"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-565dbfc23f04",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-d3980431b8ae",
+          "FACT-b730525caff3",
+          "FACT-bc21b03198b8",
+          "FACT-6b253618948b"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“用户输入”在“输入契约与边界控制不足”方面存在 4 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-9f4260ef2dbc",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-62743a962286"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-199dabd1e879",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-53d25bcbde22"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-d6f92c454fb4",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-03fde184ca09"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-8c636bf758a6",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-f21a24b585a1"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-90f00ac7a117",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-5a4a7003a8b8",
+          "FACT-9f6c074eef19",
+          "FACT-d53997d341bc"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“安全验证结果”在“用户输出安全控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-d7bf1512a996",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-0c9b42606853"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "输出节点未显示低置信或失败回退行为。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-83ed69853eb0",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-d088beb9f579",
+          "FACT-f9ef2da06e3a"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "责任节点“管理员资源更新工具”在“失败处理与资源预算不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-7542f0cecb12",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-c2386c898e53"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具能力无法从内部基线或 DSL 描述中确定。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-6d04efd32317",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-1694754d95ab"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-18634a99832b",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-daa2a662dcb1"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具输入缺少可识别的严格 Schema。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-d6c158599a02",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-725e7f279e5f"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具输入缺少可识别的严格 Schema。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-83fa10e114d5",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-f2ea412bed87"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具输入缺少可识别的严格 Schema。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-7d1e27e8b247",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-889fdc91680f"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具缺少可识别的超时设置。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-de89a420400c",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-858355960425"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具缺少可识别的超时设置。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-ccba93d3d24d",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-d4a60448cde7"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 未声明输入解码和 Unicode 规范化控制。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-cde92ce2ed78",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-407027395fcd"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "知识库 ACL、文档来源、内容隔离、过期和撤销策略不在 DSL 中，静态扫描无法验证。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      }
+    ],
+    "producer": "deterministic-fallback"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-444596068b3a",
+  "producer": "evidence-verifier",
+  "producer_version": "0.2.0",
+  "workflow_hash": "262027ad5543cfe6580c4e9771ee0ff7d5f7e411ee301cfd065b0c5a92dc6fc8",
+  "created_at": "2026-08-12T06:19:21.249613+00:00",
+  "verification": {
+    "valid": true,
+    "invalid_adjudication_refs": [],
+    "invalid_review_refs": [],
+    "applied_adjudications": [],
+    "applied_reviews": [],
+    "policy": {
+      "llm_can_modify_confirmed": false,
+      "llm_can_promote_to_confirmed": false,
+      "unknown_references_rejected": true
+    },
+    "review": {
+      "reviews": [],
+      "producer": "deterministic-fallback"
+    },
+    "llm_errors": []
+  }
+}

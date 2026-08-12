@@ -1,0 +1,273 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-909d7371f384",
+  "producer": "rule-engine",
+  "producer_version": "0.5.0",
+  "workflow_hash": "1bb0ace2209edaa159d1946c33cdb1c0dd22d162c105a929bd4f49b8f800f8bd",
+  "created_at": "2026-08-12T08:31:04.233740+00:00",
+  "facts": [
+    {
+      "id": "FACT-43985ba8c52b",
+      "kind": "LLM-001",
+      "node_ids": [
+        "extract",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "不可信变量被插入系统或高权限指令区域。"
+      }
+    },
+    {
+      "id": "FACT-b907ad0fc2fb",
+      "kind": "LLM-002",
+      "node_ids": [
+        "extract",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "外部内容进入 LLM，但系统指令中未发现明确的数据/指令隔离约束。"
+      }
+    },
+    {
+      "id": "FACT-23c595965581",
+      "kind": "TOOL-002",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "高影响工具的安全敏感参数由模型或上游变量控制。"
+      }
+    },
+    {
+      "id": "FACT-e24a1cdc6ec9",
+      "kind": "TOOL-004",
+      "node_ids": [
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "动态变量可到达命令、代码或脚本执行能力。"
+      }
+    },
+    {
+      "id": "FACT-f57033d43c21",
+      "kind": "TOOL-008",
+      "node_ids": [
+        "start",
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "高影响工具存在不经过审批节点的可达路径。"
+      }
+    },
+    {
+      "id": "FACT-1694754d95ab",
+      "kind": "TOOL-009",
+      "node_ids": [
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。"
+      }
+    },
+    {
+      "id": "FACT-3cde63f04996",
+      "kind": "TOOL-011",
+      "node_ids": [
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "工具输入缺少可识别的严格 Schema。"
+      }
+    },
+    {
+      "id": "FACT-ad5e359aba8b",
+      "kind": "TOOL-014",
+      "node_ids": [
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "DSL 无法证明工具来源、版本完整性或定义变更审批。"
+      }
+    },
+    {
+      "id": "FACT-5b0ea4b71887",
+      "kind": "FLOW-003",
+      "node_ids": [
+        "start",
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。"
+      }
+    },
+    {
+      "id": "FACT-b21d3eac38ed",
+      "kind": "FLOW-003",
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。"
+      }
+    },
+    {
+      "id": "FACT-d2850d089b18",
+      "kind": "FLOW-005",
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "上传文档或提取内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。"
+      }
+    },
+    {
+      "id": "FACT-eba884be669b",
+      "kind": "LLM-003",
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "文档提取内容进入具备工具影响能力的 LLM。"
+      }
+    },
+    {
+      "id": "FACT-42ae491c2207",
+      "kind": "FLOW-010",
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "外部或检索内容可经模型输出进入代码/命令执行节点。"
+      }
+    },
+    {
+      "id": "FACT-6f86df1426e2",
+      "kind": "LLM-005",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "LLM 自由文本输出可直接影响工具参数。"
+      }
+    },
+    {
+      "id": "FACT-8bf0bfbf5771",
+      "kind": "LLM-006",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "下游工具依赖 LLM 输出，但节点未声明严格结构化输出。"
+      }
+    },
+    {
+      "id": "FACT-35ca64adbbab",
+      "kind": "OUT-006",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "未经严格结构验证的模型输出进入下游执行节点。"
+      }
+    },
+    {
+      "id": "FACT-31989e78bdb0",
+      "kind": "LLM-008",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。"
+      }
+    }
+  ]
+}

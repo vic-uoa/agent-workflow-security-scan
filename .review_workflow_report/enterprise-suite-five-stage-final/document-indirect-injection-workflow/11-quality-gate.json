@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-ac69225b220f",
+  "producer": "quality-gate",
+  "producer_version": "0.4.0",
+  "workflow_hash": "1bb0ace2209edaa159d1946c33cdb1c0dd22d162c105a929bd4f49b8f800f8bd",
+  "created_at": "2026-08-12T07:53:28.223914+00:00",
+  "quality_gate": {
+    "decision": "FAIL",
+    "exit_code": 1,
+    "policy": {
+      "blocking_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "blocking_statuses": [
+        "CONFIRMED"
+      ],
+      "review_statuses": [
+        "COVERAGE_GAP",
+        "OBSERVED",
+        "PROBABLE"
+      ],
+      "waivers_require_workflow_hash_approver_justification_and_expiry": true
+    },
+    "blocking_finding_ids": [
+      "FINDING-42ae491c2207",
+      "FINDING-e24a1cdc6ec9",
+      "FINDING-5b0ea4b71887",
+      "FINDING-b21d3eac38ed",
+      "FINDING-6f86df1426e2",
+      "FINDING-23c595965581",
+      "FINDING-f57033d43c21"
+    ],
+    "review_finding_ids": [
+      "FINDING-d2850d089b18",
+      "FINDING-43985ba8c52b",
+      "FINDING-31989e78bdb0",
+      "FINDING-ad5e359aba8b",
+      "FINDING-1694754d95ab",
+      "FINDING-3cde63f04996"
+    ],
+    "blocking_count": 7,
+    "review_count": 6,
+    "waived_count": 0,
+    "waiver_audit": {
+      "applied": [],
+      "rejected": []
+    }
+  }
+}

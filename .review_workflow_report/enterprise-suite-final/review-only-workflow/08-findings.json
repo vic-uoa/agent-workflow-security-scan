@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.1.0",
+  "scan_id": "SCAN-d25576cc5836",
+  "producer": "finding-merger",
+  "producer_version": "0.3.0",
+  "workflow_hash": "4d1f3d367ae97e7d28f6037990bc8defe24432b046f71c4875ffae58b3369f03",
+  "created_at": "2026-08-12T07:34:12.449871+00:00",
+  "findings": [
+    {
+      "id": "FINDING-91101ff7dec6",
+      "rule_id": "LLM-009",
+      "title": "模型资源预算不完整",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-91101ff7dec6"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "resource_budget",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-9d7a8c4fd729",
+      "rule_id": "LLM-010",
+      "title": "模型失败回退路径不安全",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-9d7a8c4fd729"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.6"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "运行时可能统一处理模型错误。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.1.0",
+  "scan_id": "SCAN-c5c0a0e63d32",
+  "producer": "dify-parser",
+  "producer_version": "0.3.0",
+  "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+  "created_at": "2026-08-12T07:34:12.252752+00:00",
+  "workflow_ir": {
+    "workflow_id": "普通文本优化工作流",
+    "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+    "nodes": [
+      {
+        "id": "start",
+        "original_type": "start",
+        "type": "INPUT",
+        "title": "用户输入",
+        "json_pointer": "/workflow/graph/nodes/0",
+        "config": {
+          "type": "start",
+          "title": "用户输入",
+          "variables": [
+            {
+              "variable": "inputStr",
+              "label": "待优化文本",
+              "type": "paragraph",
+              "required": true,
+              "max_length": null
+            }
+          ]
+        },
+        "text": "start\n用户输入\ninputStr\n待优化文本\nparagraph",
+        "variable_refs": [],
+        "capabilities": [],
+        "external": false,
+        "high_impact": false
+      },
+      {
+        "id": "llm",
+        "original_type": "llm",
+        "type": "LLM",
+        "title": "LLM",
+        "json_pointer": "/workflow/graph/nodes/1",
+        "config": {
+          "type": "llm",
+          "title": "LLM",
+          "error_strategy": "default-value",
+          "default_value": [
+            {
+              "key": "text",
+              "type": "string",
+              "value": "大模型响应异常，请稍后重试！"
+            }
+          ],
+          "model": {
+            "mode": "chat",
+            "completion_params": {
+              "max_tokens": "<REDACTED_SECRET>"
+            }
+          },
+          "prompt_template": [
+            {
+              "role": "system",
+              "text": "你是一名中文写作改进专家。请只输出优化后的普通文本。\n输入：{{#start.inputStr#}}\n"
+            }
+          ],
+          "structured_output_enabled": true
+        },
+        "text": "llm\nLLM\ndefault-value\ntext\nstring\n大模型响应异常，请稍后重试！\nchat\nsystem\n你是一名中文写作改进专家。请只输出优化后的普通文本。\n输入：{{#start.inputStr#}}\n",
+        "variable_refs": [
+          {
+            "producer_node_id": "start",
+            "variable_name": "inputStr",
+            "consumer_node_id": "llm",
+            "json_pointer": "/workflow/graph/nodes/1/data/prompt_template/0/text",
+            "consumer_field": "text"
+          }
+        ],
+        "capabilities": [],
+        "external": false,
+        "high_impact": false
+      },
+      {
+        "id": "end",
+        "original_type": "end",
+        "type": "OUTPUT",
+        "title": "输出",
+        "json_pointer": "/workflow/graph/nodes/2",
+        "config": {
+          "type": "end",
+          "title": "输出",
+          "outputs": [
+            {
+              "variable": "result",
+              "value_type": "string",
+              "value_selector": [
+                "llm",
+                "text"
+              ]
+            }
+          ]
+        },
+        "text": "end\n输出\nresult\nstring\nllm\ntext",
+        "variable_refs": [
+          {
+            "producer_node_id": "llm",
+            "variable_name": "text",
+            "consumer_node_id": "end",
+            "json_pointer": "/workflow/graph/nodes/2/data/outputs/0/value_selector",
+            "consumer_field": "value_selector"
+          }
+        ],
+        "capabilities": [
+          "USER_OUTPUT"
+        ],
+        "external": false,
+        "high_impact": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "start-llm",
+        "source": "start",
+        "target": "llm",
+        "source_handle": null,
+        "target_handle": null
+      },
+      {
+        "id": "llm-end",
+        "source": "llm",
+        "target": "end",
+        "source_handle": null,
+        "target_handle": null
+      }
+    ],
+    "variable_refs": [
+      {
+        "producer_node_id": "start",
+        "variable_name": "inputStr",
+        "consumer_node_id": "llm",
+        "json_pointer": "/workflow/graph/nodes/1/data/prompt_template/0/text",
+        "consumer_field": "text"
+      },
+      {
+        "producer_node_id": "llm",
+        "variable_name": "text",
+        "consumer_node_id": "end",
+        "json_pointer": "/workflow/graph/nodes/2/data/outputs/0/value_selector",
+        "consumer_field": "value_selector"
+      }
+    ],
+    "coverage_gaps": [],
+    "raw_metadata": {
+      "source_file": "text-optimization-workflow.yml",
+      "node_count": 3,
+      "edge_count": 2,
+      "secret_locations": "<REDACTED_SECRET>"
+    }
+  }
+}

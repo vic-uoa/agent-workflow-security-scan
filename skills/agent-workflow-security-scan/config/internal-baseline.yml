@@ -13,7 +13,7 @@ risk_policy:
 quality_gate:
   blocking_severities: [CRITICAL, HIGH]
   blocking_statuses: [CONFIRMED]
-  review_statuses: [PROBABLE, COVERAGE_GAP]
+  review_statuses: [OBSERVED, PROBABLE, COVERAGE_GAP]
 
 sensitive_data_patterns:
   - password

@@ -17,6 +17,10 @@
     ,"references": {"type": "array", "items": {"type": "string"}}
     ,"provenance": {"type": "string"}
     ,"attack_family": {"type": "string"}
+    ,"root_cause_family": {"type": "string"}
+    ,"requires_dynamic_validation": {"type": "boolean"}
+    ,"applies_to": {"type": "array", "items": {"type": "string"}}
+    ,"exclusion_facts": {"type": "array", "items": {"type": "string"}}
   },
   "additionalProperties": true
 }

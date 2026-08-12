@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-8a5a85298ff1",
+  "producer": "evidence-verifier",
+  "producer_version": "0.2.0",
+  "workflow_hash": "940a278ec9308bfbcfdd6c19575fa11946573d11874376bbebf4066214d9f7e6",
+  "created_at": "2026-08-12T07:31:58.848981+00:00",
+  "verification": {
+    "valid": true,
+    "invalid_adjudication_refs": [],
+    "invalid_review_refs": [],
+    "applied_adjudications": [
+      {
+        "candidate_id": "CANDIDATE-8f84f3d9b496",
+        "finding_id": "FINDING-1ce58e786784"
+      },
+      {
+        "candidate_id": "CANDIDATE-82600a16c1b4",
+        "finding_id": "FINDING-4251f6ea6034"
+      },
+      {
+        "candidate_id": "CANDIDATE-1fcf8b4bb548",
+        "finding_id": "FINDING-7641c3cbfc99"
+      },
+      {
+        "candidate_id": "CANDIDATE-32c4f7cf49fb",
+        "finding_id": "FINDING-0c7f731b69a8"
+      },
+      {
+        "candidate_id": "CANDIDATE-06e072a0edb3",
+        "finding_id": "FINDING-3eadf75a309c"
+      },
+      {
+        "candidate_id": "CANDIDATE-5f7f51add361",
+        "finding_id": "FINDING-d2631fec976a"
+      }
+    ],
+    "applied_reviews": [
+      {
+        "finding_id": "FINDING-1ce58e786784",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-4251f6ea6034",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-7641c3cbfc99",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-0c7f731b69a8",
+        "decision": "ACCEPT"
+      }
+    ],
+    "policy": {
+      "llm_can_modify_confirmed": false,
+      "llm_can_promote_to_confirmed": false,
+      "unknown_references_rejected": true
+    },
+    "review": {
+      "reviews": [
+        {
+          "finding_id": "FINDING-1ce58e786784",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-1ce58e786784"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-4251f6ea6034",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-4251f6ea6034",
+            "FACT-b50035a187e1",
+            "FACT-22f64fdc334c"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-7641c3cbfc99",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-7641c3cbfc99"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-0c7f731b69a8",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-0c7f731b69a8"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        }
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "llm_errors": []
+  }
+}

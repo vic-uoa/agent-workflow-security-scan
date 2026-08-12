@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-922261163cc5",
+  "producer": "scanner",
+  "producer_version": "0.4.0",
+  "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+  "created_at": "2026-08-12T07:52:03.311747+00:00",
+  "dsl_file": "text-optimization-workflow.yml",
+  "samples_file": "assessment-samples.json",
+  "baseline_file": "internal-baseline.yml",
+  "rules_file": "core-rules.yml",
+  "rules_hash": "92dd0650ab55b8644a63a2b132bfcdd502752a105721d284ee9056bbc42e2788",
+  "baseline_hash": "59ece1af82e573a738306c18498b11fa5f76ea735c7531e93b83f044a3cfe6de",
+  "waivers_file": null,
+  "waivers_hash": null,
+  "llm_requested": "disabled",
+  "llm_enabled": false,
+  "scan_mode": "assessment",
+  "analyst_model": "gpt-5.6-terra",
+  "reviewer_model": "gpt-5.6-sol",
+  "scope": {
+    "platform_detection": false,
+    "runtime_iam": false,
+    "container_security": false,
+    "workflow_execution": false
+  }
+}

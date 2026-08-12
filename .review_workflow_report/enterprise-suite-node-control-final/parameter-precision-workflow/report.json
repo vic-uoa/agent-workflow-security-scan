@@ -1,0 +1,331 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-c8f2273a7acc",
+  "producer": "report-builder",
+  "producer_version": "0.5.0",
+  "workflow_hash": "2e8a09f646f1236a9aa4a393c948f4eef733caeaa4254fbc35899745c2a788a2",
+  "created_at": "2026-08-12T08:26:58.008827+00:00",
+  "report": {
+    "summary": {
+      "workflow_id": "parameter-precision",
+      "workflow_hash": "2e8a09f646f1236a9aa4a393c948f4eef733caeaa4254fbc35899745c2a788a2",
+      "node_count": 4,
+      "edge_count": 3,
+      "finding_count": 0,
+      "risk_item_count": 0,
+      "evidence_instance_count": 0,
+      "raw_observation_count": 0,
+      "coverage_gap_count": 0,
+      "severity_counts": {},
+      "status_counts": {},
+      "waived_count": 0,
+      "executive_summary": "扫描已完成。报告中的确定性证据、语义候选和覆盖缺口已分开呈现。"
+    },
+    "workflow": {
+      "nodes": [
+        {
+          "id": "start",
+          "title": "start",
+          "type": "INPUT",
+          "capabilities": []
+        },
+        {
+          "id": "validate",
+          "title": "确定性输入验证",
+          "type": "CONDITION",
+          "capabilities": []
+        },
+        {
+          "id": "http",
+          "title": "固定内部审计接口",
+          "type": "TOOL",
+          "capabilities": [
+            "MESSAGE_SEND",
+            "NETWORK_READ",
+            "NETWORK_WRITE"
+          ]
+        },
+        {
+          "id": "answer",
+          "title": "结果",
+          "type": "OUTPUT",
+          "capabilities": [
+            "USER_OUTPUT"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "start",
+          "target": "validate",
+          "source_handle": null,
+          "target_handle": null
+        },
+        {
+          "id": "e2",
+          "source": "validate",
+          "target": "http",
+          "source_handle": null,
+          "target_handle": null
+        },
+        {
+          "id": "e3",
+          "source": "http",
+          "target": "answer",
+          "source_handle": null,
+          "target_handle": null
+        }
+      ]
+    },
+    "semantic_inventory": {
+      "workflow_purpose": "内部工作流 parameter-precision；未启用 LLM 时仅根据节点名称和能力推断。",
+      "assets": [
+        {
+          "asset_id": "ASSET-1195909dcc24",
+          "name": "工具能力：固定内部审计接口",
+          "sensitivity": "INTERNAL",
+          "node_ids": [
+            "http"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 0.9
+        }
+      ],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-3c088d8ff13b",
+          "from_zone": "model_or_workflow",
+          "to_zone": "tool_runtime",
+          "node_ids": [
+            "http"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-f94c0612a7f3",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "security_invariants": [
+        {
+          "invariant_id": "INV-001",
+          "statement": "不可信内容不得覆盖系统目标或授权策略。",
+          "node_ids": [],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-002",
+          "statement": "模型输出不得在无确定性校验时触发高影响工具。",
+          "node_ids": [],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-003",
+          "statement": "敏感数据不得未经授权离开工作流信任边界。",
+          "node_ids": [
+            "http",
+            "answer"
+          ],
+          "evidence": []
+        }
+      ],
+      "attack_hypotheses": [],
+      "assumptions": [
+        "语义清单为确定性降级结果，业务语义需在完整 LLM 扫描或人工复核中确认。"
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "findings": [],
+    "node_risk_summary": [],
+    "attack_surface": {
+      "entrypoints": [
+        {
+          "entrypoint_id": "ENTRY-cced28c6dc3f",
+          "node_id": "start",
+          "name": "start",
+          "type": "INPUT",
+          "trust": "UNTRUSTED",
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ]
+        },
+        {
+          "entrypoint_id": "ENTRY-f047c58d3fd9",
+          "node_id": "http",
+          "name": "工具返回：固定内部审计接口",
+          "type": "TOOL_OUTPUT",
+          "trust": "UNTRUSTED",
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "asset_id": "ASSET-1195909dcc24",
+          "name": "工具能力：固定内部审计接口",
+          "sensitivity": "INTERNAL",
+          "node_ids": [
+            "http"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 0.9
+        }
+      ],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-3c088d8ff13b",
+          "from_zone": "model_or_workflow",
+          "to_zone": "tool_runtime",
+          "node_ids": [
+            "http"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-f94c0612a7f3",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "capabilities": [
+        {
+          "node_id": "http",
+          "name": "固定内部审计接口",
+          "capabilities": [
+            "MESSAGE_SEND",
+            "NETWORK_READ",
+            "NETWORK_WRITE"
+          ],
+          "external": true,
+          "high_impact": false
+        },
+        {
+          "node_id": "answer",
+          "name": "结果",
+          "capabilities": [
+            "USER_OUTPUT"
+          ],
+          "external": true,
+          "high_impact": false
+        }
+      ],
+      "attack_paths": [],
+      "risk_chains": [],
+      "semantic_attack_hypotheses": [],
+      "test_coverage": {
+        "covered_finding_ids": [],
+        "uncovered_finding_ids": [],
+        "execution_evidence_present": false,
+        "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。"
+      },
+      "missing_runtime_context": []
+    },
+    "test_cluster_summary": {
+      "case_count": 0,
+      "case_ids": [],
+      "case_type_counts": {},
+      "seed_sample_ids": [],
+      "lineage_verified": true,
+      "execution_evidence_present": false
+    },
+    "priority_actions": [],
+    "verification": {
+      "valid": true,
+      "invalid_adjudication_refs": [],
+      "invalid_review_refs": [],
+      "applied_adjudications": [],
+      "applied_reviews": [],
+      "policy": {
+        "llm_can_modify_confirmed": false,
+        "llm_can_promote_to_confirmed": false,
+        "llm_generated_tests_are_finding_evidence": false,
+        "root_cause_aggregation_may_drop_rule_coverage": false,
+        "unknown_references_rejected": true
+      },
+      "coverage_accounting": {
+        "catalog_rule_count": 72,
+        "raw_match_count": 0,
+        "root_finding_count": 0,
+        "raw_rule_ids": [],
+        "final_primary_or_related_rule_ids": [],
+        "lost_rule_ids": [],
+        "lossless_root_cause_aggregation": true
+      },
+      "test_cluster": {
+        "seed_sample_ids": [],
+        "case_type_counts": {
+          "positive": 0,
+          "negative": 0,
+          "boundary": 0,
+          "metamorphic": 0
+        },
+        "all_cases_not_executed": true,
+        "accepted_case_count": 0,
+        "rejected_model_cases": [],
+        "required_case_types_present": true,
+        "lineage_verified": true,
+        "execution_evidence_present": false
+      },
+      "review": {
+        "reviews": [],
+        "producer": "deterministic-fallback"
+      },
+      "llm_errors": []
+    },
+    "quality_gate": {
+      "decision": "PASS",
+      "exit_code": 0,
+      "policy": {
+        "blocking_severities": [
+          "CRITICAL",
+          "HIGH"
+        ],
+        "blocking_statuses": [
+          "CONFIRMED"
+        ],
+        "review_statuses": [
+          "COVERAGE_GAP",
+          "OBSERVED",
+          "PROBABLE"
+        ],
+        "waivers_require_workflow_hash_approver_justification_and_expiry": true
+      },
+      "blocking_finding_ids": [],
+      "review_finding_ids": [],
+      "blocking_count": 0,
+      "review_count": 0,
+      "waived_count": 0,
+      "waiver_audit": {
+        "applied": [],
+        "rejected": []
+      }
+    }
+  }
+}

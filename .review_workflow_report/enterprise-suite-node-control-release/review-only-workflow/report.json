@@ -1,0 +1,441 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-528b4ad15360",
+  "producer": "report-builder",
+  "producer_version": "0.5.0",
+  "workflow_hash": "4d1f3d367ae97e7d28f6037990bc8defe24432b046f71c4875ffae58b3369f03",
+  "created_at": "2026-08-12T08:31:03.901123+00:00",
+  "report": {
+    "summary": {
+      "workflow_id": "review-only-llm",
+      "workflow_hash": "4d1f3d367ae97e7d28f6037990bc8defe24432b046f71c4875ffae58b3369f03",
+      "node_count": 3,
+      "edge_count": 2,
+      "finding_count": 1,
+      "risk_item_count": 1,
+      "evidence_instance_count": 1,
+      "raw_observation_count": 2,
+      "coverage_gap_count": 1,
+      "severity_counts": {
+        "MEDIUM": 1
+      },
+      "status_counts": {
+        "PROBABLE": 1,
+        "COVERAGE_GAP": 1
+      },
+      "waived_count": 0,
+      "executive_summary": "扫描已完成。报告中的确定性证据、语义候选和覆盖缺口已分开呈现。"
+    },
+    "workflow": {
+      "nodes": [
+        {
+          "id": "start",
+          "title": "User input",
+          "type": "INPUT",
+          "capabilities": []
+        },
+        {
+          "id": "llm",
+          "title": "Bounded summarizer",
+          "type": "LLM",
+          "capabilities": []
+        },
+        {
+          "id": "answer",
+          "title": "Strict JSON output",
+          "type": "OUTPUT",
+          "capabilities": [
+            "USER_OUTPUT"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "start",
+          "target": "llm",
+          "source_handle": null,
+          "target_handle": null
+        },
+        {
+          "id": "e2",
+          "source": "llm",
+          "target": "answer",
+          "source_handle": null,
+          "target_handle": null
+        }
+      ]
+    },
+    "semantic_inventory": {
+      "workflow_purpose": "内部工作流 review-only-llm；未启用 LLM 时仅根据节点名称和能力推断。",
+      "assets": [],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-8f4d0090e54c",
+          "from_zone": "workflow_runtime",
+          "to_zone": "model_service",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/1"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-bfc04ec84622",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "security_invariants": [
+        {
+          "invariant_id": "INV-001",
+          "statement": "不可信内容不得覆盖系统目标或授权策略。",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-002",
+          "statement": "模型输出不得在无确定性校验时触发高影响工具。",
+          "node_ids": [],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-003",
+          "statement": "敏感数据不得未经授权离开工作流信任边界。",
+          "node_ids": [],
+          "evidence": []
+        }
+      ],
+      "attack_hypotheses": [],
+      "assumptions": [
+        "语义清单为确定性降级结果，业务语义需在完整 LLM 扫描或人工复核中确认。"
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "findings": [
+      {
+        "id": "RISK-3830078f85df",
+        "rule_id": "LLM-009",
+        "title": "Bounded summarizer：失败处理与资源预算不足",
+        "status": "PROBABLE",
+        "severity": "MEDIUM",
+        "confidence": 0.8,
+        "node_ids": [
+          "llm"
+        ],
+        "evidence_refs": [
+          "FACT-91101ff7dec6"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/1"
+        ],
+        "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+        "remediation": [
+          "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "AISVS-9.1"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [],
+        "dynamic_test": "resource_budget",
+        "root_cause_id": "RISK-3830078f85df",
+        "related_rule_ids": [],
+        "anchor_node_id": "llm",
+        "control_domain": "resilience_budget",
+        "potential_severity": "MEDIUM",
+        "finding_instance_ids": [
+          "RISK-3830078f85df"
+        ],
+        "path_variants": [
+          [
+            "llm"
+          ]
+        ],
+        "instance_summaries": [
+          {
+            "finding_id": "FINDING-91101ff7dec6",
+            "rule_ids": [
+              "LLM-009"
+            ],
+            "status": "PROBABLE",
+            "severity": "MEDIUM",
+            "path": [
+              "llm"
+            ],
+            "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+            "evidence_refs": [
+              "FACT-91101ff7dec6"
+            ]
+          }
+        ],
+        "dynamic_tests": [
+          "resource_budget"
+        ],
+        "waived": false,
+        "waiver_id": null
+      },
+      {
+        "id": "RISK-983d9e72f13b",
+        "rule_id": "LLM-010",
+        "title": "Bounded summarizer：失败处理与资源预算不足",
+        "status": "COVERAGE_GAP",
+        "severity": "MEDIUM",
+        "confidence": 1.0,
+        "node_ids": [
+          "llm"
+        ],
+        "evidence_refs": [
+          "FACT-9d7a8c4fd729"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/1"
+        ],
+        "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+        "remediation": [
+          "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "AISVS-9.6"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [
+          "运行时可能统一处理模型错误。"
+        ],
+        "dynamic_test": null,
+        "root_cause_id": "RISK-983d9e72f13b",
+        "related_rule_ids": [],
+        "anchor_node_id": "llm",
+        "control_domain": "resilience_budget",
+        "potential_severity": "MEDIUM",
+        "finding_instance_ids": [
+          "RISK-983d9e72f13b"
+        ],
+        "path_variants": [
+          [
+            "llm"
+          ]
+        ],
+        "instance_summaries": [
+          {
+            "finding_id": "FINDING-9d7a8c4fd729",
+            "rule_ids": [
+              "LLM-010"
+            ],
+            "status": "COVERAGE_GAP",
+            "severity": "MEDIUM",
+            "path": [
+              "llm"
+            ],
+            "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+            "evidence_refs": [
+              "FACT-9d7a8c4fd729"
+            ]
+          }
+        ],
+        "dynamic_tests": [],
+        "waived": false,
+        "waiver_id": null
+      }
+    ],
+    "node_risk_summary": [
+      {
+        "node_id": "llm",
+        "node_title": "Bounded summarizer",
+        "node_type": "LLM",
+        "risk_item_count": 1,
+        "risk_item_ids": [
+          "RISK-3830078f85df"
+        ],
+        "control_domains": [
+          "resilience_budget"
+        ],
+        "highest_severity": "MEDIUM"
+      }
+    ],
+    "attack_surface": {
+      "entrypoints": [
+        {
+          "entrypoint_id": "ENTRY-cced28c6dc3f",
+          "node_id": "start",
+          "name": "User input",
+          "type": "INPUT",
+          "trust": "UNTRUSTED",
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ]
+        }
+      ],
+      "assets": [],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-8f4d0090e54c",
+          "from_zone": "workflow_runtime",
+          "to_zone": "model_service",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/1"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-bfc04ec84622",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "capabilities": [
+        {
+          "node_id": "answer",
+          "name": "Strict JSON output",
+          "capabilities": [
+            "USER_OUTPUT"
+          ],
+          "external": false,
+          "high_impact": false
+        }
+      ],
+      "attack_paths": [],
+      "risk_chains": [],
+      "semantic_attack_hypotheses": [],
+      "test_coverage": {
+        "covered_finding_ids": [
+          "RISK-3830078f85df"
+        ],
+        "uncovered_finding_ids": [],
+        "execution_evidence_present": false,
+        "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。"
+      },
+      "missing_runtime_context": [
+        "运行时可能统一处理模型错误。"
+      ]
+    },
+    "test_cluster_summary": {
+      "case_count": 1,
+      "case_ids": [
+        "TC-2c05fd4d1c92"
+      ],
+      "case_type_counts": {
+        "negative": 1
+      },
+      "seed_sample_ids": [],
+      "lineage_verified": true,
+      "execution_evidence_present": false
+    },
+    "priority_actions": [],
+    "verification": {
+      "valid": true,
+      "invalid_adjudication_refs": [],
+      "invalid_review_refs": [],
+      "applied_adjudications": [
+        {
+          "candidate_id": "CANDIDATE-6aa51145a32a",
+          "finding_id": "RISK-3830078f85df"
+        },
+        {
+          "candidate_id": "CANDIDATE-64e3dc1bb627",
+          "finding_id": "RISK-983d9e72f13b"
+        }
+      ],
+      "applied_reviews": [],
+      "policy": {
+        "llm_can_modify_confirmed": false,
+        "llm_can_promote_to_confirmed": false,
+        "llm_generated_tests_are_finding_evidence": false,
+        "root_cause_aggregation_may_drop_rule_coverage": false,
+        "unknown_references_rejected": true
+      },
+      "coverage_accounting": {
+        "catalog_rule_count": 72,
+        "raw_match_count": 2,
+        "root_finding_count": 2,
+        "node_control_risk_item_count": 2,
+        "raw_rule_ids": [
+          "LLM-009",
+          "LLM-010"
+        ],
+        "final_primary_or_related_rule_ids": [
+          "LLM-009",
+          "LLM-010"
+        ],
+        "lost_rule_ids": [],
+        "lossless_root_cause_aggregation": true
+      },
+      "test_cluster": {
+        "seed_sample_ids": [],
+        "case_type_counts": {
+          "positive": 0,
+          "negative": 1,
+          "boundary": 0,
+          "metamorphic": 0
+        },
+        "all_cases_not_executed": true,
+        "accepted_case_count": 1,
+        "rejected_model_cases": [],
+        "required_case_types_present": true,
+        "lineage_verified": true,
+        "execution_evidence_present": false
+      },
+      "review": {
+        "reviews": [],
+        "producer": "deterministic-fallback"
+      },
+      "llm_errors": []
+    },
+    "quality_gate": {
+      "decision": "REVIEW",
+      "exit_code": 0,
+      "policy": {
+        "blocking_severities": [
+          "CRITICAL",
+          "HIGH"
+        ],
+        "blocking_statuses": [
+          "CONFIRMED"
+        ],
+        "review_statuses": [
+          "COVERAGE_GAP",
+          "OBSERVED",
+          "PROBABLE"
+        ],
+        "waivers_require_workflow_hash_approver_justification_and_expiry": true
+      },
+      "blocking_finding_ids": [],
+      "review_finding_ids": [
+        "RISK-3830078f85df",
+        "RISK-983d9e72f13b"
+      ],
+      "blocking_count": 0,
+      "review_count": 2,
+      "waived_count": 0,
+      "waiver_audit": {
+        "applied": [],
+        "rejected": []
+      }
+    }
+  }
+}

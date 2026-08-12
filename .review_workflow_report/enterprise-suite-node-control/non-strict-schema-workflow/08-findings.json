@@ -1,0 +1,296 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-74e533d841be",
+  "producer": "finding-merger",
+  "producer_version": "0.5.0",
+  "workflow_hash": "940a278ec9308bfbcfdd6c19575fa11946573d11874376bbebf4066214d9f7e6",
+  "created_at": "2026-08-12T08:23:44.576992+00:00",
+  "findings": [
+    {
+      "id": "RISK-d24112f5fd2c",
+      "rule_id": "LLM-005",
+      "title": "send-email：结构化数据契约不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm",
+        "tool"
+      ],
+      "evidence_refs": [
+        "FACT-d2631fec976a",
+        "FACT-4251f6ea6034",
+        "FACT-b50035a187e1",
+        "FACT-22f64fdc334c"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "责任节点“send-email”在“结构化数据契约不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3",
+        "AISVS-C7",
+        "ASI07"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "free_text_tool_control",
+      "root_cause_id": "RISK-d24112f5fd2c",
+      "related_rule_ids": [
+        "TOOL-011",
+        "LLM-006",
+        "OUT-006"
+      ],
+      "anchor_node_id": "tool",
+      "control_domain": "structured_data_contract",
+      "finding_instance_ids": [
+        "FINDING-d2631fec976a",
+        "FINDING-4251f6ea6034",
+        "FINDING-b50035a187e1",
+        "FINDING-22f64fdc334c"
+      ],
+      "path_variants": [
+        [
+          "tool"
+        ],
+        [
+          "llm",
+          "tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-d2631fec976a",
+          "rule_ids": [
+            "TOOL-011"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "tool"
+          ],
+          "message": "工具输入缺少可识别的严格 Schema。",
+          "evidence_refs": [
+            "FACT-d2631fec976a"
+          ]
+        },
+        {
+          "finding_id": "FINDING-4251f6ea6034",
+          "rule_ids": [
+            "LLM-005",
+            "LLM-006",
+            "OUT-006"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "llm",
+            "tool"
+          ],
+          "message": "LLM 自由文本输出可直接影响工具参数。",
+          "evidence_refs": [
+            "FACT-4251f6ea6034",
+            "FACT-b50035a187e1",
+            "FACT-22f64fdc334c"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "free_text_tool_control"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-808c4fa56b05",
+      "rule_id": "TOOL-008",
+      "title": "send-email：高影响动作授权控制不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "start",
+        "llm",
+        "tool"
+      ],
+      "evidence_refs": [
+        "FACT-0c7f731b69a8",
+        "FACT-1ce58e786784",
+        "FACT-7641c3cbfc99"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "责任节点“send-email”在“高影响动作授权控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。",
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "high_impact_action_approval",
+      "root_cause_id": "RISK-808c4fa56b05",
+      "related_rule_ids": [
+        "FLOW-003",
+        "LLM-008"
+      ],
+      "anchor_node_id": "tool",
+      "control_domain": "action_authorization",
+      "finding_instance_ids": [
+        "RISK-808c4fa56b05",
+        "FINDING-1ce58e786784",
+        "FINDING-7641c3cbfc99"
+      ],
+      "path_variants": [
+        [
+          "start",
+          "llm",
+          "tool"
+        ],
+        [
+          "llm",
+          "tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-0c7f731b69a8",
+          "rule_ids": [
+            "TOOL-008"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "llm",
+            "tool"
+          ],
+          "message": "高影响工具存在不经过审批节点的可达路径。",
+          "evidence_refs": [
+            "FACT-0c7f731b69a8"
+          ]
+        },
+        {
+          "finding_id": "FINDING-1ce58e786784",
+          "rule_ids": [
+            "FLOW-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "llm",
+            "tool"
+          ],
+          "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+          "evidence_refs": [
+            "FACT-1ce58e786784"
+          ]
+        },
+        {
+          "finding_id": "FINDING-7641c3cbfc99",
+          "rule_ids": [
+            "LLM-008"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "llm",
+            "tool"
+          ],
+          "message": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。",
+          "evidence_refs": [
+            "FACT-7641c3cbfc99"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "high_impact_action_approval",
+        "source_to_high_impact_sink",
+        "high_impact_model_decision"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-a81c6781e7ab",
+      "rule_id": "TOOL-009",
+      "title": "send-email：失败处理与资源预算不足",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "tool"
+      ],
+      "evidence_refs": [
+        "FACT-3eadf75a309c"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "tool_business_purpose",
+        "allowed_operations"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-a81c6781e7ab",
+      "related_rule_ids": [],
+      "anchor_node_id": "tool",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-a81c6781e7ab"
+      ],
+      "path_variants": [
+        [
+          "tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-3eadf75a309c",
+          "rule_ids": [
+            "TOOL-009"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "MEDIUM",
+          "path": [
+            "tool"
+          ],
+          "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+          "evidence_refs": [
+            "FACT-3eadf75a309c"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    }
+  ]
+}

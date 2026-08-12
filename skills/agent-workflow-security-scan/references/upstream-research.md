@@ -11,6 +11,9 @@
 - OWASP 基准：[Top 10 for Agentic Applications 2026](https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/)
 - OWASP 工程控制：[Securing Agentic Applications Guide 1.0](https://genai.owasp.org/download/49059/?tmstv=1753666640)
 - Dify DSL 实现参考：[app_dsl_service.py](https://github.com/langgenius/dify/blob/main/api/services/app_dsl_service.py)
+- NIST TEVV：[AI Test, Evaluation, Validation and Verification](https://www.nist.gov/ai-test-evaluation-validation-and-verification-tevv) 与 [AI RMF Measure](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)。本 Skill 据此记录测试集、方法、适用上下文和测量限制，不把未执行用例当作测量结果。
+- OWASP Prompt Injection：[LLM01:2025](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)。提示注入需要持续渗透测试和边界验证，因此 DSL 可达性只形成静态前置条件，不能单独证明模型会服从攻击输入。
+- Promptfoo：[promptfoo/promptfoo](https://github.com/promptfoo/promptfoo)。参考其测试变量、断言和红队数据集分离方式；本 Skill 进一步将用户种子、派生方式、安全不变量与禁止副作用显式写入每个用例。
 
 ## 从动态行为到静态前置条件
 
@@ -30,10 +33,12 @@
 | Human-agent trust exploit | 面向人的审批、验证、可信或紧急声明无可验证来源 | OUT-010 | 用户界面是否诱导高风险操作、审批证据是否可伪造 |
 | Rogue agents | 自主 Agent 接收不可信上下文、可达高危能力且缺少目标锁定/停止边界 | FLOW-013 | 是否偏离目标、隐藏行为或拒绝紧急停止 |
 
-## 三阶段的本地映射
+## 五阶段的本地映射
 
-1. 信息收集映射为 `01-workflow-ir.json` 与 `03-semantic-inventory.json`：确定节点、能力、资产、信任边界、不变量和有前置条件的攻击假设。
-2. 分类检测映射为 `02-security-facts.json`、`04-rule-candidates.json` 与 `05-test-cluster.json`：确定性规则先产生事实，模型只补充语义和安全测试变体。
-3. 复核映射为 `06-llm-adjudication.json` 与 `07-verification.json`：独立模型只能降级或要求上下文，不能创造确定性事实或把候选提升为 `CONFIRMED`。
+1. 用户确认唯一 DSL，扫描清单记录文件名和哈希。
+2. 用户提供并确认业务种子输入及预期行为；不要求用户预先编写攻击集。
+3. `01` 至 `04` 先完成静态解析、事实提取、全规则匹配和根因聚合；`04` 同时保留聚合前的全部命中。
+4. `05-test-cluster.json` 从种子和静态根因派生正例、反例、边界、变形和规则定向用例；每项保留血缘与 `NOT_EXECUTED` 状态。
+5. `08` 与 `09` 将静态根因和测试覆盖关联成报告及攻击面；用例不会回流成为 `06` 的判定证据。
 
-这种映射保留了上游“先收集、再分类检测、最后复核”的稳定性，同时避免把动态对话结果伪装成 DSL 静态结论。
+该顺序保证先检测再生成测试，避免模型根据自己生成的攻击样例反向证明风险。动态执行结果只有在独立沙盒记录请求、响应、断言和副作用证据后，才可进入后续验证流程。

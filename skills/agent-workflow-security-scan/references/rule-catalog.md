@@ -24,12 +24,17 @@ Every rule has an ID, base severity, detectability class, standard mappings, evi
 ## Evidence states
 
 - `CONFIRMED`: deterministic DSL/config/path evidence exists.
+- `OBSERVED`: a deterministic DSL property exists, but exploitability or business impact has not been demonstrated.
 - `PROBABLE`: the path is proven but semantic or runtime assumptions remain.
 - `CANDIDATE`: semantic hypothesis requiring validation.
 - `COVERAGE_GAP`: the required fact is absent from DSL.
 - `MITIGATED`: an effective mandatory control blocks the path.
 
 An LLM cannot create `CONFIRMED`, overwrite facts, or cite an unknown ID.
+
+The catalog assigns every rule to exactly one remediation-oriented `control_domain`. The scanner first correlates aliases, then forms one user-facing risk item per responsible node, control domain and evidence class. Preserve underlying rules, messages and path variants in the evidence layer; do not count them as separate vulnerabilities.
+
+Do not collapse unlike controls merely because they share a node. Authorization, code/query execution safety, egress, data protection, structured contracts, resilience, supply chain and Agent governance can require different owners and acceptance tests.
 
 ## Rule families
 
@@ -51,7 +56,8 @@ DSL-only scanning does not prove actual IAM, knowledge ACLs, plugin implementati
 ## Adding a rule
 
 1. Add metadata to `rules/core-rules.yml`.
-2. Add a deterministic or hybrid evaluator to `engine.py`.
-3. Emit a Fact before a Finding and preserve DSL pointers.
-4. Add positive, negative, mitigated, and coverage-gap fixtures.
-5. Map a safe dynamic test type when runtime confirmation is needed.
+2. Assign the rule to exactly one `control_domains` entry. Catalog loading fails on missing, duplicate or unknown assignments.
+3. Add a deterministic or hybrid evaluator to `engine.py`.
+4. Emit a Fact before a Finding and preserve DSL pointers.
+5. Add positive, negative, mitigated, and coverage-gap fixtures.
+6. Map a safe dynamic test type when runtime confirmation is needed.

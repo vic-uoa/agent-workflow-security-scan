@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-6fd45b8242fd",
+  "producer": "evidence-verifier",
+  "producer_version": "0.5.0",
+  "workflow_hash": "940a278ec9308bfbcfdd6c19575fa11946573d11874376bbebf4066214d9f7e6",
+  "created_at": "2026-08-12T08:29:30.931092+00:00",
+  "verification": {
+    "valid": true,
+    "invalid_adjudication_refs": [],
+    "invalid_review_refs": [],
+    "applied_adjudications": [
+      {
+        "candidate_id": "CANDIDATE-6c39d8103ab9",
+        "finding_id": "RISK-d24112f5fd2c"
+      },
+      {
+        "candidate_id": "CANDIDATE-d74895d629e6",
+        "finding_id": "RISK-808c4fa56b05"
+      },
+      {
+        "candidate_id": "CANDIDATE-d04f2b416192",
+        "finding_id": "RISK-a81c6781e7ab"
+      }
+    ],
+    "applied_reviews": [
+      {
+        "finding_id": "RISK-d24112f5fd2c",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "RISK-808c4fa56b05",
+        "decision": "ACCEPT"
+      }
+    ],
+    "policy": {
+      "llm_can_modify_confirmed": false,
+      "llm_can_promote_to_confirmed": false,
+      "llm_generated_tests_are_finding_evidence": false,
+      "root_cause_aggregation_may_drop_rule_coverage": false,
+      "unknown_references_rejected": true
+    },
+    "coverage_accounting": {
+      "catalog_rule_count": 72,
+      "raw_match_count": 8,
+      "root_finding_count": 3,
+      "node_control_risk_item_count": 3,
+      "raw_rule_ids": [
+        "FLOW-003",
+        "LLM-005",
+        "LLM-006",
+        "LLM-008",
+        "OUT-006",
+        "TOOL-008",
+        "TOOL-009",
+        "TOOL-011"
+      ],
+      "final_primary_or_related_rule_ids": [
+        "FLOW-003",
+        "LLM-005",
+        "LLM-006",
+        "LLM-008",
+        "OUT-006",
+        "TOOL-008",
+        "TOOL-009",
+        "TOOL-011"
+      ],
+      "lost_rule_ids": [],
+      "lossless_root_cause_aggregation": true
+    },
+    "test_cluster": {
+      "seed_sample_ids": [],
+      "case_type_counts": {
+        "positive": 0,
+        "negative": 4,
+        "boundary": 0,
+        "metamorphic": 0
+      },
+      "all_cases_not_executed": true,
+      "accepted_case_count": 4,
+      "rejected_model_cases": [],
+      "required_case_types_present": true,
+      "lineage_verified": true,
+      "execution_evidence_present": false
+    },
+    "review": {
+      "reviews": [
+        {
+          "finding_id": "RISK-d24112f5fd2c",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-d2631fec976a",
+            "FACT-4251f6ea6034",
+            "FACT-b50035a187e1",
+            "FACT-22f64fdc334c"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "RISK-808c4fa56b05",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-0c7f731b69a8",
+            "FACT-1ce58e786784",
+            "FACT-7641c3cbfc99"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        }
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "llm_errors": []
+  }
+}

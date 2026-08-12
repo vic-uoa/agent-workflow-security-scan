@@ -18,7 +18,7 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from agent_workflow_scan.engine import execute_rules  # noqa: E402
-from agent_workflow_scan.llm import OpenAIResponsesClient, redact_for_model  # noqa: E402
+from agent_workflow_scan.llm import OpenAIResponsesClient, SemanticPipeline, redact_for_model  # noqa: E402
 from agent_workflow_scan.parser import parse_dify_dsl  # noqa: E402
 from agent_workflow_scan.pipeline import apply_baseline, load_baseline, run_scan  # noqa: E402
 
@@ -26,6 +26,14 @@ from agent_workflow_scan.pipeline import apply_baseline, load_baseline, run_scan
 FIXTURES = ROOT / "tests" / "fixtures"
 RULES = ROOT / "rules" / "core-rules.yml"
 BASELINE = ROOT / "config" / "internal-baseline.yml"
+
+
+def all_rule_ids(findings) -> set[str]:
+    return {
+        rule_id
+        for finding in findings
+        for rule_id in [finding.rule_id, *finding.related_rule_ids]
+    }
 
 
 class ParserTests(unittest.TestCase):
@@ -92,7 +100,7 @@ class RuleTests(unittest.TestCase):
     def test_risky_chain_triggers_expected_rules(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "risky-workflow.yml")
         _, findings, _ = execute_rules(ir, RULES)
-        rule_ids = {finding.rule_id for finding in findings}
+        rule_ids = all_rule_ids(findings)
         for rule_id in {"FLOW-005", "LLM-001", "LLM-003", "TOOL-003", "TOOL-010", "KB-005"}:
             self.assertIn(rule_id, rule_ids)
         confirmed_high = [finding for finding in findings if finding.status == "CONFIRMED" and finding.severity in {"HIGH", "CRITICAL"}]
@@ -101,15 +109,26 @@ class RuleTests(unittest.TestCase):
     def test_safe_fixture_has_no_secret_or_high_impact_tool_findings(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "safe-workflow.yml")
         _, findings, _ = execute_rules(ir, RULES)
-        rule_ids = {finding.rule_id for finding in findings}
+        rule_ids = all_rule_ids(findings)
         self.assertNotIn("FLOW-008", rule_ids)
         self.assertNotIn("TOOL-008", rule_ids)
+
+    def test_text_optimization_workflow_has_one_prompt_root_cause_without_output_false_positives(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "text-optimization-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        prompt_findings = [finding for finding in findings if finding.root_cause_id and "LLM-001" in {finding.rule_id, *finding.related_rule_ids}]
+        self.assertEqual(1, len(prompt_findings))
+        self.assertEqual("OBSERVED", prompt_findings[0].status)
+        self.assertEqual("MEDIUM", prompt_findings[0].severity)
+        self.assertTrue({"IN-007", "IN-009", "LLM-002"}.issubset(set(prompt_findings[0].related_rule_ids)))
+        self.assertFalse({"OUT-001", "OUT-008"} & all_rule_ids(findings))
+        self.assertIn("IN-002", all_rule_ids(findings))
 
     def test_tencent_inspired_static_precursors_are_detected(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "tencent-inspired-workflow.yml")
         apply_baseline(ir, load_baseline(BASELINE))
         _, findings, candidates = execute_rules(ir, RULES)
-        rule_ids = {finding.rule_id for finding in findings}
+        rule_ids = all_rule_ids(findings)
         expected = {
             "IN-009", "FLOW-009", "FLOW-010", "FLOW-011", "FLOW-012", "FLOW-013",
             "TOOL-015", "TOOL-016", "TOOL-017", "OUT-009", "OUT-010",
@@ -143,7 +162,7 @@ class RuleTests(unittest.TestCase):
         ir, _ = parse_dify_dsl(FIXTURES / "keyword-spoofed-control.yml")
         apply_baseline(ir, load_baseline(BASELINE))
         _, findings, _ = execute_rules(ir, RULES)
-        rule_ids = {finding.rule_id for finding in findings}
+        rule_ids = all_rule_ids(findings)
         self.assertIn("FLOW-003", rule_ids)
         self.assertIn("TOOL-008", rule_ids)
 
@@ -151,7 +170,7 @@ class RuleTests(unittest.TestCase):
         ir, _ = parse_dify_dsl(FIXTURES / "parameter-precision-workflow.yml")
         apply_baseline(ir, load_baseline(BASELINE))
         _, findings, _ = execute_rules(ir, RULES)
-        rule_ids = {finding.rule_id for finding in findings}
+        rule_ids = all_rule_ids(findings)
         self.assertNotIn("TOOL-003", rule_ids)
         self.assertNotIn("TOOL-017", rule_ids)
 
@@ -159,7 +178,7 @@ class RuleTests(unittest.TestCase):
         ir, _ = parse_dify_dsl(FIXTURES / "non-strict-schema-workflow.yml")
         apply_baseline(ir, load_baseline(BASELINE))
         _, findings, _ = execute_rules(ir, RULES)
-        rule_ids = {finding.rule_id for finding in findings}
+        rule_ids = all_rule_ids(findings)
         self.assertIn("LLM-006", rule_ids)
         self.assertIn("TOOL-011", rule_ids)
 
@@ -167,11 +186,31 @@ class RuleTests(unittest.TestCase):
         ir, _ = parse_dify_dsl(FIXTURES / "document-indirect-injection-workflow.yml")
         apply_baseline(ir, load_baseline(BASELINE))
         _, findings, _ = execute_rules(ir, RULES)
-        rule_ids = {finding.rule_id for finding in findings}
+        rule_ids = all_rule_ids(findings)
         self.assertTrue(any(node.type == "CONTENT" for node in ir.nodes))
         self.assertIn("FLOW-005", rule_ids)
         self.assertIn("LLM-003", rule_ids)
         self.assertIn("FLOW-010", rule_ids)
+
+    def test_node_control_aggregation_merges_paths_but_keeps_distinct_controls(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "tencent-inspired-workflow.yml")
+        apply_baseline(ir, load_baseline(BASELINE))
+        _, findings, candidates = execute_rules(ir, RULES)
+        code_items = [finding for finding in findings if finding.anchor_node_id == "code"]
+        domains = {finding.control_domain for finding in code_items}
+        self.assertIn("action_authorization", domains)
+        self.assertIn("execution_boundary", domains)
+        self.assertIn("structured_data_contract", domains)
+        authorization = next(finding for finding in code_items if finding.control_domain == "action_authorization")
+        self.assertGreater(len(authorization.instance_summaries), 1)
+        self.assertIn("FLOW-003", {authorization.rule_id, *authorization.related_rule_ids})
+        agent_governance = next(finding for finding in findings if finding.control_domain == "agent_governance")
+        self.assertEqual("llm2", agent_governance.anchor_node_id)
+        self.assertTrue(candidates["raw_match_count"] > len(findings))
+        self.assertEqual(
+            set(candidates["raw_rule_ids"]),
+            {rule_id for finding in findings for rule_id in (finding.rule_id, *finding.related_rule_ids)},
+        )
 
     def test_sensitive_start_field_does_not_taint_unrelated_model_input(self) -> None:
         ir, _ = parse_dify_dsl(ROOT / "examples" / "demo-static-employee-assistant.yml")
@@ -185,19 +224,77 @@ class RuleTests(unittest.TestCase):
 
 
 class PipelineTests(unittest.TestCase):
-    def test_user_samples_preserve_positive_negative_and_boundary_types(self) -> None:
+    def test_user_seed_derives_positive_negative_boundary_and_metamorphic_cluster(self) -> None:
         from agent_workflow_scan.llm import deterministic_test_cluster
 
         cluster = deterministic_test_cluster({"samples": [
-            {"sample_id": "p", "case_type": "positive", "input": {"query": "ok"}},
-            {"sample_id": "n", "case_type": "negative", "attack_techniques": ["direct_prompt_injection"], "input": {"query": "test"}},
-            {"sample_id": "b", "case_type": "boundary", "input": {"query": "edge"}},
+            {"sample_id": "seed-1", "input": {"query": "ok"}, "expected_business_intent": "answer normally"},
         ]}, [])
-        by_id = {case["case_id"]: case for case in cluster["cases"]}
-        self.assertEqual("baseline", by_id["p"]["generation_source"])
-        self.assertEqual("rule_targeted", by_id["n"]["generation_source"])
-        self.assertEqual(["direct_prompt_injection"], by_id["n"]["attack_techniques"])
-        self.assertEqual("boundary", by_id["b"]["generation_source"])
+        self.assertEqual({"positive", "negative", "boundary", "metamorphic"}, {
+            case["case_type"] for case in cluster["cases"]
+        })
+        self.assertTrue(all(case["seed_sample_ids"] == ["seed-1"] for case in cluster["cases"]))
+        self.assertTrue(all(case["execution_status"] == "NOT_EXECUTED" for case in cluster["cases"]))
+        self.assertEqual("user", next(case for case in cluster["cases"] if case["case_type"] == "positive")["oracle_source"])
+
+    def test_assessment_mode_requires_confirmed_complete_samples(self) -> None:
+        with TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "confirmed_by_user"):
+                run_scan(
+                    dsl_path=FIXTURES / "text-optimization-workflow.yml",
+                    samples_path=FIXTURES / "samples.json",
+                    baseline_path=BASELINE,
+                    output_dir=Path(directory),
+                    rules_path=RULES,
+                    llm_mode="disabled",
+                    analyst_model="gpt-5.6-terra",
+                    reviewer_model="gpt-5.6-sol",
+                    scan_mode="assessment",
+                )
+
+    def test_assessment_mode_accepts_one_seed_and_generates_required_cluster(self) -> None:
+        with TemporaryDirectory() as directory:
+            result = run_scan(
+                dsl_path=FIXTURES / "text-optimization-workflow.yml",
+                samples_path=FIXTURES / "assessment-samples.json",
+                baseline_path=BASELINE,
+                output_dir=Path(directory),
+                rules_path=RULES,
+                llm_mode="disabled",
+                analyst_model="gpt-5.6-terra",
+                reviewer_model="gpt-5.6-sol",
+                scan_mode="assessment",
+            )
+            self.assertEqual("REVIEW", result["quality_gate"])
+            self.assertEqual(1, result["observation_count"])
+            cluster = json.loads((Path(directory) / "05-test-cluster.json").read_text(encoding="utf-8"))["test_cluster"]
+            self.assertTrue({"positive", "negative", "boundary"}.issubset({case["case_type"] for case in cluster["cases"]}))
+            self.assertTrue(cluster["generation_audit"]["lineage_verified"])
+            self.assertFalse(cluster["generation_audit"]["execution_evidence_present"])
+            verification = json.loads((Path(directory) / "07-verification.json").read_text(encoding="utf-8"))["verification"]
+            self.assertTrue(verification["coverage_accounting"]["lossless_root_cause_aggregation"])
+            self.assertEqual([], verification["coverage_accounting"]["lost_rule_ids"])
+            self.assertGreater(
+                verification["coverage_accounting"]["raw_match_count"],
+                verification["coverage_accounting"]["root_finding_count"],
+            )
+
+    def test_unexecuted_generated_cases_are_excluded_from_llm_adjudication(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "text-optimization-workflow.yml")
+        _, findings, candidates = execute_rules(ir, RULES)
+        captured: dict[str, object] = {}
+
+        def fake_call(_client, **kwargs):
+            captured.update(kwargs["payload"])
+            return {"adjudications": []}
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "synthetic-test-key"}), patch.object(
+            OpenAIResponsesClient, "call_json", fake_call,
+        ):
+            pipeline = SemanticPipeline(True, "test-analyst", "test-reviewer", "SCAN-test")
+            pipeline.adjudicate(ir, candidates, findings, {"cases": [{"case_id": "unexecuted"}]})
+        self.assertNotIn("test_cases", captured)
+        self.assertNotIn("cases", captured)
 
     def test_offline_scan_writes_all_artifacts(self) -> None:
         with TemporaryDirectory() as directory:
@@ -321,6 +418,48 @@ class PipelineTests(unittest.TestCase):
             gate = json.loads((Path(directory) / "11-quality-gate.json").read_text(encoding="utf-8"))["quality_gate"]
             self.assertEqual(0, gate["blocking_count"])
             self.assertGreater(gate["review_count"], 0)
+
+    def test_rule_waiver_cannot_hide_other_rules_in_aggregated_item(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            initial = run_scan(
+                dsl_path=FIXTURES / "keyword-spoofed-control.yml",
+                samples_path=None,
+                baseline_path=BASELINE,
+                output_dir=root / "initial",
+                rules_path=RULES,
+                llm_mode="disabled",
+                analyst_model="gpt-5.6-terra",
+                reviewer_model="gpt-5.6-sol",
+            )
+            workflow_hash = json.loads((root / "initial" / "00-scan-manifest.json").read_text(encoding="utf-8"))["workflow_hash"]
+            waiver = root / "ambiguous-waiver.json"
+            waiver.write_text(json.dumps({"waivers": [{
+                "waiver_id": "W-AMBIGUOUS",
+                "rule_id": "FLOW-003",
+                "workflow_hash": workflow_hash,
+                "approver": "security-owner",
+                "justification": "Must not hide TOOL-008 in the same risk item.",
+                "expires_at": "2099-01-01T00:00:00Z",
+            }]}), encoding="utf-8")
+            result = run_scan(
+                dsl_path=FIXTURES / "keyword-spoofed-control.yml",
+                samples_path=None,
+                baseline_path=BASELINE,
+                output_dir=root / "waived",
+                rules_path=RULES,
+                waivers_path=waiver,
+                llm_mode="disabled",
+                analyst_model="gpt-5.6-terra",
+                reviewer_model="gpt-5.6-sol",
+            )
+            self.assertEqual("FAIL", initial["quality_gate"])
+            self.assertEqual("FAIL", result["quality_gate"])
+            gate = json.loads((root / "waived" / "11-quality-gate.json").read_text(encoding="utf-8"))["quality_gate"]
+            self.assertEqual(
+                "ambiguous_rule_scope_after_node_control_aggregation_use_finding_id",
+                gate["waiver_audit"]["rejected"][0]["reason"],
+            )
 
 
 if __name__ == "__main__":

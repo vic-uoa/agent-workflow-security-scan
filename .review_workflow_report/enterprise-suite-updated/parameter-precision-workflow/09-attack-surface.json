@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-b82e7825e623",
+  "producer": "attack-surface-builder",
+  "producer_version": "0.2.0",
+  "workflow_hash": "2e8a09f646f1236a9aa4a393c948f4eef733caeaa4254fbc35899745c2a788a2",
+  "created_at": "2026-08-12T07:31:58.361583+00:00",
+  "attack_surface": {
+    "entrypoints": [
+      {
+        "entrypoint_id": "ENTRY-cced28c6dc3f",
+        "node_id": "start",
+        "name": "start",
+        "type": "INPUT",
+        "trust": "UNTRUSTED",
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ]
+      },
+      {
+        "entrypoint_id": "ENTRY-f047c58d3fd9",
+        "node_id": "http",
+        "name": "工具返回：固定内部审计接口",
+        "type": "TOOL_OUTPUT",
+        "trust": "UNTRUSTED",
+        "evidence": [
+          "/workflow/graph/nodes/2"
+        ]
+      }
+    ],
+    "assets": [
+      {
+        "asset_id": "ASSET-1195909dcc24",
+        "name": "工具能力：固定内部审计接口",
+        "sensitivity": "INTERNAL",
+        "node_ids": [
+          "http"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/2"
+        ],
+        "confidence": 0.9
+      }
+    ],
+    "trust_boundaries": [
+      {
+        "boundary_id": "BOUNDARY-3c088d8ff13b",
+        "from_zone": "model_or_workflow",
+        "to_zone": "tool_runtime",
+        "node_ids": [
+          "http"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/2"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-f94c0612a7f3",
+        "from_zone": "user",
+        "to_zone": "workflow_runtime",
+        "node_ids": [
+          "start"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ],
+        "confidence": 1.0
+      }
+    ],
+    "capabilities": [
+      {
+        "node_id": "http",
+        "name": "固定内部审计接口",
+        "capabilities": [
+          "MESSAGE_SEND",
+          "NETWORK_READ",
+          "NETWORK_WRITE"
+        ],
+        "external": true,
+        "high_impact": false
+      },
+      {
+        "node_id": "answer",
+        "name": "结果",
+        "capabilities": [
+          "USER_OUTPUT"
+        ],
+        "external": true,
+        "high_impact": false
+      }
+    ],
+    "attack_paths": [],
+    "risk_chains": [],
+    "semantic_attack_hypotheses": [],
+    "missing_runtime_context": []
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-feb8edadb3c6",
+  "producer": "rule-engine",
+  "producer_version": "0.2.0",
+  "workflow_hash": "40460deac52ea45b02588aaef8ae4f3cc512ced4539c6c0a5bb078e726e6492e",
+  "created_at": "2026-08-12T06:19:21.774787+00:00",
+  "facts": [
+    {
+      "id": "FACT-7bf40816dbd9",
+      "kind": "TOOL-002",
+      "node_ids": [
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "高影响工具的安全敏感参数由模型或上游变量控制。"
+      }
+    },
+    {
+      "id": "FACT-5ce38353b965",
+      "kind": "TOOL-008",
+      "node_ids": [
+        "start",
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "高影响工具存在不经过审批节点的可达路径。"
+      }
+    },
+    {
+      "id": "FACT-459ede83c546",
+      "kind": "TOOL-009",
+      "node_ids": [
+        "delete_tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。"
+      }
+    },
+    {
+      "id": "FACT-da3eb68a5f22",
+      "kind": "TOOL-015",
+      "node_ids": [
+        "delete_tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "高影响工具未声明 subject-object-action、所有权或租户范围的确定性授权检查。"
+      }
+    },
+    {
+      "id": "FACT-0a5266f18265",
+      "kind": "FLOW-003",
+      "node_ids": [
+        "start",
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。"
+      }
+    }
+  ]
+}

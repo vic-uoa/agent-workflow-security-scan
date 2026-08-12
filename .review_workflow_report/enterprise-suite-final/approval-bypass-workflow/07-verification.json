@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.1.0",
+  "scan_id": "SCAN-d9e774841c2a",
+  "producer": "evidence-verifier",
+  "producer_version": "0.3.0",
+  "workflow_hash": "027bcdc15888de1c4fc8a97414142f2b0604537927b9f39df3c6410e973c1ee8",
+  "created_at": "2026-08-12T07:34:11.837841+00:00",
+  "verification": {
+    "valid": true,
+    "invalid_adjudication_refs": [],
+    "invalid_review_refs": [],
+    "applied_adjudications": [
+      {
+        "candidate_id": "CANDIDATE-dbde405a349a",
+        "finding_id": "FINDING-2647bae3efca"
+      }
+    ],
+    "applied_reviews": [
+      {
+        "finding_id": "FINDING-2647bae3efca",
+        "decision": "ACCEPT"
+      }
+    ],
+    "policy": {
+      "llm_can_modify_confirmed": false,
+      "llm_can_promote_to_confirmed": false,
+      "unknown_references_rejected": true
+    },
+    "review": {
+      "reviews": [
+        {
+          "finding_id": "FINDING-2647bae3efca",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-2647bae3efca"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        }
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "llm_errors": []
+  }
+}

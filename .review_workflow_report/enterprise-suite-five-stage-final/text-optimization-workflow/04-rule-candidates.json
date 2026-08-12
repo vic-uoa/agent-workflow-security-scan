@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-c040509b4a56",
+  "producer": "rule-engine",
+  "producer_version": "0.4.0",
+  "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+  "created_at": "2026-08-12T07:53:27.698053+00:00",
+  "rule_count": 72,
+  "raw_match_count": 6,
+  "raw_rule_ids": [
+    "IN-002",
+    "IN-004",
+    "IN-007",
+    "IN-009",
+    "LLM-001",
+    "LLM-002"
+  ],
+  "raw_matches": [
+    {
+      "match_id": "MATCH-a7ad3b764b96",
+      "finding_id_before_aggregation": "FINDING-a3b727da46b4",
+      "rule_id": "IN-002",
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-a3b727da46b4"
+      ],
+      "status": "CONFIRMED",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-2fa075828bf8",
+      "finding_id_before_aggregation": "FINDING-d4a60448cde7",
+      "rule_id": "IN-004",
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d4a60448cde7"
+      ],
+      "status": "COVERAGE_GAP",
+      "severity": "LOW"
+    },
+    {
+      "match_id": "MATCH-c6881422fe4f",
+      "finding_id_before_aggregation": "FINDING-a5f0d2be15e6",
+      "rule_id": "LLM-001",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-a5f0d2be15e6"
+      ],
+      "status": "OBSERVED",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-2409c5761383",
+      "finding_id_before_aggregation": "FINDING-d095317c7327",
+      "rule_id": "LLM-002",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-d095317c7327"
+      ],
+      "status": "PROBABLE",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-55d9b91e1cac",
+      "finding_id_before_aggregation": "FINDING-11309d7a66f1",
+      "rule_id": "IN-009",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-11309d7a66f1"
+      ],
+      "status": "OBSERVED",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-a5b9d7801899",
+      "finding_id_before_aggregation": "FINDING-334bb61249e3",
+      "rule_id": "IN-007",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-334bb61249e3"
+      ],
+      "status": "OBSERVED",
+      "severity": "MEDIUM"
+    }
+  ],
+  "candidate_count": 3,
+  "candidates": [
+    {
+      "candidate_id": "CANDIDATE-a7ad3b764b96",
+      "finding_id": "FINDING-a3b727da46b4",
+      "rule_id": "IN-002",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-a3b727da46b4"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-c6881422fe4f",
+      "finding_id": "FINDING-a5f0d2be15e6",
+      "rule_id": "LLM-001",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-a5f0d2be15e6",
+        "FACT-d095317c7327",
+        "FACT-11309d7a66f1",
+        "FACT-334bb61249e3"
+      ],
+      "recommended_status": "OBSERVED",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-2fa075828bf8",
+      "finding_id": "FINDING-d4a60448cde7",
+      "rule_id": "IN-004",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "detectability": "M",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d4a60448cde7"
+      ],
+      "recommended_status": "COVERAGE_GAP",
+      "recommended_severity": "LOW"
+    }
+  ]
+}

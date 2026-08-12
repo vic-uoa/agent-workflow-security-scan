@@ -1,0 +1,623 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-3ca752c5ecad",
+  "producer": "report-builder",
+  "producer_version": "0.5.0",
+  "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+  "created_at": "2026-08-12T08:31:03.755085+00:00",
+  "report": {
+    "summary": {
+      "workflow_id": "普通文本优化工作流",
+      "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+      "node_count": 3,
+      "edge_count": 2,
+      "finding_count": 2,
+      "risk_item_count": 2,
+      "evidence_instance_count": 2,
+      "raw_observation_count": 3,
+      "coverage_gap_count": 1,
+      "severity_counts": {
+        "MEDIUM": 2
+      },
+      "status_counts": {
+        "CONFIRMED": 1,
+        "OBSERVED": 1,
+        "COVERAGE_GAP": 1
+      },
+      "waived_count": 0,
+      "executive_summary": "扫描已完成。报告中的确定性证据、语义候选和覆盖缺口已分开呈现。"
+    },
+    "workflow": {
+      "nodes": [
+        {
+          "id": "start",
+          "title": "用户输入",
+          "type": "INPUT",
+          "capabilities": []
+        },
+        {
+          "id": "llm",
+          "title": "LLM",
+          "type": "LLM",
+          "capabilities": []
+        },
+        {
+          "id": "end",
+          "title": "输出",
+          "type": "OUTPUT",
+          "capabilities": [
+            "USER_OUTPUT"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "start-llm",
+          "source": "start",
+          "target": "llm",
+          "source_handle": null,
+          "target_handle": null
+        },
+        {
+          "id": "llm-end",
+          "source": "llm",
+          "target": "end",
+          "source_handle": null,
+          "target_handle": null
+        }
+      ]
+    },
+    "semantic_inventory": {
+      "workflow_purpose": "内部工作流 普通文本优化工作流；未启用 LLM 时仅根据节点名称和能力推断。",
+      "assets": [],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-8f4d0090e54c",
+          "from_zone": "workflow_runtime",
+          "to_zone": "model_service",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/1"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-2d8e82311544",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "security_invariants": [
+        {
+          "invariant_id": "INV-001",
+          "statement": "不可信内容不得覆盖系统目标或授权策略。",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-002",
+          "statement": "模型输出不得在无确定性校验时触发高影响工具。",
+          "node_ids": [],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-003",
+          "statement": "敏感数据不得未经授权离开工作流信任边界。",
+          "node_ids": [],
+          "evidence": []
+        }
+      ],
+      "attack_hypotheses": [],
+      "assumptions": [
+        "语义清单为确定性降级结果，业务语义需在完整 LLM 扫描或人工复核中确认。"
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "findings": [
+      {
+        "id": "RISK-7a6029a46ab6",
+        "rule_id": "IN-002",
+        "title": "用户输入：输入契约与边界控制不足",
+        "status": "CONFIRMED",
+        "severity": "MEDIUM",
+        "confidence": 1.0,
+        "node_ids": [
+          "start"
+        ],
+        "evidence_refs": [
+          "FACT-a3b727da46b4"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/0"
+        ],
+        "message": "输入字段 inputStr 缺少长度或数量上限。",
+        "remediation": [
+          "为输入定义严格类型、长度、枚举和额外字段策略。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "AISVS-C2"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [],
+        "dynamic_test": null,
+        "root_cause_id": "RISK-7a6029a46ab6",
+        "related_rule_ids": [],
+        "anchor_node_id": "start",
+        "control_domain": "input_contract",
+        "potential_severity": "MEDIUM",
+        "finding_instance_ids": [
+          "RISK-7a6029a46ab6"
+        ],
+        "path_variants": [
+          [
+            "start"
+          ]
+        ],
+        "instance_summaries": [
+          {
+            "finding_id": "FINDING-a3b727da46b4",
+            "rule_ids": [
+              "IN-002"
+            ],
+            "status": "CONFIRMED",
+            "severity": "MEDIUM",
+            "path": [
+              "start"
+            ],
+            "message": "输入字段 inputStr 缺少长度或数量上限。",
+            "evidence_refs": [
+              "FACT-a3b727da46b4"
+            ]
+          }
+        ],
+        "dynamic_tests": [],
+        "waived": false,
+        "waiver_id": null
+      },
+      {
+        "id": "RISK-59724d4c5b14",
+        "rule_id": "LLM-001",
+        "title": "LLM：模型指令与数据边界不足",
+        "status": "OBSERVED",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "node_ids": [
+          "start",
+          "llm"
+        ],
+        "evidence_refs": [
+          "FACT-a5f0d2be15e6",
+          "FACT-d095317c7327",
+          "FACT-11309d7a66f1",
+          "FACT-334bb61249e3"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/0",
+          "/workflow/graph/nodes/1"
+        ],
+        "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+        "remediation": [
+          "将固定指令保留在 system/developer 消息中，将待处理内容放入 user 消息或明确的数据容器。",
+          "使用已确认的正常、对抗和边界样例验证任务目标不会被输入内容覆盖。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "ASI01"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [],
+        "dynamic_test": "direct_or_indirect_prompt_injection",
+        "root_cause_id": "RISK-59724d4c5b14",
+        "related_rule_ids": [
+          "IN-007",
+          "IN-009",
+          "LLM-002"
+        ],
+        "anchor_node_id": "llm",
+        "control_domain": "instruction_boundary",
+        "potential_severity": "MEDIUM",
+        "finding_instance_ids": [
+          "FINDING-a5f0d2be15e6",
+          "FINDING-d095317c7327",
+          "FINDING-11309d7a66f1",
+          "FINDING-334bb61249e3"
+        ],
+        "path_variants": [
+          [
+            "start",
+            "llm"
+          ]
+        ],
+        "instance_summaries": [
+          {
+            "finding_id": "FINDING-a5f0d2be15e6",
+            "rule_ids": [
+              "LLM-001",
+              "IN-007",
+              "IN-009",
+              "LLM-002"
+            ],
+            "status": "OBSERVED",
+            "severity": "MEDIUM",
+            "path": [
+              "start",
+              "llm"
+            ],
+            "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+            "evidence_refs": [
+              "FACT-a5f0d2be15e6",
+              "FACT-d095317c7327",
+              "FACT-11309d7a66f1",
+              "FACT-334bb61249e3"
+            ]
+          }
+        ],
+        "dynamic_tests": [
+          "direct_or_indirect_prompt_injection",
+          "instruction_data_boundary",
+          "direct_prompt_injection"
+        ],
+        "waived": false,
+        "waiver_id": null
+      },
+      {
+        "id": "RISK-80b96386c461",
+        "rule_id": "IN-004",
+        "title": "用户输入：输入契约与边界控制不足",
+        "status": "COVERAGE_GAP",
+        "severity": "LOW",
+        "confidence": 1.0,
+        "node_ids": [
+          "start"
+        ],
+        "evidence_refs": [
+          "FACT-d4a60448cde7"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/0"
+        ],
+        "message": "DSL 未声明输入解码和 Unicode 规范化控制。",
+        "remediation": [
+          "为输入定义严格类型、长度、枚举和额外字段策略。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "AISVS-C2"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [
+          "输入规范化可能由平台统一实现，DSL 无法验证。"
+        ],
+        "dynamic_test": "encoding_unicode_smuggling",
+        "root_cause_id": "RISK-80b96386c461",
+        "related_rule_ids": [],
+        "anchor_node_id": "start",
+        "control_domain": "input_contract",
+        "potential_severity": "LOW",
+        "finding_instance_ids": [
+          "RISK-80b96386c461"
+        ],
+        "path_variants": [
+          [
+            "start"
+          ]
+        ],
+        "instance_summaries": [
+          {
+            "finding_id": "FINDING-d4a60448cde7",
+            "rule_ids": [
+              "IN-004"
+            ],
+            "status": "COVERAGE_GAP",
+            "severity": "LOW",
+            "path": [
+              "start"
+            ],
+            "message": "DSL 未声明输入解码和 Unicode 规范化控制。",
+            "evidence_refs": [
+              "FACT-d4a60448cde7"
+            ]
+          }
+        ],
+        "dynamic_tests": [
+          "encoding_unicode_smuggling"
+        ],
+        "waived": false,
+        "waiver_id": null
+      }
+    ],
+    "node_risk_summary": [
+      {
+        "node_id": "start",
+        "node_title": "用户输入",
+        "node_type": "INPUT",
+        "risk_item_count": 1,
+        "risk_item_ids": [
+          "RISK-7a6029a46ab6"
+        ],
+        "control_domains": [
+          "input_contract"
+        ],
+        "highest_severity": "MEDIUM"
+      },
+      {
+        "node_id": "llm",
+        "node_title": "LLM",
+        "node_type": "LLM",
+        "risk_item_count": 1,
+        "risk_item_ids": [
+          "RISK-59724d4c5b14"
+        ],
+        "control_domains": [
+          "instruction_boundary"
+        ],
+        "highest_severity": "MEDIUM"
+      }
+    ],
+    "attack_surface": {
+      "entrypoints": [
+        {
+          "entrypoint_id": "ENTRY-cced28c6dc3f",
+          "node_id": "start",
+          "name": "用户输入",
+          "type": "INPUT",
+          "trust": "UNTRUSTED",
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ]
+        }
+      ],
+      "assets": [],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-8f4d0090e54c",
+          "from_zone": "workflow_runtime",
+          "to_zone": "model_service",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/1"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-2d8e82311544",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "capabilities": [
+        {
+          "node_id": "end",
+          "name": "输出",
+          "capabilities": [
+            "USER_OUTPUT"
+          ],
+          "external": false,
+          "high_impact": false
+        }
+      ],
+      "attack_paths": [
+        {
+          "attack_path_id": "AP-402df3a4b6fe",
+          "finding_id": "RISK-59724d4c5b14",
+          "anchor_node_id": "llm",
+          "control_domain": "instruction_boundary",
+          "rule_ids": [
+            "LLM-001",
+            "IN-007",
+            "IN-009",
+            "LLM-002"
+          ],
+          "attack_family": "general_workflow_security",
+          "entrypoint_node": "start",
+          "target_node": "llm",
+          "path": [
+            "start",
+            "llm"
+          ],
+          "status": "OBSERVED",
+          "severity": "MEDIUM",
+          "attack_preconditions": [],
+          "missing_runtime_context": [],
+          "test_case_ids": [
+            "TC-c583114b0456",
+            "TC-62360fa03f25",
+            "TC-0bfb66c528f5"
+          ],
+          "description": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。"
+        }
+      ],
+      "risk_chains": [
+        {
+          "risk_chain_id": "CHAIN-4324812394cb",
+          "path": [
+            "start",
+            "llm"
+          ],
+          "entrypoint_node": "start",
+          "target_node": "llm",
+          "finding_ids": [
+            "RISK-59724d4c5b14"
+          ],
+          "rule_ids": [
+            "LLM-001",
+            "IN-007",
+            "IN-009",
+            "LLM-002"
+          ],
+          "attack_families": [
+            "general_workflow_security"
+          ],
+          "severity": "MEDIUM",
+          "statuses": [
+            "OBSERVED"
+          ],
+          "test_case_ids": [
+            "TC-c583114b0456",
+            "TC-62360fa03f25",
+            "TC-0bfb66c528f5"
+          ],
+          "attack_preconditions": [],
+          "missing_runtime_context": []
+        }
+      ],
+      "semantic_attack_hypotheses": [],
+      "test_coverage": {
+        "covered_finding_ids": [
+          "RISK-59724d4c5b14",
+          "RISK-80b96386c461"
+        ],
+        "uncovered_finding_ids": [
+          "RISK-7a6029a46ab6"
+        ],
+        "execution_evidence_present": false,
+        "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。"
+      },
+      "missing_runtime_context": [
+        "输入规范化可能由平台统一实现，DSL 无法验证。"
+      ]
+    },
+    "test_cluster_summary": {
+      "case_count": 4,
+      "case_ids": [
+        "TC-c583114b0456",
+        "TC-62360fa03f25",
+        "TC-0bfb66c528f5",
+        "TC-14295899ad4f"
+      ],
+      "case_type_counts": {
+        "negative": 4
+      },
+      "seed_sample_ids": [],
+      "lineage_verified": true,
+      "execution_evidence_present": false
+    },
+    "priority_actions": [],
+    "verification": {
+      "valid": true,
+      "invalid_adjudication_refs": [],
+      "invalid_review_refs": [],
+      "applied_adjudications": [
+        {
+          "candidate_id": "CANDIDATE-565dbfc23f04",
+          "finding_id": "RISK-7a6029a46ab6"
+        },
+        {
+          "candidate_id": "CANDIDATE-eb55c7cb873b",
+          "finding_id": "RISK-59724d4c5b14"
+        },
+        {
+          "candidate_id": "CANDIDATE-ccba93d3d24d",
+          "finding_id": "RISK-80b96386c461"
+        }
+      ],
+      "applied_reviews": [],
+      "policy": {
+        "llm_can_modify_confirmed": false,
+        "llm_can_promote_to_confirmed": false,
+        "llm_generated_tests_are_finding_evidence": false,
+        "root_cause_aggregation_may_drop_rule_coverage": false,
+        "unknown_references_rejected": true
+      },
+      "coverage_accounting": {
+        "catalog_rule_count": 72,
+        "raw_match_count": 6,
+        "root_finding_count": 3,
+        "node_control_risk_item_count": 3,
+        "raw_rule_ids": [
+          "IN-002",
+          "IN-004",
+          "IN-007",
+          "IN-009",
+          "LLM-001",
+          "LLM-002"
+        ],
+        "final_primary_or_related_rule_ids": [
+          "IN-002",
+          "IN-004",
+          "IN-007",
+          "IN-009",
+          "LLM-001",
+          "LLM-002"
+        ],
+        "lost_rule_ids": [],
+        "lossless_root_cause_aggregation": true
+      },
+      "test_cluster": {
+        "seed_sample_ids": [],
+        "case_type_counts": {
+          "positive": 0,
+          "negative": 4,
+          "boundary": 0,
+          "metamorphic": 0
+        },
+        "all_cases_not_executed": true,
+        "accepted_case_count": 4,
+        "rejected_model_cases": [],
+        "required_case_types_present": true,
+        "lineage_verified": true,
+        "execution_evidence_present": false
+      },
+      "review": {
+        "reviews": [],
+        "producer": "deterministic-fallback"
+      },
+      "llm_errors": []
+    },
+    "quality_gate": {
+      "decision": "REVIEW",
+      "exit_code": 0,
+      "policy": {
+        "blocking_severities": [
+          "CRITICAL",
+          "HIGH"
+        ],
+        "blocking_statuses": [
+          "CONFIRMED"
+        ],
+        "review_statuses": [
+          "COVERAGE_GAP",
+          "OBSERVED",
+          "PROBABLE"
+        ],
+        "waivers_require_workflow_hash_approver_justification_and_expiry": true
+      },
+      "blocking_finding_ids": [],
+      "review_finding_ids": [
+        "RISK-59724d4c5b14",
+        "RISK-80b96386c461"
+      ],
+      "blocking_count": 0,
+      "review_count": 2,
+      "waived_count": 0,
+      "waiver_audit": {
+        "applied": [],
+        "rejected": []
+      }
+    }
+  }
+}

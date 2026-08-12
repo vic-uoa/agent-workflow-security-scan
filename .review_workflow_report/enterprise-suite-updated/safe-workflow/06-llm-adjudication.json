@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-9dfc750e4a32",
+  "producer": "deterministic-fallback",
+  "producer_version": "0.2.0",
+  "workflow_hash": "262027ad5543cfe6580c4e9771ee0ff7d5f7e411ee301cfd065b0c5a92dc6fc8",
+  "created_at": "2026-08-12T07:31:57.719083+00:00",
+  "adjudication": {
+    "adjudications": [],
+    "producer": "deterministic-fallback"
+  }
+}

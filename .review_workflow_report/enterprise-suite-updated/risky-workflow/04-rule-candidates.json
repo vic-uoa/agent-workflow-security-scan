@@ -1,0 +1,806 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-2b785cdf4897",
+  "producer": "rule-engine",
+  "producer_version": "0.2.0",
+  "workflow_hash": "405f5cb278c616af965dbdce79e4b5b7f2874d26dac2ad342858f7a880dd4d8a",
+  "created_at": "2026-08-12T07:31:59.244843+00:00",
+  "rule_count": 72,
+  "candidate_count": 36,
+  "candidates": [
+    {
+      "candidate_id": "CANDIDATE-40b2ad891950",
+      "finding_id": "FINDING-c342c5c90be4",
+      "rule_id": "FLOW-008",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5.4",
+        "ASI03"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-c342c5c90be4"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "CRITICAL"
+    },
+    {
+      "candidate_id": "CANDIDATE-7273d0fc5cb4",
+      "finding_id": "FINDING-087ae7b3c06e",
+      "rule_id": "FLOW-009",
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI01",
+        "ASI03"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-087ae7b3c06e"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "CRITICAL"
+    },
+    {
+      "candidate_id": "CANDIDATE-1e473bba6fc4",
+      "finding_id": "FINDING-0fa7fb59a544",
+      "rule_id": "FLOW-009",
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI01",
+        "ASI03"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-0fa7fb59a544"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "CRITICAL"
+    },
+    {
+      "candidate_id": "CANDIDATE-b04f5339c902",
+      "finding_id": "FINDING-153e38f7ddf9",
+      "rule_id": "FLOW-009",
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI01",
+        "ASI03"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-153e38f7ddf9"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "CRITICAL"
+    },
+    {
+      "candidate_id": "CANDIDATE-b945eda4bbae",
+      "finding_id": "FINDING-dfb118a177f7",
+      "rule_id": "LLM-004",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI03"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-dfb118a177f7"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "CRITICAL"
+    },
+    {
+      "candidate_id": "CANDIDATE-8581bcca6dda",
+      "finding_id": "FINDING-991cfbb1fa94",
+      "rule_id": "TOOL-010",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5.4",
+        "ASI03"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-991cfbb1fa94"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "CRITICAL"
+    },
+    {
+      "candidate_id": "CANDIDATE-e12bb6f70b54",
+      "finding_id": "FINDING-ebe8b001f9a1",
+      "rule_id": "TOOL-017",
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI03"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-ebe8b001f9a1"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "CRITICAL"
+    },
+    {
+      "candidate_id": "CANDIDATE-c87f83394e28",
+      "finding_id": "FINDING-08e204ba0560",
+      "rule_id": "FLOW-003",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-08e204ba0560"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-dc53ed1eb2ad",
+      "finding_id": "FINDING-68e32cf110bc",
+      "rule_id": "FLOW-003",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start",
+        "kb",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-68e32cf110bc"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-71a03bd0c198",
+      "finding_id": "FINDING-c4cde0855742",
+      "rule_id": "FLOW-004",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7",
+        "ASI03"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-c4cde0855742",
+        "FACT-b965e9dabc9d",
+        "FACT-db501d2c8995"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-0b3f6308962f",
+      "finding_id": "FINDING-ce5bfbcac39c",
+      "rule_id": "FLOW-004",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7",
+        "ASI03"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-ce5bfbcac39c",
+        "FACT-6e37d1d76437"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-82193ef76cb1",
+      "finding_id": "FINDING-fc8d90f5e830",
+      "rule_id": "FLOW-005",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01",
+        "AISVS-9.3"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb",
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-fc8d90f5e830",
+        "FACT-546eb56f2701",
+        "FACT-50be1cb79f0b"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-4bd7bcbfe2e0",
+      "finding_id": "FINDING-2ff4d43c2b2e",
+      "rule_id": "IN-006",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2",
+        "AISVS-C7"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-2ff4d43c2b2e"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-a33689c29238",
+      "finding_id": "FINDING-8fdf8b561594",
+      "rule_id": "KB-001",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-8.1"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-8fdf8b561594"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-b37993cc2a22",
+      "finding_id": "FINDING-55c4ecb9530d",
+      "rule_id": "KB-002",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-8.1"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-55c4ecb9530d"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-285e8f3c951c",
+      "finding_id": "FINDING-dea702265759",
+      "rule_id": "KB-004",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-dea702265759"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-5e360f0ba124",
+      "finding_id": "FINDING-640c7a7c0c1f",
+      "rule_id": "KB-009",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-8.2"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-640c7a7c0c1f"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-abfa9f21e1eb",
+      "finding_id": "FINDING-7f24df8e8cab",
+      "rule_id": "LLM-005",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-7f24df8e8cab",
+        "FACT-bbd20be44857",
+        "FACT-227f8afcd0f4"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-1bc3a3d3589c",
+      "finding_id": "FINDING-018db969148c",
+      "rule_id": "LLM-011",
+      "attack_family": "data_leakage",
+      "standards": [
+        "ASI03"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-018db969148c"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-b52299b0bd46",
+      "finding_id": "FINDING-5a4a7003a8b8",
+      "rule_id": "OUT-004",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-5a4a7003a8b8"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-2171b0552a27",
+      "finding_id": "FINDING-b7bf9a442b48",
+      "rule_id": "OUT-009",
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI03",
+        "AISVS-C7"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-b7bf9a442b48"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-8e4d192b7456",
+      "finding_id": "FINDING-5dccf8f0a473",
+      "rule_id": "TOOL-003",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI02"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-5dccf8f0a473"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-d9d3befd5f25",
+      "finding_id": "FINDING-a428f408d1de",
+      "rule_id": "IN-002",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-a428f408d1de"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-c87675d55aca",
+      "finding_id": "FINDING-d3980431b8ae",
+      "rule_id": "IN-002",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d3980431b8ae"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-55d9b91e1cac",
+      "finding_id": "FINDING-11309d7a66f1",
+      "rule_id": "IN-009",
+      "attack_family": "direct_prompt_injection",
+      "standards": [
+        "ASI01"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-11309d7a66f1"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-d8f98d7637ab",
+      "finding_id": "FINDING-4fc3be561f9a",
+      "rule_id": "KB-003",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C8"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-4fc3be561f9a"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-72b2374b3172",
+      "finding_id": "FINDING-dd03e9b6672c",
+      "rule_id": "KB-008",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7",
+        "AISVS-C12"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-dd03e9b6672c"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-f10de959d667",
+      "finding_id": "FINDING-9e43b2cb8c71",
+      "rule_id": "LLM-001",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb",
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-9e43b2cb8c71",
+        "FACT-be9267c28068"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-64a5fb8538ed",
+      "finding_id": "FINDING-91101ff7dec6",
+      "rule_id": "LLM-009",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-91101ff7dec6"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-c6941efedd5c",
+      "finding_id": "FINDING-9d7a8c4fd729",
+      "rule_id": "LLM-010",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.6"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-9d7a8c4fd729"
+      ],
+      "recommended_status": "COVERAGE_GAP",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-f78d5707fbd5",
+      "finding_id": "FINDING-8ebd29c4ba03",
+      "rule_id": "OUT-007",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-8ebd29c4ba03"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-9a464f68c923",
+      "finding_id": "FINDING-0c9b42606853",
+      "rule_id": "OUT-008",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-0c9b42606853"
+      ],
+      "recommended_status": "COVERAGE_GAP",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-550ba4a239b0",
+      "finding_id": "FINDING-0fab3ba4961d",
+      "rule_id": "TOOL-011",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-0fab3ba4961d"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-eea8ada90dfc",
+      "finding_id": "FINDING-ad44783ba931",
+      "rule_id": "TOOL-013",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-ad44783ba931"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "MEDIUM"
+    },
+    {
+      "candidate_id": "CANDIDATE-2fa075828bf8",
+      "finding_id": "FINDING-d4a60448cde7",
+      "rule_id": "IN-004",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "detectability": "M",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d4a60448cde7"
+      ],
+      "recommended_status": "COVERAGE_GAP",
+      "recommended_severity": "LOW"
+    },
+    {
+      "candidate_id": "CANDIDATE-bb47bc669d2b",
+      "finding_id": "FINDING-407027395fcd",
+      "rule_id": "KB-010",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C8"
+      ],
+      "detectability": "M",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-407027395fcd"
+      ],
+      "recommended_status": "COVERAGE_GAP",
+      "recommended_severity": "INFO"
+    }
+  ]
+}

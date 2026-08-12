@@ -20,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan = subparsers.add_parser("scan", help="Scan a Dify workflow DSL")
     scan.add_argument("--dsl", required=True, type=Path, help="Internal Dify YAML/JSON export")
     scan.add_argument("--samples", type=Path, help="JSON file containing a samples array")
+    scan.add_argument("--mode", choices=("structure-only", "assessment"), default="assessment", help="Assessment requires confirmed seed inputs; the scanner derives positive, negative and boundary clusters")
     scan.add_argument("--baseline", type=Path, default=SCRIPT_DIR.parent / "config" / "internal-baseline.yml")
     scan.add_argument("--rules", type=Path, default=SCRIPT_DIR.parent / "rules" / "core-rules.yml")
     scan.add_argument("--waivers", type=Path, help="Optional audited YAML/JSON waiver file")
@@ -45,6 +46,7 @@ def main() -> int:
             llm_mode=args.llm,
             analyst_model=args.analyst_model,
             reviewer_model=args.reviewer_model,
+            scan_mode=args.mode,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return int(result.get("exit_code", 2))

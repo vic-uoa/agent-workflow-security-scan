@@ -16,10 +16,13 @@ Use this scanner as a pre-release static architecture and data-flow gate for com
 ## Evidence requirements
 
 - `CONFIRMED` requires a concrete field predicate, strict-schema failure, parameter binding, action route or graph path.
+- `OBSERVED` records a deterministic DSL property when exploitability or business impact still requires runtime evidence.
 - `PROBABLE` requires a proven structural path plus a clearly listed semantic/runtime precondition.
 - `COVERAGE_GAP` identifies evidence that the DSL cannot supply.
 - Keywords may classify a capability candidate but cannot establish an approval, validation or authorization control.
 - A model may add context or downgrade a candidate; it cannot create deterministic facts or promote a finding to `CONFIRMED`.
+- A generated input is a test hypothesis, not execution evidence. Do not use it to establish applicability, exploitability or mitigation.
+- False-positive reduction must be lossless at rule-coverage level: retain raw matches, merge only aliases sharing the same root family and source/sink, and fail if a matched rule ID disappears from primary/related mappings.
 
 ## Internal DSL control annotations
 
@@ -52,14 +55,16 @@ For Human Input nodes, retain action IDs in edge `sourceHandle` values. The scan
 The default gate is:
 
 - `FAIL`: unwaived `CONFIRMED` finding with `CRITICAL` or `HIGH` severity.
-- `REVIEW`: no blocker, but a `PROBABLE` or `COVERAGE_GAP` remains.
+- `REVIEW`: no blocker, but an `OBSERVED`, `PROBABLE` or `COVERAGE_GAP` remains.
 - `PASS`: neither blocker nor review item remains.
+
+Count node/control-domain remediation items, not rule aliases or path permutations. Store rule mappings in `related_rule_ids`, raw instances in `instance_summaries`, and alternate routes in `path_variants`. Coverage gaps and attack-chain counts are separate and never added to risk items.
 
 Use `11-quality-gate.json` as the CI decision and `12-artifact-index.json` to verify report-package hashes. Do not derive CI status from the total finding count.
 
 ## Waiver governance
 
-A waiver must include `waiver_id`, `workflow_hash`, `approver`, `justification` and a future `expires_at`. Scope it to a `finding_id` where possible; rule-wide waivers are broader. Waivers never delete findings. They only remove matching findings from the gate and remain visible in JSON and Markdown.
+A waiver must include `waiver_id`, `workflow_hash`, `approver`, `justification` and a future `expires_at`. Scope it to a risk-item `finding_id`. A rule-level waiver is accepted only when the item contains that rule alone; it is rejected as ambiguous when other rules were aggregated into the same node/control-domain item. Waivers never delete findings. They only remove matching items from the gate and remain visible in JSON and Markdown.
 
 ## Validation matrix
 

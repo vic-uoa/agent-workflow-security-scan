@@ -1,0 +1,639 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-f3ef81b0b963",
+  "producer": "rule-engine",
+  "producer_version": "0.5.0",
+  "workflow_hash": "405f5cb278c616af965dbdce79e4b5b7f2874d26dac2ad342858f7a880dd4d8a",
+  "created_at": "2026-08-12T08:26:58.881925+00:00",
+  "facts": [
+    {
+      "id": "FACT-c342c5c90be4",
+      "kind": "FLOW-008",
+      "node_ids": [
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2/data/prompt_template/0/text",
+        "/workflow/graph/nodes/3/data/headers"
+      ],
+      "data": {
+        "message": "DSL 中检测到疑似明文凭证；若其位于 Prompt 或节点变量中，模型可能观察到凭证。"
+      }
+    },
+    {
+      "id": "FACT-d3980431b8ae",
+      "kind": "IN-002",
+      "node_ids": [
+        "start"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0"
+      ],
+      "data": {
+        "message": "输入字段 query 缺少长度或数量上限。"
+      }
+    },
+    {
+      "id": "FACT-a428f408d1de",
+      "kind": "IN-002",
+      "node_ids": [
+        "start"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0"
+      ],
+      "data": {
+        "message": "输入字段 api_key 缺少长度或数量上限。"
+      }
+    },
+    {
+      "id": "FACT-2ff4d43c2b2e",
+      "kind": "IN-006",
+      "node_ids": [
+        "start"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0"
+      ],
+      "data": {
+        "message": "输入字段 api_key 可能包含敏感信息，需要验证下游传播和脱敏。"
+      }
+    },
+    {
+      "id": "FACT-d4a60448cde7",
+      "kind": "IN-004",
+      "node_ids": [
+        "start"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0"
+      ],
+      "data": {
+        "message": "DSL 未声明输入解码和 Unicode 规范化控制。"
+      }
+    },
+    {
+      "id": "FACT-8fdf8b561594",
+      "kind": "KB-001",
+      "node_ids": [
+        "kb"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "知识检索数据集范围未固定或无法识别。"
+      }
+    },
+    {
+      "id": "FACT-55c4ecb9530d",
+      "kind": "KB-002",
+      "node_ids": [
+        "kb"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "知识检索未配置可识别的租户、用户或业务元数据过滤。"
+      }
+    },
+    {
+      "id": "FACT-4fc3be561f9a",
+      "kind": "KB-003",
+      "node_ids": [
+        "kb"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "Top-K 过大或相似度阈值缺失/过低，可能扩大无关内容和投毒内容暴露面。"
+      }
+    },
+    {
+      "id": "FACT-dd03e9b6672c",
+      "kind": "KB-008",
+      "node_ids": [
+        "kb"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "DSL 未显示检索来源和引用元数据要求。"
+      }
+    },
+    {
+      "id": "FACT-640c7a7c0c1f",
+      "kind": "KB-009",
+      "node_ids": [
+        "kb"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "检索内容进入模型前缺少可识别的注入筛查或隔离控制。"
+      }
+    },
+    {
+      "id": "FACT-407027395fcd",
+      "kind": "KB-010",
+      "node_ids": [
+        "kb"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "知识库 ACL、文档来源、内容隔离、过期和撤销策略不在 DSL 中，静态扫描无法验证。"
+      }
+    },
+    {
+      "id": "FACT-9e43b2cb8c71",
+      "kind": "LLM-001",
+      "node_ids": [
+        "kb",
+        "start",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "不可信变量被插入系统或高权限指令区域。"
+      }
+    },
+    {
+      "id": "FACT-be9267c28068",
+      "kind": "LLM-002",
+      "node_ids": [
+        "kb",
+        "start",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "外部内容进入 LLM，但系统指令中未发现明确的数据/指令隔离约束。"
+      }
+    },
+    {
+      "id": "FACT-dfb118a177f7",
+      "kind": "LLM-004",
+      "node_ids": [
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "LLM 节点文本中包含疑似明文凭证。"
+      }
+    },
+    {
+      "id": "FACT-018db969148c",
+      "kind": "LLM-011",
+      "node_ids": [
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "系统指令区包含敏感信息或凭证迹象，但未发现提示词防泄露/上下文 DLP 控制。"
+      }
+    },
+    {
+      "id": "FACT-91101ff7dec6",
+      "kind": "LLM-009",
+      "node_ids": [
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。"
+      }
+    },
+    {
+      "id": "FACT-9d7a8c4fd729",
+      "kind": "LLM-010",
+      "node_ids": [
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。"
+      }
+    },
+    {
+      "id": "FACT-5dccf8f0a473",
+      "kind": "TOOL-003",
+      "node_ids": [
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "动态 URL/Host 缺少域名或地址 Allowlist。"
+      }
+    },
+    {
+      "id": "FACT-991cfbb1fa94",
+      "kind": "TOOL-010",
+      "node_ids": [
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "工具配置中存在疑似明文凭证。"
+      }
+    },
+    {
+      "id": "FACT-0fab3ba4961d",
+      "kind": "TOOL-011",
+      "node_ids": [
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "工具输入缺少可识别的严格 Schema。"
+      }
+    },
+    {
+      "id": "FACT-ad44783ba931",
+      "kind": "TOOL-013",
+      "node_ids": [
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "工具缺少可识别的超时设置。"
+      }
+    },
+    {
+      "id": "FACT-5a4a7003a8b8",
+      "kind": "OUT-004",
+      "node_ids": [
+        "answer"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/4"
+      ],
+      "data": {
+        "message": "动态 HTML/Markdown 输出缺少可识别的上下文编码。"
+      }
+    },
+    {
+      "id": "FACT-b7bf9a442b48",
+      "kind": "OUT-009",
+      "node_ids": [
+        "answer"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/4"
+      ],
+      "data": {
+        "message": "动态 Markdown 链接或图片目标未受限，可通过客户端取链或 URL 路径编码形成隐蔽外带。"
+      }
+    },
+    {
+      "id": "FACT-0c9b42606853",
+      "kind": "OUT-008",
+      "node_ids": [
+        "answer"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/4"
+      ],
+      "data": {
+        "message": "输出节点未显示低置信或失败回退行为。"
+      }
+    },
+    {
+      "id": "FACT-11309d7a66f1",
+      "kind": "IN-009",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "用户消息可直接到达模型，且系统指令未声明对角色覆盖、目标劫持或提示词提取的防护边界。"
+      }
+    },
+    {
+      "id": "FACT-945de85a7b0c",
+      "kind": "FLOW-003",
+      "node_ids": [
+        "start",
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。"
+      }
+    },
+    {
+      "id": "FACT-08e204ba0560",
+      "kind": "FLOW-003",
+      "node_ids": [
+        "kb",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。"
+      }
+    },
+    {
+      "id": "FACT-dea702265759",
+      "kind": "KB-004",
+      "node_ids": [
+        "kb",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "知识检索内容被插入 LLM 高权限 Prompt。"
+      }
+    },
+    {
+      "id": "FACT-fc8d90f5e830",
+      "kind": "FLOW-005",
+      "node_ids": [
+        "kb",
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "知识库内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。"
+      }
+    },
+    {
+      "id": "FACT-546eb56f2701",
+      "kind": "LLM-003",
+      "node_ids": [
+        "kb",
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "间接外部内容进入具备工具影响能力的 LLM。"
+      }
+    },
+    {
+      "id": "FACT-50be1cb79f0b",
+      "kind": "KB-005",
+      "node_ids": [
+        "kb",
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "知识内容可经模型传播到工具。"
+      }
+    },
+    {
+      "id": "FACT-c4cde0855742",
+      "kind": "FLOW-004",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "疑似敏感数据可达外部工具或输出边界。"
+      }
+    },
+    {
+      "id": "FACT-b965e9dabc9d",
+      "kind": "OUT-002",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "敏感内容存在到达外部边界的静态路径。"
+      }
+    },
+    {
+      "id": "FACT-db501d2c8995",
+      "kind": "TOOL-007",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "敏感数据存在经工具离开工作流信任边界的路径。"
+      }
+    },
+    {
+      "id": "FACT-153e38f7ddf9",
+      "kind": "FLOW-009",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。"
+      }
+    },
+    {
+      "id": "FACT-ebe8b001f9a1",
+      "kind": "TOOL-017",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "敏感载荷可进入具有动态目标的网络写工具，且未发现 DLP/出站载荷策略。"
+      }
+    },
+    {
+      "id": "FACT-0fa7fb59a544",
+      "kind": "FLOW-009",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "敏感资产作为网络载荷，同时模型可控制外部目标，形成完整的复合外泄链。"
+      }
+    },
+    {
+      "id": "FACT-ce5bfbcac39c",
+      "kind": "FLOW-004",
+      "node_ids": [
+        "llm",
+        "answer"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/4"
+      ],
+      "data": {
+        "message": "疑似敏感数据可达外部工具或输出边界。"
+      }
+    },
+    {
+      "id": "FACT-6e37d1d76437",
+      "kind": "OUT-002",
+      "node_ids": [
+        "llm",
+        "answer"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/4"
+      ],
+      "data": {
+        "message": "敏感内容存在到达外部边界的静态路径。"
+      }
+    },
+    {
+      "id": "FACT-087ae7b3c06e",
+      "kind": "FLOW-009",
+      "node_ids": [
+        "llm",
+        "answer"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/4"
+      ],
+      "data": {
+        "message": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。"
+      }
+    },
+    {
+      "id": "FACT-7f24df8e8cab",
+      "kind": "LLM-005",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "LLM 自由文本输出可直接影响工具参数。"
+      }
+    },
+    {
+      "id": "FACT-bbd20be44857",
+      "kind": "LLM-006",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "下游工具依赖 LLM 输出，但节点未声明严格结构化输出。"
+      }
+    },
+    {
+      "id": "FACT-227f8afcd0f4",
+      "kind": "OUT-006",
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "data": {
+        "message": "未经严格结构验证的模型输出进入下游执行节点。"
+      }
+    },
+    {
+      "id": "FACT-8ebd29c4ba03",
+      "kind": "OUT-007",
+      "node_ids": [
+        "kb",
+        "answer"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/4"
+      ],
+      "data": {
+        "message": "知识库回答到达输出，但未发现引用元数据绑定。"
+      }
+    }
+  ]
+}

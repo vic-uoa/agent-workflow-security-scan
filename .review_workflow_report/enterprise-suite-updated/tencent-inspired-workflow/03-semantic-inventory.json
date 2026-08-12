@@ -1,0 +1,229 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-c34832e9338b",
+  "producer": "deterministic-fallback",
+  "producer_version": "0.2.0",
+  "workflow_hash": "b01ee8c4c8fd5f2b2451863af5da83de2a25473ec076b2c1a4ff70d2dd414997",
+  "created_at": "2026-08-12T07:31:59.471481+00:00",
+  "semantic_inventory": {
+    "workflow_purpose": "内部工作流 tencent-inspired-risk-chain；未启用 LLM 时仅根据节点名称和能力推断。",
+    "assets": [
+      {
+        "asset_id": "ASSET-2010bdece816",
+        "name": "知识资产：客户身份与病例知识库",
+        "sensitivity": "CONFIDENTIAL",
+        "node_ids": [
+          "kb"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/1"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "asset_id": "ASSET-99654a9ca78d",
+        "name": "工具能力：外部网页读取",
+        "sensitivity": "INTERNAL",
+        "node_ids": [
+          "web"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/2"
+        ],
+        "confidence": 0.9
+      },
+      {
+        "asset_id": "ASSET-b919d08214d4",
+        "name": "工具能力：shared persistent memory store",
+        "sensitivity": "INTERNAL",
+        "node_ids": [
+          "memory"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/4"
+        ],
+        "confidence": 0.9
+      },
+      {
+        "asset_id": "ASSET-146102933928",
+        "name": "工具能力：管理员资源更新工具",
+        "sensitivity": "CONFIDENTIAL",
+        "node_ids": [
+          "admin_tool"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/6"
+        ],
+        "confidence": 0.9
+      },
+      {
+        "asset_id": "ASSET-c6e0e915e693",
+        "name": "工具能力：外部 HTTP 写入",
+        "sensitivity": "INTERNAL",
+        "node_ids": [
+          "exfil"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/7"
+        ],
+        "confidence": 0.9
+      },
+      {
+        "asset_id": "ASSET-fc779bc27009",
+        "name": "工具能力：动态代码执行",
+        "sensitivity": "CONFIDENTIAL",
+        "node_ids": [
+          "code"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/8"
+        ],
+        "confidence": 0.9
+      }
+    ],
+    "trust_boundaries": [
+      {
+        "boundary_id": "BOUNDARY-2010bdece816",
+        "from_zone": "knowledge_store",
+        "to_zone": "workflow_runtime",
+        "node_ids": [
+          "kb"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/1"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-12be331c9fad",
+        "from_zone": "model_or_workflow",
+        "to_zone": "tool_runtime",
+        "node_ids": [
+          "web"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/2"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-562eba1c8cdb",
+        "from_zone": "workflow_runtime",
+        "to_zone": "model_service",
+        "node_ids": [
+          "llm1"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/3"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-545c2b9541a1",
+        "from_zone": "model_or_workflow",
+        "to_zone": "tool_runtime",
+        "node_ids": [
+          "memory"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/4"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-0e5b48f31166",
+        "from_zone": "workflow_runtime",
+        "to_zone": "model_service",
+        "node_ids": [
+          "llm2"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/5"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-da9e243364f9",
+        "from_zone": "model_or_workflow",
+        "to_zone": "tool_runtime",
+        "node_ids": [
+          "admin_tool"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/6"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-5c27deb63696",
+        "from_zone": "model_or_workflow",
+        "to_zone": "tool_runtime",
+        "node_ids": [
+          "exfil"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/7"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-793c42eeb9a0",
+        "from_zone": "model_or_workflow",
+        "to_zone": "tool_runtime",
+        "node_ids": [
+          "code"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/8"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-2930a62f1a8d",
+        "from_zone": "user",
+        "to_zone": "workflow_runtime",
+        "node_ids": [
+          "start"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ],
+        "confidence": 1.0
+      }
+    ],
+    "security_invariants": [
+      {
+        "invariant_id": "INV-001",
+        "statement": "不可信内容不得覆盖系统目标或授权策略。",
+        "node_ids": [
+          "llm1",
+          "llm2"
+        ],
+        "evidence": []
+      },
+      {
+        "invariant_id": "INV-002",
+        "statement": "模型输出不得在无确定性校验时触发高影响工具。",
+        "node_ids": [
+          "admin_tool",
+          "code"
+        ],
+        "evidence": []
+      },
+      {
+        "invariant_id": "INV-003",
+        "statement": "敏感数据不得未经授权离开工作流信任边界。",
+        "node_ids": [
+          "web",
+          "exfil"
+        ],
+        "evidence": []
+      }
+    ],
+    "attack_hypotheses": [],
+    "assumptions": [
+      "语义清单为确定性降级结果，业务语义需在完整 LLM 扫描或人工复核中确认。"
+    ],
+    "producer": "deterministic-fallback"
+  }
+}

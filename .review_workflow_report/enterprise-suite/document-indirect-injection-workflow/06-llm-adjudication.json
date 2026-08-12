@@ -1,0 +1,234 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-8ca44dcbd385",
+  "producer": "deterministic-fallback",
+  "producer_version": "0.2.0",
+  "workflow_hash": "1bb0ace2209edaa159d1946c33cdb1c0dd22d162c105a929bd4f49b8f800f8bd",
+  "created_at": "2026-08-12T06:19:22.526502+00:00",
+  "adjudication": {
+    "adjudications": [
+      {
+        "candidate_id": "CANDIDATE-184aba591794",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-42ae491c2207"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "外部或检索内容可经模型输出进入代码/命令执行节点。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-773182cd7b7b",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-e24a1cdc6ec9"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "动态变量可到达命令、代码或脚本执行能力。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-ce28491db959",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-5b0ea4b71887"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-373d7df36657",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-b21d3eac38ed"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-3e66094f03cb",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-d2850d089b18"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "上传文档或提取内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。",
+        "confidence": 0.9,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-2dc7904932bf",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-43985ba8c52b"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "不可信变量被插入系统或高权限指令区域。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-1caeae627294",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-eba884be669b"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "文档提取内容进入具备工具影响能力的 LLM。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-a1c03c7b8334",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-6f86df1426e2"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 自由文本输出可直接影响工具参数。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-f33492a0ffcb",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-8bf0bfbf5771"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "下游工具依赖 LLM 输出，但节点未声明严格结构化输出。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-966222522187",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-31989e78bdb0"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。",
+        "confidence": 0.88,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-e3ecff97aff0",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-35ca64adbbab"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "未经严格结构验证的模型输出进入下游执行节点。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-e03dd7db65d1",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-23c595965581"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "高影响工具的安全敏感参数由模型或上游变量控制。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-94ca80f76b03",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-f57033d43c21"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "高影响工具存在不经过审批节点的可达路径。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-22562cc1ecaa",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-ad5e359aba8b"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-265b85758dfd",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-b907ad0fc2fb"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "外部内容进入 LLM，但系统指令中未发现明确的数据/指令隔离约束。",
+        "confidence": 0.72,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-a7784b80a318",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-1694754d95ab"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-a060e1b89353",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-3cde63f04996"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具输入缺少可识别的严格 Schema。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      }
+    ],
+    "producer": "deterministic-fallback"
+  }
+}

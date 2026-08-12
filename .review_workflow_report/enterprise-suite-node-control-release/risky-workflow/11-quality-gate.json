@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-0d284ebfc0a2",
+  "producer": "quality-gate",
+  "producer_version": "0.5.0",
+  "workflow_hash": "405f5cb278c616af965dbdce79e4b5b7f2874d26dac2ad342858f7a880dd4d8a",
+  "created_at": "2026-08-12T08:31:04.457977+00:00",
+  "quality_gate": {
+    "decision": "FAIL",
+    "exit_code": 1,
+    "policy": {
+      "blocking_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "blocking_statuses": [
+        "CONFIRMED"
+      ],
+      "review_statuses": [
+        "COVERAGE_GAP",
+        "OBSERVED",
+        "PROBABLE"
+      ],
+      "waivers_require_workflow_hash_approver_justification_and_expiry": true
+    },
+    "blocking_finding_ids": [
+      "RISK-35591c45d098",
+      "RISK-7bf48082ebdc",
+      "RISK-1185ebbc88b5",
+      "RISK-de85063c6c79",
+      "RISK-4bee44afe1bf",
+      "RISK-59724d4c5b14",
+      "RISK-6a5869d9e579"
+    ],
+    "review_finding_ids": [
+      "RISK-2fd8eaa085bc",
+      "RISK-318279210f4f",
+      "RISK-c2fba5e9f127",
+      "RISK-99966d7cc527",
+      "RISK-3830078f85df",
+      "RISK-983d9e72f13b",
+      "RISK-8bf784043a04",
+      "RISK-ff973669bdee",
+      "RISK-80b96386c461",
+      "RISK-21a5bc7982ad"
+    ],
+    "blocking_count": 7,
+    "review_count": 10,
+    "waived_count": 0,
+    "waiver_audit": {
+      "applied": [],
+      "rejected": []
+    }
+  }
+}

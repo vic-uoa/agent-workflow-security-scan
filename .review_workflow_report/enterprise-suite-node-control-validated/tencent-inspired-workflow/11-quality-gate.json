@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-112edb20c0dc",
+  "producer": "quality-gate",
+  "producer_version": "0.5.0",
+  "workflow_hash": "b01ee8c4c8fd5f2b2451863af5da83de2a25473ec076b2c1a4ff70d2dd414997",
+  "created_at": "2026-08-12T08:29:31.617621+00:00",
+  "quality_gate": {
+    "decision": "FAIL",
+    "exit_code": 1,
+    "policy": {
+      "blocking_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "blocking_statuses": [
+        "CONFIRMED"
+      ],
+      "review_statuses": [
+        "COVERAGE_GAP",
+        "OBSERVED",
+        "PROBABLE"
+      ],
+      "waivers_require_workflow_hash_approver_justification_and_expiry": true
+    },
+    "blocking_finding_ids": [
+      "RISK-35591c45d098",
+      "RISK-f37959ca21e1",
+      "RISK-3ad5158441e2",
+      "RISK-1b0949096404",
+      "RISK-1e931174d25a",
+      "RISK-7762319f8fcc",
+      "RISK-979865bc0743",
+      "RISK-a09587b4e1de",
+      "RISK-c776462c48ad",
+      "RISK-fe3cc19e81c7",
+      "RISK-58f60dc3a5aa",
+      "RISK-72beb5f3940c",
+      "RISK-2caaca7447f3",
+      "RISK-c8e1e8d3fa73",
+      "RISK-ec216158724a"
+    ],
+    "review_finding_ids": [
+      "RISK-37df3bd64f0b",
+      "RISK-897f560c9ff0",
+      "RISK-cd9591da8b06",
+      "RISK-9bff6d891e05",
+      "RISK-c2fba5e9f127",
+      "RISK-2fd8eaa085bc",
+      "RISK-64f9e7a7749b",
+      "RISK-99966d7cc527",
+      "RISK-7f18c0700b19",
+      "RISK-49c4b474ee06",
+      "RISK-5f377c38dfda",
+      "RISK-7855a7e85415",
+      "RISK-03b4ed027e74",
+      "RISK-7bf206fa7394",
+      "RISK-a05082b6fe83",
+      "RISK-b04143b39755",
+      "RISK-8bf784043a04",
+      "RISK-2ee9c5963d9d",
+      "RISK-f50b84e2eaf4",
+      "RISK-d137ad4e6efb",
+      "RISK-616e8270ca3e",
+      "RISK-8e7151968d67",
+      "RISK-db7b24a46b27",
+      "RISK-88d460f46978",
+      "RISK-aa8c43ce14d5",
+      "RISK-80b96386c461",
+      "RISK-21a5bc7982ad"
+    ],
+    "blocking_count": 15,
+    "review_count": 27,
+    "waived_count": 0,
+    "waiver_audit": {
+      "applied": [],
+      "rejected": []
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-4c7f69ce74e3",
+  "producer": "rule-engine",
+  "producer_version": "0.4.0",
+  "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+  "created_at": "2026-08-12T07:54:22.232619+00:00",
+  "facts": [
+    {
+      "id": "FACT-a3b727da46b4",
+      "kind": "IN-002",
+      "node_ids": [
+        "start"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0"
+      ],
+      "data": {
+        "message": "输入字段 inputStr 缺少长度或数量上限。"
+      }
+    },
+    {
+      "id": "FACT-d4a60448cde7",
+      "kind": "IN-004",
+      "node_ids": [
+        "start"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0"
+      ],
+      "data": {
+        "message": "DSL 未声明输入解码和 Unicode 规范化控制。"
+      }
+    },
+    {
+      "id": "FACT-a5f0d2be15e6",
+      "kind": "LLM-001",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "不可信变量被插入系统或高权限指令区域。"
+      }
+    },
+    {
+      "id": "FACT-d095317c7327",
+      "kind": "LLM-002",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "外部内容进入 LLM，但系统指令中未发现明确的数据/指令隔离约束。"
+      }
+    },
+    {
+      "id": "FACT-11309d7a66f1",
+      "kind": "IN-009",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "用户消息可直接到达模型，且系统指令未声明对角色覆盖、目标劫持或提示词提取的防护边界。"
+      }
+    },
+    {
+      "id": "FACT-334bb61249e3",
+      "kind": "IN-007",
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1"
+      ],
+      "data": {
+        "message": "用户输入变量被插入系统/开发者指令区域。"
+      }
+    }
+  ]
+}

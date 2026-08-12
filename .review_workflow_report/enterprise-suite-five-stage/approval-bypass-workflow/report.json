@@ -1,0 +1,465 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-145bac44c4d3",
+  "producer": "report-builder",
+  "producer_version": "0.4.0",
+  "workflow_hash": "027bcdc15888de1c4fc8a97414142f2b0604537927b9f39df3c6410e973c1ee8",
+  "created_at": "2026-08-12T07:51:50.038284+00:00",
+  "report": {
+    "summary": {
+      "workflow_id": "approval-branch-bypass",
+      "workflow_hash": "027bcdc15888de1c4fc8a97414142f2b0604537927b9f39df3c6410e973c1ee8",
+      "node_count": 4,
+      "edge_count": 4,
+      "finding_count": 1,
+      "raw_observation_count": 1,
+      "coverage_gap_count": 0,
+      "severity_counts": {
+        "HIGH": 1
+      },
+      "status_counts": {
+        "CONFIRMED": 1
+      },
+      "waived_count": 0,
+      "executive_summary": "扫描已完成。报告中的确定性证据、语义候选和覆盖缺口已分开呈现。"
+    },
+    "workflow": {
+      "nodes": [
+        {
+          "id": "start",
+          "title": "start",
+          "type": "INPUT",
+          "capabilities": []
+        },
+        {
+          "id": "approve",
+          "title": "人工审批",
+          "type": "HUMAN",
+          "capabilities": [
+            "HUMAN_DECISION"
+          ]
+        },
+        {
+          "id": "delete_tool",
+          "title": "delete resource",
+          "type": "TOOL",
+          "capabilities": [
+            "RESOURCE_DELETE"
+          ]
+        },
+        {
+          "id": "answer",
+          "title": "结果",
+          "type": "OUTPUT",
+          "capabilities": [
+            "USER_OUTPUT"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "start",
+          "target": "approve",
+          "source_handle": null,
+          "target_handle": null
+        },
+        {
+          "id": "e2",
+          "source": "approve",
+          "target": "delete_tool",
+          "source_handle": "approve",
+          "target_handle": null
+        },
+        {
+          "id": "e3",
+          "source": "approve",
+          "target": "delete_tool",
+          "source_handle": "reject",
+          "target_handle": null
+        },
+        {
+          "id": "e4",
+          "source": "delete_tool",
+          "target": "answer",
+          "source_handle": null,
+          "target_handle": null
+        }
+      ]
+    },
+    "semantic_inventory": {
+      "workflow_purpose": "内部工作流 approval-branch-bypass；未启用 LLM 时仅根据节点名称和能力推断。",
+      "assets": [
+        {
+          "asset_id": "ASSET-5343bf33e554",
+          "name": "工具能力：delete resource",
+          "sensitivity": "CONFIDENTIAL",
+          "node_ids": [
+            "delete_tool"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 0.9
+        }
+      ],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-4afd2d50e0d2",
+          "from_zone": "model_or_workflow",
+          "to_zone": "tool_runtime",
+          "node_ids": [
+            "delete_tool"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-cba13ac01d77",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "security_invariants": [
+        {
+          "invariant_id": "INV-001",
+          "statement": "不可信内容不得覆盖系统目标或授权策略。",
+          "node_ids": [],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-002",
+          "statement": "模型输出不得在无确定性校验时触发高影响工具。",
+          "node_ids": [
+            "delete_tool"
+          ],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-003",
+          "statement": "敏感数据不得未经授权离开工作流信任边界。",
+          "node_ids": [],
+          "evidence": []
+        }
+      ],
+      "attack_hypotheses": [],
+      "assumptions": [
+        "语义清单为确定性降级结果，业务语义需在完整 LLM 扫描或人工复核中确认。"
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "findings": [
+      {
+        "id": "FINDING-2647bae3efca",
+        "rule_id": "FLOW-006",
+        "title": "审批或过滤可绕过",
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "confidence": 1.0,
+        "node_ids": [
+          "approve",
+          "delete_tool"
+        ],
+        "evidence_refs": [
+          "FACT-2647bae3efca"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/1",
+          "/workflow/graph/nodes/2"
+        ],
+        "message": "人工审批的拒绝/取消分支仍可到达高影响工具。",
+        "remediation": [
+          "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "AISVS-9.2",
+          "ASI02",
+          "ASI03"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [],
+        "dynamic_test": "approval_branch_bypass",
+        "root_cause_id": null,
+        "related_rule_ids": [],
+        "waived": false,
+        "waiver_id": null
+      }
+    ],
+    "attack_surface": {
+      "entrypoints": [
+        {
+          "entrypoint_id": "ENTRY-cced28c6dc3f",
+          "node_id": "start",
+          "name": "start",
+          "type": "INPUT",
+          "trust": "UNTRUSTED",
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ]
+        },
+        {
+          "entrypoint_id": "ENTRY-87771612a4dd",
+          "node_id": "delete_tool",
+          "name": "工具返回：delete resource",
+          "type": "TOOL_OUTPUT",
+          "trust": "UNTRUSTED",
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "asset_id": "ASSET-5343bf33e554",
+          "name": "工具能力：delete resource",
+          "sensitivity": "CONFIDENTIAL",
+          "node_ids": [
+            "delete_tool"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 0.9
+        }
+      ],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-4afd2d50e0d2",
+          "from_zone": "model_or_workflow",
+          "to_zone": "tool_runtime",
+          "node_ids": [
+            "delete_tool"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-cba13ac01d77",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "capabilities": [
+        {
+          "node_id": "approve",
+          "name": "人工审批",
+          "capabilities": [
+            "HUMAN_DECISION"
+          ],
+          "external": false,
+          "high_impact": false
+        },
+        {
+          "node_id": "delete_tool",
+          "name": "delete resource",
+          "capabilities": [
+            "RESOURCE_DELETE"
+          ],
+          "external": false,
+          "high_impact": true
+        },
+        {
+          "node_id": "answer",
+          "name": "结果",
+          "capabilities": [
+            "USER_OUTPUT"
+          ],
+          "external": false,
+          "high_impact": false
+        }
+      ],
+      "attack_paths": [
+        {
+          "attack_path_id": "AP-dbde405a349a",
+          "finding_id": "FINDING-2647bae3efca",
+          "rule_ids": [
+            "FLOW-006"
+          ],
+          "attack_family": "general_workflow_security",
+          "entrypoint_node": "approve",
+          "target_node": "delete_tool",
+          "path": [
+            "approve",
+            "delete_tool"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "attack_preconditions": [],
+          "missing_runtime_context": [],
+          "test_case_ids": [
+            "TC-dbde405a349a"
+          ],
+          "description": "人工审批的拒绝/取消分支仍可到达高影响工具。"
+        }
+      ],
+      "risk_chains": [
+        {
+          "risk_chain_id": "CHAIN-46804be5cdd5",
+          "path": [
+            "approve",
+            "delete_tool"
+          ],
+          "entrypoint_node": "approve",
+          "target_node": "delete_tool",
+          "finding_ids": [
+            "FINDING-2647bae3efca"
+          ],
+          "rule_ids": [
+            "FLOW-006"
+          ],
+          "attack_families": [
+            "general_workflow_security"
+          ],
+          "severity": "HIGH",
+          "statuses": [
+            "CONFIRMED"
+          ],
+          "test_case_ids": [
+            "TC-dbde405a349a"
+          ],
+          "attack_preconditions": [],
+          "missing_runtime_context": []
+        }
+      ],
+      "semantic_attack_hypotheses": [],
+      "test_coverage": {
+        "covered_finding_ids": [
+          "FINDING-2647bae3efca"
+        ],
+        "uncovered_finding_ids": [],
+        "execution_evidence_present": false,
+        "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。"
+      },
+      "missing_runtime_context": []
+    },
+    "test_cluster_summary": {
+      "case_count": 1,
+      "case_ids": [
+        "TC-dbde405a349a"
+      ],
+      "case_type_counts": {
+        "negative": 1
+      },
+      "seed_sample_ids": [],
+      "lineage_verified": true,
+      "execution_evidence_present": false
+    },
+    "priority_actions": [],
+    "verification": {
+      "valid": true,
+      "invalid_adjudication_refs": [],
+      "invalid_review_refs": [],
+      "applied_adjudications": [
+        {
+          "candidate_id": "CANDIDATE-dbde405a349a",
+          "finding_id": "FINDING-2647bae3efca"
+        }
+      ],
+      "applied_reviews": [
+        {
+          "finding_id": "FINDING-2647bae3efca",
+          "decision": "ACCEPT"
+        }
+      ],
+      "policy": {
+        "llm_can_modify_confirmed": false,
+        "llm_can_promote_to_confirmed": false,
+        "llm_generated_tests_are_finding_evidence": false,
+        "root_cause_aggregation_may_drop_rule_coverage": false,
+        "unknown_references_rejected": true
+      },
+      "coverage_accounting": {
+        "catalog_rule_count": 72,
+        "raw_match_count": 1,
+        "root_finding_count": 1,
+        "raw_rule_ids": [
+          "FLOW-006"
+        ],
+        "final_primary_or_related_rule_ids": [
+          "FLOW-006"
+        ],
+        "lost_rule_ids": [],
+        "lossless_root_cause_aggregation": true
+      },
+      "test_cluster": {
+        "seed_sample_ids": [],
+        "case_type_counts": {
+          "positive": 0,
+          "negative": 1,
+          "boundary": 0,
+          "metamorphic": 0
+        },
+        "all_cases_not_executed": true,
+        "accepted_case_count": 1,
+        "rejected_model_cases": [],
+        "required_case_types_present": true,
+        "lineage_verified": true,
+        "execution_evidence_present": false
+      },
+      "review": {
+        "reviews": [
+          {
+            "finding_id": "FINDING-2647bae3efca",
+            "decision": "ACCEPT",
+            "evidence_refs": [
+              "FACT-2647bae3efca"
+            ],
+            "reason": "Deterministic fallback retained the engine decision."
+          }
+        ],
+        "producer": "deterministic-fallback"
+      },
+      "llm_errors": []
+    },
+    "quality_gate": {
+      "decision": "FAIL",
+      "exit_code": 1,
+      "policy": {
+        "blocking_severities": [
+          "CRITICAL",
+          "HIGH"
+        ],
+        "blocking_statuses": [
+          "CONFIRMED"
+        ],
+        "review_statuses": [
+          "COVERAGE_GAP",
+          "OBSERVED",
+          "PROBABLE"
+        ],
+        "waivers_require_workflow_hash_approver_justification_and_expiry": true
+      },
+      "blocking_finding_ids": [
+        "FINDING-2647bae3efca"
+      ],
+      "review_finding_ids": [],
+      "blocking_count": 1,
+      "review_count": 0,
+      "waived_count": 0,
+      "waiver_audit": {
+        "applied": [],
+        "rejected": []
+      }
+    }
+  }
+}

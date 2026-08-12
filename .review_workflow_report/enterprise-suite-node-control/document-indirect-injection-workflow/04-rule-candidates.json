@@ -1,0 +1,439 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-a65e32d0a161",
+  "producer": "rule-engine",
+  "producer_version": "0.5.0",
+  "workflow_hash": "1bb0ace2209edaa159d1946c33cdb1c0dd22d162c105a929bd4f49b8f800f8bd",
+  "created_at": "2026-08-12T08:23:44.765141+00:00",
+  "rule_count": 72,
+  "raw_match_count": 17,
+  "raw_rule_ids": [
+    "FLOW-003",
+    "FLOW-005",
+    "FLOW-010",
+    "LLM-001",
+    "LLM-002",
+    "LLM-003",
+    "LLM-005",
+    "LLM-006",
+    "LLM-008",
+    "OUT-006",
+    "TOOL-002",
+    "TOOL-004",
+    "TOOL-008",
+    "TOOL-009",
+    "TOOL-011",
+    "TOOL-014"
+  ],
+  "raw_matches": [
+    {
+      "match_id": "MATCH-2dc7904932bf",
+      "finding_id_before_aggregation": "FINDING-43985ba8c52b",
+      "rule_id": "LLM-001",
+      "node_ids": [
+        "extract",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-43985ba8c52b"
+      ],
+      "status": "OBSERVED",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-265b85758dfd",
+      "finding_id_before_aggregation": "FINDING-b907ad0fc2fb",
+      "rule_id": "LLM-002",
+      "node_ids": [
+        "extract",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-b907ad0fc2fb"
+      ],
+      "status": "PROBABLE",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-e03dd7db65d1",
+      "finding_id_before_aggregation": "FINDING-23c595965581",
+      "rule_id": "TOOL-002",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-23c595965581"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-773182cd7b7b",
+      "finding_id_before_aggregation": "FINDING-e24a1cdc6ec9",
+      "rule_id": "TOOL-004",
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-e24a1cdc6ec9"
+      ],
+      "status": "CONFIRMED",
+      "severity": "CRITICAL"
+    },
+    {
+      "match_id": "MATCH-94ca80f76b03",
+      "finding_id_before_aggregation": "FINDING-f57033d43c21",
+      "rule_id": "TOOL-008",
+      "node_ids": [
+        "start",
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-f57033d43c21"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-a7784b80a318",
+      "finding_id_before_aggregation": "FINDING-1694754d95ab",
+      "rule_id": "TOOL-009",
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-1694754d95ab"
+      ],
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-a060e1b89353",
+      "finding_id_before_aggregation": "FINDING-3cde63f04996",
+      "rule_id": "TOOL-011",
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-3cde63f04996"
+      ],
+      "status": "PROBABLE",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-22562cc1ecaa",
+      "finding_id_before_aggregation": "FINDING-ad5e359aba8b",
+      "rule_id": "TOOL-014",
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-ad5e359aba8b"
+      ],
+      "status": "COVERAGE_GAP",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-ce28491db959",
+      "finding_id_before_aggregation": "FINDING-5b0ea4b71887",
+      "rule_id": "FLOW-003",
+      "node_ids": [
+        "start",
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-5b0ea4b71887"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-373d7df36657",
+      "finding_id_before_aggregation": "FINDING-b21d3eac38ed",
+      "rule_id": "FLOW-003",
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-b21d3eac38ed"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-3e66094f03cb",
+      "finding_id_before_aggregation": "FINDING-d2850d089b18",
+      "rule_id": "FLOW-005",
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-d2850d089b18"
+      ],
+      "status": "PROBABLE",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-1caeae627294",
+      "finding_id_before_aggregation": "FINDING-eba884be669b",
+      "rule_id": "LLM-003",
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-eba884be669b"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-184aba591794",
+      "finding_id_before_aggregation": "FINDING-42ae491c2207",
+      "rule_id": "FLOW-010",
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-42ae491c2207"
+      ],
+      "status": "CONFIRMED",
+      "severity": "CRITICAL"
+    },
+    {
+      "match_id": "MATCH-a1c03c7b8334",
+      "finding_id_before_aggregation": "FINDING-6f86df1426e2",
+      "rule_id": "LLM-005",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-6f86df1426e2"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-f33492a0ffcb",
+      "finding_id_before_aggregation": "FINDING-8bf0bfbf5771",
+      "rule_id": "LLM-006",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-8bf0bfbf5771"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-e3ecff97aff0",
+      "finding_id_before_aggregation": "FINDING-35ca64adbbab",
+      "rule_id": "OUT-006",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-35ca64adbbab"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-966222522187",
+      "finding_id_before_aggregation": "FINDING-31989e78bdb0",
+      "rule_id": "LLM-008",
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-31989e78bdb0"
+      ],
+      "status": "PROBABLE",
+      "severity": "HIGH"
+    }
+  ],
+  "candidate_count": 7,
+  "candidates": [
+    {
+      "candidate_id": "CANDIDATE-b2c8910a1b13",
+      "finding_id": "RISK-f37959ca21e1",
+      "rule_id": "TOOL-004",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI05"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-e24a1cdc6ec9",
+        "FACT-42ae491c2207"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "CRITICAL"
+    },
+    {
+      "candidate_id": "CANDIDATE-c373dda8b54b",
+      "finding_id": "RISK-318279210f4f",
+      "rule_id": "FLOW-005",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01",
+        "AISVS-9.3"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "extract",
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-d2850d089b18",
+        "FACT-eba884be669b"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-eb55c7cb873b",
+      "finding_id": "RISK-59724d4c5b14",
+      "rule_id": "LLM-001",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "extract",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-43985ba8c52b",
+        "FACT-b907ad0fc2fb"
+      ],
+      "recommended_status": "PROBABLE",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-d5214a6b130f",
+      "finding_id": "RISK-c776462c48ad",
+      "rule_id": "LLM-005",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-3cde63f04996",
+        "FACT-6f86df1426e2",
+        "FACT-8bf0bfbf5771",
+        "FACT-35ca64adbbab"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-47a53f376c6b",
+      "finding_id": "RISK-72beb5f3940c",
+      "rule_id": "TOOL-002",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "llm",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-23c595965581",
+        "FACT-f57033d43c21",
+        "FACT-5b0ea4b71887",
+        "FACT-b21d3eac38ed",
+        "FACT-31989e78bdb0"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-c7cb2821937b",
+      "finding_id": "RISK-7855a7e85415",
+      "rule_id": "TOOL-014",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI04",
+        "AISVS-C10"
+      ],
+      "detectability": "M",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-ad5e359aba8b"
+      ],
+      "recommended_status": "COVERAGE_GAP",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-6d04efd32317",
+      "finding_id": "RISK-d137ad4e6efb",
+      "rule_id": "TOOL-009",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI02"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-1694754d95ab"
+      ],
+      "recommended_status": "COVERAGE_GAP",
+      "recommended_severity": "MEDIUM"
+    }
+  ]
+}

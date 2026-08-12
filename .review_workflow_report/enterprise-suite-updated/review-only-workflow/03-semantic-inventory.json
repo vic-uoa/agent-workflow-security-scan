@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-34fb9f31d69c",
+  "producer": "deterministic-fallback",
+  "producer_version": "0.2.0",
+  "workflow_hash": "4d1f3d367ae97e7d28f6037990bc8defe24432b046f71c4875ffae58b3369f03",
+  "created_at": "2026-08-12T07:31:58.664415+00:00",
+  "semantic_inventory": {
+    "workflow_purpose": "内部工作流 review-only-llm；未启用 LLM 时仅根据节点名称和能力推断。",
+    "assets": [],
+    "trust_boundaries": [
+      {
+        "boundary_id": "BOUNDARY-8f4d0090e54c",
+        "from_zone": "workflow_runtime",
+        "to_zone": "model_service",
+        "node_ids": [
+          "llm"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/1"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-bfc04ec84622",
+        "from_zone": "user",
+        "to_zone": "workflow_runtime",
+        "node_ids": [
+          "start"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ],
+        "confidence": 1.0
+      }
+    ],
+    "security_invariants": [
+      {
+        "invariant_id": "INV-001",
+        "statement": "不可信内容不得覆盖系统目标或授权策略。",
+        "node_ids": [
+          "llm"
+        ],
+        "evidence": []
+      },
+      {
+        "invariant_id": "INV-002",
+        "statement": "模型输出不得在无确定性校验时触发高影响工具。",
+        "node_ids": [],
+        "evidence": []
+      },
+      {
+        "invariant_id": "INV-003",
+        "statement": "敏感数据不得未经授权离开工作流信任边界。",
+        "node_ids": [],
+        "evidence": []
+      }
+    ],
+    "attack_hypotheses": [],
+    "assumptions": [
+      "语义清单为确定性降级结果，业务语义需在完整 LLM 扫描或人工复核中确认。"
+    ],
+    "producer": "deterministic-fallback"
+  }
+}

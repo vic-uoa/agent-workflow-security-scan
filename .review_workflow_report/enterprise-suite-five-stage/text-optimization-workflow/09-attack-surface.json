@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-253caf3c6810",
+  "producer": "attack-surface-builder",
+  "producer_version": "0.4.0",
+  "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+  "created_at": "2026-08-12T07:51:50.553506+00:00",
+  "attack_surface": {
+    "entrypoints": [
+      {
+        "entrypoint_id": "ENTRY-cced28c6dc3f",
+        "node_id": "start",
+        "name": "用户输入",
+        "type": "INPUT",
+        "trust": "UNTRUSTED",
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ]
+      }
+    ],
+    "assets": [],
+    "trust_boundaries": [
+      {
+        "boundary_id": "BOUNDARY-8f4d0090e54c",
+        "from_zone": "workflow_runtime",
+        "to_zone": "model_service",
+        "node_ids": [
+          "llm"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/1"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-2d8e82311544",
+        "from_zone": "user",
+        "to_zone": "workflow_runtime",
+        "node_ids": [
+          "start"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ],
+        "confidence": 1.0
+      }
+    ],
+    "capabilities": [
+      {
+        "node_id": "end",
+        "name": "输出",
+        "capabilities": [
+          "USER_OUTPUT"
+        ],
+        "external": false,
+        "high_impact": false
+      }
+    ],
+    "attack_paths": [
+      {
+        "attack_path_id": "AP-c6881422fe4f",
+        "finding_id": "FINDING-a5f0d2be15e6",
+        "rule_ids": [
+          "LLM-001",
+          "IN-007",
+          "IN-009",
+          "LLM-002"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "start",
+        "target_node": "llm",
+        "path": [
+          "start",
+          "llm"
+        ],
+        "status": "OBSERVED",
+        "severity": "MEDIUM",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-c6881422fe4f"
+        ],
+        "description": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。"
+      }
+    ],
+    "risk_chains": [
+      {
+        "risk_chain_id": "CHAIN-4324812394cb",
+        "path": [
+          "start",
+          "llm"
+        ],
+        "entrypoint_node": "start",
+        "target_node": "llm",
+        "finding_ids": [
+          "FINDING-a5f0d2be15e6"
+        ],
+        "rule_ids": [
+          "LLM-001",
+          "IN-007",
+          "IN-009",
+          "LLM-002"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "MEDIUM",
+        "statuses": [
+          "OBSERVED"
+        ],
+        "test_case_ids": [
+          "TC-c6881422fe4f"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      }
+    ],
+    "semantic_attack_hypotheses": [],
+    "test_coverage": {
+      "covered_finding_ids": [
+        "FINDING-a5f0d2be15e6",
+        "FINDING-d4a60448cde7"
+      ],
+      "uncovered_finding_ids": [
+        "FINDING-a3b727da46b4"
+      ],
+      "execution_evidence_present": false,
+      "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。"
+    },
+    "missing_runtime_context": [
+      "输入规范化可能由平台统一实现，DSL 无法验证。"
+    ]
+  }
+}

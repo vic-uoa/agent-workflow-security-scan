@@ -1,0 +1,489 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-1beffcf1c6e7",
+  "producer": "deterministic-fallback",
+  "producer_version": "0.4.0",
+  "workflow_hash": "405f5cb278c616af965dbdce79e4b5b7f2874d26dac2ad342858f7a880dd4d8a",
+  "created_at": "2026-08-12T07:51:51.311028+00:00",
+  "adjudication": {
+    "adjudications": [
+      {
+        "candidate_id": "CANDIDATE-40b2ad891950",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-c342c5c90be4"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 中检测到疑似明文凭证；若其位于 Prompt 或节点变量中，模型可能观察到凭证。",
+        "confidence": 0.98,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-7273d0fc5cb4",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-087ae7b3c06e"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-1e473bba6fc4",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-0fa7fb59a544"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "敏感资产作为网络载荷，同时模型可控制外部目标，形成完整的复合外泄链。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-b04f5339c902",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-153e38f7ddf9"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-b945eda4bbae",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-dfb118a177f7"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 节点文本中包含疑似明文凭证。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-8581bcca6dda",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-991cfbb1fa94"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具配置中存在疑似明文凭证。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-e12bb6f70b54",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-ebe8b001f9a1"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "敏感载荷可进入具有动态目标的网络写工具，且未发现 DLP/出站载荷策略。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-c87f83394e28",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-08e204ba0560"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-4c1b0e40ea3b",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-945de85a7b0c"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-71a03bd0c198",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-c4cde0855742",
+          "FACT-b965e9dabc9d",
+          "FACT-db501d2c8995"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "疑似敏感数据可达外部工具或输出边界。",
+        "confidence": 0.78,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-0b3f6308962f",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-ce5bfbcac39c",
+          "FACT-6e37d1d76437"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "疑似敏感数据可达外部工具或输出边界。",
+        "confidence": 0.78,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-82193ef76cb1",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-fc8d90f5e830",
+          "FACT-546eb56f2701",
+          "FACT-50be1cb79f0b"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "知识库内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。",
+        "confidence": 0.9,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-4bd7bcbfe2e0",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-2ff4d43c2b2e"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "输入字段 api_key 可能包含敏感信息，需要验证下游传播和脱敏。",
+        "confidence": 0.75,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-a33689c29238",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-8fdf8b561594"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "知识检索数据集范围未固定或无法识别。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-b37993cc2a22",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-55c4ecb9530d"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "知识检索未配置可识别的租户、用户或业务元数据过滤。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-285e8f3c951c",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-dea702265759"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "知识检索内容被插入 LLM 高权限 Prompt。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-5e360f0ba124",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-640c7a7c0c1f"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "检索内容进入模型前缺少可识别的注入筛查或隔离控制。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-abfa9f21e1eb",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-7f24df8e8cab",
+          "FACT-bbd20be44857",
+          "FACT-227f8afcd0f4"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 自由文本输出可直接影响工具参数。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-1bc3a3d3589c",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-018db969148c"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "系统指令区包含敏感信息或凭证迹象，但未发现提示词防泄露/上下文 DLP 控制。",
+        "confidence": 0.9,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-b52299b0bd46",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-5a4a7003a8b8"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "动态 HTML/Markdown 输出缺少可识别的上下文编码。",
+        "confidence": 0.82,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-2171b0552a27",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-b7bf9a442b48"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "动态 Markdown 链接或图片目标未受限，可通过客户端取链或 URL 路径编码形成隐蔽外带。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-8e4d192b7456",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-5dccf8f0a473"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "动态 URL/Host 缺少域名或地址 Allowlist。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-d9d3befd5f25",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-a428f408d1de"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "输入字段 api_key 缺少长度或数量上限。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-c87675d55aca",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-d3980431b8ae"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "输入字段 query 缺少长度或数量上限。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-55d9b91e1cac",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-11309d7a66f1"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+        "confidence": 0.9,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-d8f98d7637ab",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-4fc3be561f9a"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "Top-K 过大或相似度阈值缺失/过低，可能扩大无关内容和投毒内容暴露面。",
+        "confidence": 0.82,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-72b2374b3172",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-dd03e9b6672c"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 未显示检索来源和引用元数据要求。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-f10de959d667",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-9e43b2cb8c71",
+          "FACT-be9267c28068"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+        "confidence": 0.9,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-64a5fb8538ed",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-91101ff7dec6"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-c6941efedd5c",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-9d7a8c4fd729"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-f78d5707fbd5",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-8ebd29c4ba03"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "知识库回答到达输出，但未发现引用元数据绑定。",
+        "confidence": 1.0,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-9a464f68c923",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-0c9b42606853"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "输出节点未显示低置信或失败回退行为。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-550ba4a239b0",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-0fab3ba4961d"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具输入缺少可识别的严格 Schema。",
+        "confidence": 0.8,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-eea8ada90dfc",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-ad44783ba931"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "工具缺少可识别的超时设置。",
+        "confidence": 0.85,
+        "recommended_status": "PROBABLE"
+      },
+      {
+        "candidate_id": "CANDIDATE-2fa075828bf8",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-d4a60448cde7"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "DSL 未声明输入解码和 Unicode 规范化控制。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      },
+      {
+        "candidate_id": "CANDIDATE-bb47bc669d2b",
+        "applicable": true,
+        "supporting_evidence_refs": [
+          "FACT-407027395fcd"
+        ],
+        "counter_evidence_refs": [],
+        "attack_preconditions": [],
+        "missing_context": [],
+        "business_impact": "知识库 ACL、文档来源、内容隔离、过期和撤销策略不在 DSL 中，静态扫描无法验证。",
+        "confidence": 1.0,
+        "recommended_status": "COVERAGE_GAP"
+      }
+    ],
+    "producer": "deterministic-fallback"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-3f6536220ca7",
+  "producer": "evidence-verifier",
+  "producer_version": "0.5.0",
+  "workflow_hash": "40460deac52ea45b02588aaef8ae4f3cc512ced4539c6c0a5bb078e726e6492e",
+  "created_at": "2026-08-12T08:23:43.781071+00:00",
+  "verification": {
+    "valid": true,
+    "invalid_adjudication_refs": [],
+    "invalid_review_refs": [],
+    "applied_adjudications": [
+      {
+        "candidate_id": "CANDIDATE-60671aed83af",
+        "finding_id": "RISK-1a396cfa0e2b"
+      },
+      {
+        "candidate_id": "CANDIDATE-3ec6ccab8645",
+        "finding_id": "RISK-a04853bf158d"
+      }
+    ],
+    "applied_reviews": [
+      {
+        "finding_id": "RISK-1a396cfa0e2b",
+        "decision": "ACCEPT"
+      }
+    ],
+    "policy": {
+      "llm_can_modify_confirmed": false,
+      "llm_can_promote_to_confirmed": false,
+      "llm_generated_tests_are_finding_evidence": false,
+      "root_cause_aggregation_may_drop_rule_coverage": false,
+      "unknown_references_rejected": true
+    },
+    "coverage_accounting": {
+      "catalog_rule_count": 72,
+      "raw_match_count": 5,
+      "root_finding_count": 2,
+      "raw_rule_ids": [
+        "FLOW-003",
+        "TOOL-002",
+        "TOOL-008",
+        "TOOL-009",
+        "TOOL-015"
+      ],
+      "final_primary_or_related_rule_ids": [
+        "FLOW-003",
+        "TOOL-002",
+        "TOOL-008",
+        "TOOL-009",
+        "TOOL-015"
+      ],
+      "lost_rule_ids": [],
+      "lossless_root_cause_aggregation": true
+    },
+    "test_cluster": {
+      "seed_sample_ids": [],
+      "case_type_counts": {
+        "positive": 0,
+        "negative": 4,
+        "boundary": 0,
+        "metamorphic": 0
+      },
+      "all_cases_not_executed": true,
+      "accepted_case_count": 4,
+      "rejected_model_cases": [],
+      "required_case_types_present": true,
+      "lineage_verified": true,
+      "execution_evidence_present": false
+    },
+    "review": {
+      "reviews": [
+        {
+          "finding_id": "RISK-1a396cfa0e2b",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-7bf40816dbd9",
+            "FACT-5ce38353b965",
+            "FACT-da3eb68a5f22",
+            "FACT-0a5266f18265"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        }
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "llm_errors": []
+  }
+}

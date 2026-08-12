@@ -34,31 +34,44 @@ def build_attack_surface(
             })
 
     case_by_rule: dict[str, list[str]] = {}
+    case_by_finding: dict[str, list[str]] = {}
     for case in test_cluster.get("cases", []):
         if not isinstance(case, dict):
             continue
         for rule_id in case.get("rule_ids", []):
             case_by_rule.setdefault(str(rule_id), []).append(str(case.get("case_id")))
+        for finding_id in case.get("finding_ids", []):
+            case_by_finding.setdefault(str(finding_id), []).append(str(case.get("case_id")))
 
     paths = []
     for finding in findings:
-        if len(finding.node_ids) < 2 and finding.severity not in {"HIGH", "CRITICAL"}:
-            continue
-        paths.append({
-            "attack_path_id": stable_id("AP", finding.id),
-            "finding_id": finding.id,
-            "rule_ids": [finding.rule_id],
-            "attack_family": finding.attack_family,
-            "entrypoint_node": finding.node_ids[0] if finding.node_ids else None,
-            "target_node": finding.node_ids[-1] if finding.node_ids else None,
-            "path": finding.node_ids,
-            "status": finding.status,
-            "severity": finding.severity,
-            "attack_preconditions": finding.attack_preconditions,
-            "missing_runtime_context": finding.missing_context,
-            "test_case_ids": case_by_rule.get(finding.rule_id, []),
-            "description": finding.message,
-        })
+        related_cases = [
+            *case_by_finding.get(finding.id, []),
+            *(case_id for rule_id in (finding.rule_id, *finding.related_rule_ids) for case_id in case_by_rule.get(rule_id, [])),
+        ]
+        for path_index, path in enumerate(finding.path_variants or [finding.node_ids]):
+            if len(path) < 2 and finding.severity not in {"HIGH", "CRITICAL"}:
+                continue
+            instance = next(
+                (item for item in finding.instance_summaries if item.get("path") == path), {}
+            )
+            paths.append({
+                "attack_path_id": stable_id("AP", finding.id, path_index, *path),
+                "finding_id": finding.id,
+                "anchor_node_id": finding.anchor_node_id,
+                "control_domain": finding.control_domain,
+                "rule_ids": instance.get("rule_ids", [finding.rule_id, *finding.related_rule_ids]),
+                "attack_family": finding.attack_family,
+                "entrypoint_node": path[0] if path else None,
+                "target_node": path[-1] if path else None,
+                "path": path,
+                "status": instance.get("status", finding.status),
+                "severity": instance.get("severity", finding.severity),
+                "attack_preconditions": finding.attack_preconditions,
+                "missing_runtime_context": finding.missing_context,
+                "test_case_ids": list(dict.fromkeys(related_cases)),
+                "description": instance.get("message", finding.message),
+            })
 
     capabilities = [{
         "node_id": node.id,
@@ -102,6 +115,10 @@ def build_attack_surface(
         risk_chains.append(bucket)
     risk_chains.sort(key=lambda item: (-severity_rank.get(item["severity"], -1), item["risk_chain_id"]))
 
+    covered_findings = sorted({
+        finding_id for case in test_cluster.get("cases", []) if isinstance(case, dict)
+        for finding_id in case.get("finding_ids", [])
+    })
     return {
         "entrypoints": entrypoints,
         "assets": semantic.get("assets", []),
@@ -110,6 +127,15 @@ def build_attack_surface(
         "attack_paths": paths,
         "risk_chains": risk_chains,
         "semantic_attack_hypotheses": semantic.get("attack_hypotheses", []),
+        "test_coverage": {
+            "covered_finding_ids": covered_findings,
+            "uncovered_finding_ids": sorted(
+                finding.id for finding in findings
+                if finding.status != "COVERAGE_GAP" and finding.id not in covered_findings
+            ),
+            "execution_evidence_present": False,
+            "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。",
+        },
         "missing_runtime_context": sorted({
             item for finding in findings for item in finding.missing_context
         }),
@@ -146,15 +172,38 @@ def build_report_json(
     verification: dict[str, Any],
     quality_gate: dict[str, Any],
 ) -> dict[str, Any]:
-    severity_counts = Counter(finding.severity for finding in findings)
+    issues = [finding for finding in findings if finding.status != "COVERAGE_GAP"]
+    gaps = [finding for finding in findings if finding.status == "COVERAGE_GAP"]
+    severity_counts = Counter(finding.severity for finding in issues)
     status_counts = Counter(finding.status for finding in findings)
+    node_map = ir.node_map()
+    node_risk_summary = []
+    for anchor in dict.fromkeys(finding.anchor_node_id or "workflow" for finding in issues):
+        items = [finding for finding in issues if (finding.anchor_node_id or "workflow") == anchor]
+        node = node_map.get(anchor)
+        node_risk_summary.append({
+            "node_id": anchor,
+            "node_title": node.title if node else "Workflow",
+            "node_type": node.type if node else "WORKFLOW",
+            "risk_item_count": len(items),
+            "risk_item_ids": [finding.id for finding in items],
+            "control_domains": list(dict.fromkeys(finding.control_domain for finding in items)),
+            "highest_severity": max(
+                (finding.severity for finding in items),
+                key=lambda value: {"INFO": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}.get(value, -1),
+            ),
+        })
     return {
         "summary": {
             "workflow_id": ir.workflow_id,
             "workflow_hash": ir.workflow_hash,
             "node_count": len(ir.nodes),
             "edge_count": len(ir.edges),
-            "finding_count": len(findings),
+            "finding_count": len(issues),
+            "risk_item_count": len(issues),
+            "evidence_instance_count": sum(len(finding.instance_summaries) or 1 for finding in issues),
+            "raw_observation_count": len(findings),
+            "coverage_gap_count": len(gaps),
             "severity_counts": dict(severity_counts),
             "status_counts": dict(status_counts),
             "waived_count": sum(finding.waived for finding in findings),
@@ -166,10 +215,18 @@ def build_report_json(
         },
         "semantic_inventory": semantic,
         "findings": [to_jsonable(finding) for finding in findings],
+        "node_risk_summary": node_risk_summary,
         "attack_surface": attack_surface,
         "test_cluster_summary": {
             "case_count": len(tests.get("cases", [])),
             "case_ids": [case.get("case_id") for case in tests.get("cases", []) if isinstance(case, dict)],
+            "case_type_counts": dict(Counter(
+                str(case.get("case_type", "unknown"))
+                for case in tests.get("cases", []) if isinstance(case, dict)
+            )),
+            "seed_sample_ids": tests.get("generation_audit", {}).get("seed_sample_ids", []),
+            "lineage_verified": tests.get("generation_audit", {}).get("lineage_verified", False),
+            "execution_evidence_present": False,
         },
         "priority_actions": explanation.get("priority_actions", []),
         "verification": verification,
@@ -179,7 +236,8 @@ def build_report_json(
 
 def render_markdown(report: dict[str, Any]) -> str:
     summary = report["summary"]
-    findings = report.get("findings", [])
+    all_findings = report.get("findings", [])
+    findings = [finding for finding in all_findings if finding.get("status") != "COVERAGE_GAP"]
     lines = [
         f"# Workflow 静态安全扫描报告：{summary['workflow_id']}",
         "",
@@ -189,10 +247,20 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         f"- Workflow Hash：`{summary['workflow_hash']}`",
         f"- 节点/边：{summary['node_count']} / {summary['edge_count']}",
-        f"- Finding 数：{summary['finding_count']}",
+        f"- 节点风险项：{summary.get('risk_item_count', summary['finding_count'])}",
+        f"- 规则/路径证据实例：{summary.get('evidence_instance_count', summary['finding_count'])}（不重复计为风险项）",
+        f"- 覆盖缺口数：{summary.get('coverage_gap_count', 0)}（不计入 Finding）",
         f"- 严重等级：{_format_counts(summary.get('severity_counts', {}))}",
         f"- 证据状态：{_format_counts(summary.get('status_counts', {}))}",
         f"- 发布门禁：`{report.get('quality_gate', {}).get('decision', 'UNKNOWN')}`",
+        "",
+        "## 输入簇与证据边界",
+        "",
+        f"- 用户种子样例：{len(report.get('test_cluster_summary', {}).get('seed_sample_ids', []))}",
+        f"- 派生用例：{report.get('test_cluster_summary', {}).get('case_count', 0)}",
+        f"- 类型分布：{_format_counts(report.get('test_cluster_summary', {}).get('case_type_counts', {}))}",
+        f"- 血缘校验：`{'通过' if report.get('test_cluster_summary', {}).get('lineage_verified') else '未通过或无样例'}`",
+        "- 执行证据：`无`。输入簇只用于攻击面覆盖和沙盒测试计划，不用于确认或排除漏洞。",
         "",
         "## 关键攻击链",
         "",
@@ -210,41 +278,57 @@ def render_markdown(report: dict[str, Any]) -> str:
                 "",
                 f"- 路径：`{chain}`",
                 f"- 状态：`{', '.join(path.get('statuses', []))}`",
-                f"- 动态用例：{', '.join(path.get('test_case_ids', [])) or '待生成'}",
+                f"- 建议测试用例（未执行）：{', '.join(path.get('test_case_ids', [])) or '待生成'}",
                 "",
             ])
     else:
         lines.extend(["未形成可展示的跨节点攻击链。", ""])
 
-    lines.extend(["## Findings", ""])
+    lines.extend(["## 节点风险项", ""])
     if not findings:
         lines.extend(["未发现规则命中；仍需查看覆盖缺口和运行时验证范围。", ""])
-    for finding in findings:
-        locations = ", ".join(f"`{item}`" for item in finding.get("dsl_locations", [])) or "无"
-        evidence = ", ".join(f"`{item}`" for item in finding.get("evidence_refs", [])) or "无"
-        nodes = " → ".join(finding.get("node_ids", [])) or "全局"
+    node_summaries = report.get("node_risk_summary", [])
+    for node_summary in node_summaries:
+        node_id = node_summary["node_id"]
+        node_findings = [finding for finding in findings if (finding.get("anchor_node_id") or "workflow") == node_id]
         lines.extend([
-            f"### [{finding['severity']}] {finding['rule_id']} · {finding['title']}",
+            f"### 节点 `{node_id}` · {node_summary['node_title']}",
             "",
-            finding.get("message", ""),
+            f"节点类型：`{node_summary['node_type']}`；风险项：{node_summary['risk_item_count']}；最高等级：`{node_summary['highest_severity']}`",
             "",
-            f"- 状态：`{finding['status']}`；置信度：{finding['confidence']:.2f}",
-            f"- 节点：`{nodes}`",
-            f"- DSL 位置：{locations}",
-            f"- 证据：{evidence}",
         ])
-        if finding.get("missing_context"):
-            lines.append(f"- 缺失上下文：{'；'.join(finding['missing_context'])}")
-        if finding.get("dynamic_test"):
-            lines.append(f"- 动态验证：`{finding['dynamic_test']}`")
-        if finding.get("waived"):
-            lines.append(f"- 豁免：`{finding.get('waiver_id')}`（Finding 保留，仅从门禁阻断项中排除）")
-        lines.extend(["- 修复建议："])
-        for item in finding.get("remediation", []):
-            lines.append(f"  - {item}")
-        lines.append("")
+        for finding in node_findings:
+            locations = ", ".join(f"`{item}`" for item in finding.get("dsl_locations", [])) or "无"
+            evidence = ", ".join(f"`{item}`" for item in finding.get("evidence_refs", [])) or "无"
+            nodes = " → ".join(finding.get("node_ids", [])) or "全局"
+            lines.extend([
+                f"#### [{finding['severity']}] {finding.get('control_domain', 'general_security_control')} · {finding['title']}",
+                "",
+                finding.get("message", ""),
+                "",
+                f"- 状态：`{finding['status']}`；置信度：{finding['confidence']:.2f}",
+                f"- 当前证据等级：`{finding['severity']}`；最大潜在等级：`{finding.get('potential_severity') or finding['severity']}`",
+                f"- 代表路径：`{nodes}`；路径变体：{len(finding.get('path_variants', [])) or 1}",
+                f"- 合并证据实例：{len(finding.get('instance_summaries', [])) or 1}",
+                f"- 规则映射：{', '.join([finding['rule_id'], *finding.get('related_rule_ids', [])])}",
+                f"- DSL 位置：{locations}",
+                f"- 证据：{evidence}",
+            ])
+            if finding.get("root_cause_id"):
+                lines.append(f"- 风险项指纹：`{finding['root_cause_id']}`")
+            if finding.get("missing_context"):
+                lines.append(f"- 缺失上下文：{'；'.join(finding['missing_context'])}")
+            if finding.get("dynamic_tests") or finding.get("dynamic_test"):
+                tests = finding.get("dynamic_tests") or [finding["dynamic_test"]]
+                lines.append(f"- 建议动态测试：{', '.join(f'`{item}`' for item in tests)}（本次未执行）")
+            if finding.get("waived"):
+                lines.append(f"- 豁免：`{finding.get('waiver_id')}`（风险项保留，仅从门禁阻断项中排除）")
+            lines.extend(["- 修复建议："])
+            for item in finding.get("remediation", []):
+                lines.append(f"  - {item}")
+            lines.append("")
 
-    gaps = [finding for finding in findings if finding.get("status") == "COVERAGE_GAP"]
+    gaps = [finding for finding in all_findings if finding.get("status") == "COVERAGE_GAP"]
     lines.extend(["## 覆盖缺口", ""])
     if gaps:
         for finding in gaps:

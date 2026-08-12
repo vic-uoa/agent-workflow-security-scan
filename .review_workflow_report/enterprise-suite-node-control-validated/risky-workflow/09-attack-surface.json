@@ -1,0 +1,1127 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-dd5f39786855",
+  "producer": "attack-surface-builder",
+  "producer_version": "0.5.0",
+  "workflow_hash": "405f5cb278c616af965dbdce79e4b5b7f2874d26dac2ad342858f7a880dd4d8a",
+  "created_at": "2026-08-12T08:29:31.370329+00:00",
+  "attack_surface": {
+    "entrypoints": [
+      {
+        "entrypoint_id": "ENTRY-cced28c6dc3f",
+        "node_id": "start",
+        "name": "用户输入",
+        "type": "INPUT",
+        "trust": "UNTRUSTED",
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ]
+      },
+      {
+        "entrypoint_id": "ENTRY-74fec0c33e96",
+        "node_id": "kb",
+        "name": "企业敏感知识库",
+        "type": "KNOWLEDGE",
+        "trust": "SEMI_TRUSTED",
+        "evidence": [
+          "/workflow/graph/nodes/1"
+        ]
+      },
+      {
+        "entrypoint_id": "ENTRY-f047c58d3fd9",
+        "node_id": "http",
+        "name": "工具返回：外部HTTP写入工具",
+        "type": "TOOL_OUTPUT",
+        "trust": "UNTRUSTED",
+        "evidence": [
+          "/workflow/graph/nodes/3"
+        ]
+      }
+    ],
+    "assets": [
+      {
+        "asset_id": "ASSET-2010bdece816",
+        "name": "知识资产：企业敏感知识库",
+        "sensitivity": "CONFIDENTIAL",
+        "node_ids": [
+          "kb"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/1"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "asset_id": "ASSET-1195909dcc24",
+        "name": "工具能力：外部HTTP写入工具",
+        "sensitivity": "INTERNAL",
+        "node_ids": [
+          "http"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/3"
+        ],
+        "confidence": 0.9
+      }
+    ],
+    "trust_boundaries": [
+      {
+        "boundary_id": "BOUNDARY-2010bdece816",
+        "from_zone": "knowledge_store",
+        "to_zone": "workflow_runtime",
+        "node_ids": [
+          "kb"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/1"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-8f4d0090e54c",
+        "from_zone": "workflow_runtime",
+        "to_zone": "model_service",
+        "node_ids": [
+          "llm"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/2"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-3c088d8ff13b",
+        "from_zone": "model_or_workflow",
+        "to_zone": "tool_runtime",
+        "node_ids": [
+          "http"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/3"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-23f0a06ce7b1",
+        "from_zone": "user",
+        "to_zone": "workflow_runtime",
+        "node_ids": [
+          "start"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ],
+        "confidence": 1.0
+      }
+    ],
+    "capabilities": [
+      {
+        "node_id": "kb",
+        "name": "企业敏感知识库",
+        "capabilities": [
+          "DATABASE_READ"
+        ],
+        "external": false,
+        "high_impact": false
+      },
+      {
+        "node_id": "http",
+        "name": "外部HTTP写入工具",
+        "capabilities": [
+          "NETWORK_READ",
+          "NETWORK_WRITE"
+        ],
+        "external": true,
+        "high_impact": false
+      },
+      {
+        "node_id": "answer",
+        "name": "Markdown回答",
+        "capabilities": [
+          "USER_OUTPUT"
+        ],
+        "external": false,
+        "high_impact": false
+      }
+    ],
+    "attack_paths": [
+      {
+        "attack_path_id": "AP-5b1fd4dd5b05",
+        "finding_id": "RISK-35591c45d098",
+        "anchor_node_id": "answer",
+        "control_domain": "egress_control",
+        "rule_ids": [
+          "OUT-009"
+        ],
+        "attack_family": "web_exfiltration",
+        "entrypoint_node": "answer",
+        "target_node": "answer",
+        "path": [
+          "answer"
+        ],
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "attack_preconditions": [
+          "模型上下文可观察敏感资产",
+          "外部目标或载荷可被动态影响"
+        ],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-5cd80b69dc20",
+          "TC-71d25d8b3831",
+          "TC-5c91bc0ec2d6",
+          "TC-4b86d3f9614c"
+        ],
+        "description": "动态 Markdown 链接或图片目标未受限，可通过客户端取链或 URL 路径编码形成隐蔽外带。"
+      },
+      {
+        "attack_path_id": "AP-70d766a84913",
+        "finding_id": "RISK-35591c45d098",
+        "anchor_node_id": "answer",
+        "control_domain": "egress_control",
+        "rule_ids": [
+          "FLOW-009"
+        ],
+        "attack_family": "web_exfiltration",
+        "entrypoint_node": "llm",
+        "target_node": "answer",
+        "path": [
+          "llm",
+          "answer"
+        ],
+        "status": "CONFIRMED",
+        "severity": "CRITICAL",
+        "attack_preconditions": [
+          "模型上下文可观察敏感资产",
+          "外部目标或载荷可被动态影响"
+        ],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-5cd80b69dc20",
+          "TC-71d25d8b3831",
+          "TC-5c91bc0ec2d6",
+          "TC-4b86d3f9614c"
+        ],
+        "description": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。"
+      },
+      {
+        "attack_path_id": "AP-750ec2ad6dd4",
+        "finding_id": "RISK-7bf48082ebdc",
+        "anchor_node_id": "http",
+        "control_domain": "egress_control",
+        "rule_ids": [
+          "TOOL-003"
+        ],
+        "attack_family": "web_exfiltration",
+        "entrypoint_node": "http",
+        "target_node": "http",
+        "path": [
+          "http"
+        ],
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "attack_preconditions": [
+          "模型上下文可观察敏感资产",
+          "外部目标或载荷可被动态影响",
+          "模型可影响网络目标",
+          "敏感资产可进入请求载荷"
+        ],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-5c91bc0ec2d6",
+          "TC-4b86d3f9614c",
+          "TC-5cd80b69dc20",
+          "TC-71d25d8b3831"
+        ],
+        "description": "动态 URL/Host 缺少域名或地址 Allowlist。"
+      },
+      {
+        "attack_path_id": "AP-1beac29b7a17",
+        "finding_id": "RISK-7bf48082ebdc",
+        "anchor_node_id": "http",
+        "control_domain": "egress_control",
+        "rule_ids": [
+          "FLOW-009"
+        ],
+        "attack_family": "web_exfiltration",
+        "entrypoint_node": "llm",
+        "target_node": "http",
+        "path": [
+          "llm",
+          "http"
+        ],
+        "status": "CONFIRMED",
+        "severity": "CRITICAL",
+        "attack_preconditions": [
+          "模型上下文可观察敏感资产",
+          "外部目标或载荷可被动态影响",
+          "模型可影响网络目标",
+          "敏感资产可进入请求载荷"
+        ],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-5c91bc0ec2d6",
+          "TC-4b86d3f9614c",
+          "TC-5cd80b69dc20",
+          "TC-71d25d8b3831"
+        ],
+        "description": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。"
+      },
+      {
+        "attack_path_id": "AP-a04058884d1f",
+        "finding_id": "RISK-1185ebbc88b5",
+        "anchor_node_id": "llm",
+        "control_domain": "data_protection",
+        "rule_ids": [
+          "FLOW-008"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "llm",
+        "target_node": "llm",
+        "path": [
+          "llm"
+        ],
+        "status": "CONFIRMED",
+        "severity": "CRITICAL",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-cccba76ee76e",
+          "TC-fa079c4f493e"
+        ],
+        "description": "DSL 中检测到疑似明文凭证；若其位于 Prompt 或节点变量中，模型可能观察到凭证。"
+      },
+      {
+        "attack_path_id": "AP-86464a921e27",
+        "finding_id": "RISK-de85063c6c79",
+        "anchor_node_id": "http",
+        "control_domain": "data_protection",
+        "rule_ids": [
+          "TOOL-010"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "http",
+        "target_node": "http",
+        "path": [
+          "http"
+        ],
+        "status": "CONFIRMED",
+        "severity": "CRITICAL",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-6a782ac186b1",
+          "TC-c61e46135fae"
+        ],
+        "description": "工具配置中存在疑似明文凭证。"
+      },
+      {
+        "attack_path_id": "AP-2af566ba8b14",
+        "finding_id": "RISK-de85063c6c79",
+        "anchor_node_id": "http",
+        "control_domain": "data_protection",
+        "rule_ids": [
+          "FLOW-004",
+          "OUT-002",
+          "TOOL-007"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "llm",
+        "target_node": "http",
+        "path": [
+          "llm",
+          "http"
+        ],
+        "status": "PROBABLE",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-6a782ac186b1",
+          "TC-c61e46135fae"
+        ],
+        "description": "疑似敏感数据可达外部工具或输出边界。"
+      },
+      {
+        "attack_path_id": "AP-502e8bb606f3",
+        "finding_id": "RISK-4bee44afe1bf",
+        "anchor_node_id": "http",
+        "control_domain": "action_authorization",
+        "rule_ids": [
+          "FLOW-003"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "start",
+        "target_node": "http",
+        "path": [
+          "start",
+          "llm",
+          "http"
+        ],
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-1be424fc394b",
+          "TC-d7984eb856cb",
+          "TC-83c5e2475f5c",
+          "TC-2cd16751d836"
+        ],
+        "description": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。"
+      },
+      {
+        "attack_path_id": "AP-69c66cd28950",
+        "finding_id": "RISK-4bee44afe1bf",
+        "anchor_node_id": "http",
+        "control_domain": "action_authorization",
+        "rule_ids": [
+          "FLOW-003"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "kb",
+        "target_node": "http",
+        "path": [
+          "kb",
+          "http"
+        ],
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-1be424fc394b",
+          "TC-d7984eb856cb",
+          "TC-83c5e2475f5c",
+          "TC-2cd16751d836"
+        ],
+        "description": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。"
+      },
+      {
+        "attack_path_id": "AP-730c638f0ad0",
+        "finding_id": "RISK-2fd8eaa085bc",
+        "anchor_node_id": "answer",
+        "control_domain": "data_protection",
+        "rule_ids": [
+          "FLOW-004",
+          "OUT-002"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "llm",
+        "target_node": "answer",
+        "path": [
+          "llm",
+          "answer"
+        ],
+        "status": "PROBABLE",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-c61e46135fae",
+          "TC-6a782ac186b1"
+        ],
+        "description": "疑似敏感数据可达外部工具或输出边界。"
+      },
+      {
+        "attack_path_id": "AP-923d9b916cf3",
+        "finding_id": "RISK-318279210f4f",
+        "anchor_node_id": "llm",
+        "control_domain": "untrusted_content_boundary",
+        "rule_ids": [
+          "FLOW-005",
+          "KB-005",
+          "LLM-003"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "kb",
+        "target_node": "http",
+        "path": [
+          "kb",
+          "llm",
+          "http"
+        ],
+        "status": "PROBABLE",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-1afdb606ab5a",
+          "TC-68bf63ab9853",
+          "TC-80d632f81067"
+        ],
+        "description": "知识库内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。"
+      },
+      {
+        "attack_path_id": "AP-a598e508e467",
+        "finding_id": "RISK-c2fba5e9f127",
+        "anchor_node_id": "kb",
+        "control_domain": "knowledge_governance",
+        "rule_ids": [
+          "KB-001"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "kb",
+        "target_node": "kb",
+        "path": [
+          "kb"
+        ],
+        "status": "PROBABLE",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [
+          "若平台在 DSL 外强制租户隔离，应在内部基线中登记。"
+        ],
+        "test_case_ids": [],
+        "description": "知识检索数据集范围未固定或无法识别。"
+      },
+      {
+        "attack_path_id": "AP-c24fe8eb1d65",
+        "finding_id": "RISK-59724d4c5b14",
+        "anchor_node_id": "llm",
+        "control_domain": "instruction_boundary",
+        "rule_ids": [
+          "KB-004"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "kb",
+        "target_node": "llm",
+        "path": [
+          "kb",
+          "llm"
+        ],
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-0ae740236377",
+          "TC-c583114b0456",
+          "TC-62360fa03f25",
+          "TC-0bfb66c528f5"
+        ],
+        "description": "知识检索内容被插入 LLM 高权限 Prompt。"
+      },
+      {
+        "attack_path_id": "AP-ee2a3fac435a",
+        "finding_id": "RISK-59724d4c5b14",
+        "anchor_node_id": "llm",
+        "control_domain": "instruction_boundary",
+        "rule_ids": [
+          "LLM-001",
+          "LLM-002"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "kb",
+        "target_node": "llm",
+        "path": [
+          "kb",
+          "start",
+          "llm"
+        ],
+        "status": "PROBABLE",
+        "severity": "MEDIUM",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-0ae740236377",
+          "TC-c583114b0456",
+          "TC-62360fa03f25",
+          "TC-0bfb66c528f5"
+        ],
+        "description": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。"
+      },
+      {
+        "attack_path_id": "AP-0a014da9e11c",
+        "finding_id": "RISK-59724d4c5b14",
+        "anchor_node_id": "llm",
+        "control_domain": "instruction_boundary",
+        "rule_ids": [
+          "IN-009"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "start",
+        "target_node": "llm",
+        "path": [
+          "start",
+          "llm"
+        ],
+        "status": "PROBABLE",
+        "severity": "MEDIUM",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-0ae740236377",
+          "TC-c583114b0456",
+          "TC-62360fa03f25",
+          "TC-0bfb66c528f5"
+        ],
+        "description": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。"
+      },
+      {
+        "attack_path_id": "AP-e592fb10b698",
+        "finding_id": "RISK-99966d7cc527",
+        "anchor_node_id": "kb",
+        "control_domain": "untrusted_content_boundary",
+        "rule_ids": [
+          "KB-009"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "kb",
+        "target_node": "kb",
+        "path": [
+          "kb"
+        ],
+        "status": "PROBABLE",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-438c61d328ba"
+        ],
+        "description": "检索内容进入模型前缺少可识别的注入筛查或隔离控制。"
+      },
+      {
+        "attack_path_id": "AP-5666f3b61cad",
+        "finding_id": "RISK-6a5869d9e579",
+        "anchor_node_id": "http",
+        "control_domain": "structured_data_contract",
+        "rule_ids": [
+          "TOOL-011"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "http",
+        "target_node": "http",
+        "path": [
+          "http"
+        ],
+        "status": "PROBABLE",
+        "severity": "MEDIUM",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-7db8a711bb1c"
+        ],
+        "description": "工具输入缺少可识别的严格 Schema。"
+      },
+      {
+        "attack_path_id": "AP-13b41ff869fb",
+        "finding_id": "RISK-6a5869d9e579",
+        "anchor_node_id": "http",
+        "control_domain": "structured_data_contract",
+        "rule_ids": [
+          "LLM-005",
+          "LLM-006",
+          "OUT-006"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "llm",
+        "target_node": "http",
+        "path": [
+          "llm",
+          "http"
+        ],
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-7db8a711bb1c"
+        ],
+        "description": "LLM 自由文本输出可直接影响工具参数。"
+      },
+      {
+        "attack_path_id": "AP-52fd9e6f002b",
+        "finding_id": "RISK-1668512415bc",
+        "anchor_node_id": "answer",
+        "control_domain": "output_safety",
+        "rule_ids": [
+          "OUT-007"
+        ],
+        "attack_family": "general_workflow_security",
+        "entrypoint_node": "kb",
+        "target_node": "answer",
+        "path": [
+          "kb",
+          "answer"
+        ],
+        "status": "CONFIRMED",
+        "severity": "MEDIUM",
+        "attack_preconditions": [],
+        "missing_runtime_context": [],
+        "test_case_ids": [
+          "TC-b9f471927f36"
+        ],
+        "description": "知识库回答到达输出，但未发现引用元数据绑定。"
+      }
+    ],
+    "risk_chains": [
+      {
+        "risk_chain_id": "CHAIN-330a9071f595",
+        "path": [
+          "llm",
+          "http"
+        ],
+        "entrypoint_node": "llm",
+        "target_node": "http",
+        "finding_ids": [
+          "RISK-7bf48082ebdc",
+          "RISK-de85063c6c79",
+          "RISK-6a5869d9e579"
+        ],
+        "rule_ids": [
+          "FLOW-009",
+          "FLOW-004",
+          "OUT-002",
+          "TOOL-007",
+          "LLM-005",
+          "LLM-006",
+          "OUT-006"
+        ],
+        "attack_families": [
+          "web_exfiltration",
+          "general_workflow_security"
+        ],
+        "severity": "CRITICAL",
+        "statuses": [
+          "CONFIRMED",
+          "PROBABLE"
+        ],
+        "test_case_ids": [
+          "TC-5c91bc0ec2d6",
+          "TC-4b86d3f9614c",
+          "TC-5cd80b69dc20",
+          "TC-71d25d8b3831",
+          "TC-6a782ac186b1",
+          "TC-c61e46135fae",
+          "TC-7db8a711bb1c"
+        ],
+        "attack_preconditions": [
+          "模型上下文可观察敏感资产",
+          "外部目标或载荷可被动态影响",
+          "模型可影响网络目标",
+          "敏感资产可进入请求载荷"
+        ],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-487b91042c7c",
+        "path": [
+          "llm"
+        ],
+        "entrypoint_node": "llm",
+        "target_node": "llm",
+        "finding_ids": [
+          "RISK-1185ebbc88b5"
+        ],
+        "rule_ids": [
+          "FLOW-008"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "CRITICAL",
+        "statuses": [
+          "CONFIRMED"
+        ],
+        "test_case_ids": [
+          "TC-cccba76ee76e",
+          "TC-fa079c4f493e"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-65b9c8f0bdaa",
+        "path": [
+          "llm",
+          "answer"
+        ],
+        "entrypoint_node": "llm",
+        "target_node": "answer",
+        "finding_ids": [
+          "RISK-35591c45d098",
+          "RISK-2fd8eaa085bc"
+        ],
+        "rule_ids": [
+          "FLOW-009",
+          "FLOW-004",
+          "OUT-002"
+        ],
+        "attack_families": [
+          "web_exfiltration",
+          "general_workflow_security"
+        ],
+        "severity": "CRITICAL",
+        "statuses": [
+          "CONFIRMED",
+          "PROBABLE"
+        ],
+        "test_case_ids": [
+          "TC-5cd80b69dc20",
+          "TC-71d25d8b3831",
+          "TC-5c91bc0ec2d6",
+          "TC-4b86d3f9614c",
+          "TC-c61e46135fae",
+          "TC-6a782ac186b1"
+        ],
+        "attack_preconditions": [
+          "模型上下文可观察敏感资产",
+          "外部目标或载荷可被动态影响"
+        ],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-e0603c499aae",
+        "path": [
+          "http"
+        ],
+        "entrypoint_node": "http",
+        "target_node": "http",
+        "finding_ids": [
+          "RISK-7bf48082ebdc",
+          "RISK-de85063c6c79",
+          "RISK-6a5869d9e579"
+        ],
+        "rule_ids": [
+          "TOOL-003",
+          "TOOL-010",
+          "TOOL-011"
+        ],
+        "attack_families": [
+          "web_exfiltration",
+          "general_workflow_security"
+        ],
+        "severity": "CRITICAL",
+        "statuses": [
+          "CONFIRMED",
+          "PROBABLE"
+        ],
+        "test_case_ids": [
+          "TC-5c91bc0ec2d6",
+          "TC-4b86d3f9614c",
+          "TC-5cd80b69dc20",
+          "TC-71d25d8b3831",
+          "TC-6a782ac186b1",
+          "TC-c61e46135fae",
+          "TC-7db8a711bb1c"
+        ],
+        "attack_preconditions": [
+          "模型上下文可观察敏感资产",
+          "外部目标或载荷可被动态影响",
+          "模型可影响网络目标",
+          "敏感资产可进入请求载荷"
+        ],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-0db52f4076c0",
+        "path": [
+          "answer"
+        ],
+        "entrypoint_node": "answer",
+        "target_node": "answer",
+        "finding_ids": [
+          "RISK-35591c45d098"
+        ],
+        "rule_ids": [
+          "OUT-009"
+        ],
+        "attack_families": [
+          "web_exfiltration"
+        ],
+        "severity": "HIGH",
+        "statuses": [
+          "CONFIRMED"
+        ],
+        "test_case_ids": [
+          "TC-5cd80b69dc20",
+          "TC-71d25d8b3831",
+          "TC-5c91bc0ec2d6",
+          "TC-4b86d3f9614c"
+        ],
+        "attack_preconditions": [
+          "模型上下文可观察敏感资产",
+          "外部目标或载荷可被动态影响"
+        ],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-2746c62e220d",
+        "path": [
+          "kb",
+          "llm"
+        ],
+        "entrypoint_node": "kb",
+        "target_node": "llm",
+        "finding_ids": [
+          "RISK-59724d4c5b14"
+        ],
+        "rule_ids": [
+          "KB-004"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "HIGH",
+        "statuses": [
+          "CONFIRMED"
+        ],
+        "test_case_ids": [
+          "TC-0ae740236377",
+          "TC-c583114b0456",
+          "TC-62360fa03f25",
+          "TC-0bfb66c528f5"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-74fec0c33e96",
+        "path": [
+          "kb"
+        ],
+        "entrypoint_node": "kb",
+        "target_node": "kb",
+        "finding_ids": [
+          "RISK-c2fba5e9f127",
+          "RISK-99966d7cc527"
+        ],
+        "rule_ids": [
+          "KB-001",
+          "KB-009"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "HIGH",
+        "statuses": [
+          "PROBABLE"
+        ],
+        "test_case_ids": [
+          "TC-438c61d328ba"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": [
+          "若平台在 DSL 外强制租户隔离，应在内部基线中登记。"
+        ]
+      },
+      {
+        "risk_chain_id": "CHAIN-c384f4101c3b",
+        "path": [
+          "kb",
+          "http"
+        ],
+        "entrypoint_node": "kb",
+        "target_node": "http",
+        "finding_ids": [
+          "RISK-4bee44afe1bf"
+        ],
+        "rule_ids": [
+          "FLOW-003"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "HIGH",
+        "statuses": [
+          "CONFIRMED"
+        ],
+        "test_case_ids": [
+          "TC-1be424fc394b",
+          "TC-d7984eb856cb",
+          "TC-83c5e2475f5c",
+          "TC-2cd16751d836"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-e297c4eef2b1",
+        "path": [
+          "kb",
+          "llm",
+          "http"
+        ],
+        "entrypoint_node": "kb",
+        "target_node": "http",
+        "finding_ids": [
+          "RISK-318279210f4f"
+        ],
+        "rule_ids": [
+          "FLOW-005",
+          "KB-005",
+          "LLM-003"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "HIGH",
+        "statuses": [
+          "PROBABLE"
+        ],
+        "test_case_ids": [
+          "TC-1afdb606ab5a",
+          "TC-68bf63ab9853",
+          "TC-80d632f81067"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-ffa0806fcb2d",
+        "path": [
+          "start",
+          "llm",
+          "http"
+        ],
+        "entrypoint_node": "start",
+        "target_node": "http",
+        "finding_ids": [
+          "RISK-4bee44afe1bf"
+        ],
+        "rule_ids": [
+          "FLOW-003"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "HIGH",
+        "statuses": [
+          "CONFIRMED"
+        ],
+        "test_case_ids": [
+          "TC-1be424fc394b",
+          "TC-d7984eb856cb",
+          "TC-83c5e2475f5c",
+          "TC-2cd16751d836"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-02022d56f7a7",
+        "path": [
+          "kb",
+          "answer"
+        ],
+        "entrypoint_node": "kb",
+        "target_node": "answer",
+        "finding_ids": [
+          "RISK-1668512415bc"
+        ],
+        "rule_ids": [
+          "OUT-007"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "MEDIUM",
+        "statuses": [
+          "CONFIRMED"
+        ],
+        "test_case_ids": [
+          "TC-b9f471927f36"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-4324812394cb",
+        "path": [
+          "start",
+          "llm"
+        ],
+        "entrypoint_node": "start",
+        "target_node": "llm",
+        "finding_ids": [
+          "RISK-59724d4c5b14"
+        ],
+        "rule_ids": [
+          "IN-009"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "MEDIUM",
+        "statuses": [
+          "PROBABLE"
+        ],
+        "test_case_ids": [
+          "TC-0ae740236377",
+          "TC-c583114b0456",
+          "TC-62360fa03f25",
+          "TC-0bfb66c528f5"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      },
+      {
+        "risk_chain_id": "CHAIN-8595672604a7",
+        "path": [
+          "kb",
+          "start",
+          "llm"
+        ],
+        "entrypoint_node": "kb",
+        "target_node": "llm",
+        "finding_ids": [
+          "RISK-59724d4c5b14"
+        ],
+        "rule_ids": [
+          "LLM-001",
+          "LLM-002"
+        ],
+        "attack_families": [
+          "general_workflow_security"
+        ],
+        "severity": "MEDIUM",
+        "statuses": [
+          "PROBABLE"
+        ],
+        "test_case_ids": [
+          "TC-0ae740236377",
+          "TC-c583114b0456",
+          "TC-62360fa03f25",
+          "TC-0bfb66c528f5"
+        ],
+        "attack_preconditions": [],
+        "missing_runtime_context": []
+      }
+    ],
+    "semantic_attack_hypotheses": [],
+    "test_coverage": {
+      "covered_finding_ids": [
+        "RISK-1185ebbc88b5",
+        "RISK-1668512415bc",
+        "RISK-2fd8eaa085bc",
+        "RISK-318279210f4f",
+        "RISK-35591c45d098",
+        "RISK-3830078f85df",
+        "RISK-4bee44afe1bf",
+        "RISK-59724d4c5b14",
+        "RISK-6a5869d9e579",
+        "RISK-7a6029a46ab6",
+        "RISK-7bf48082ebdc",
+        "RISK-80b96386c461",
+        "RISK-99966d7cc527",
+        "RISK-de85063c6c79",
+        "RISK-ff973669bdee"
+      ],
+      "uncovered_finding_ids": [
+        "RISK-c2fba5e9f127"
+      ],
+      "execution_evidence_present": false,
+      "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。"
+    },
+    "missing_runtime_context": [
+      "document_provenance",
+      "knowledge_acl",
+      "quarantine",
+      "retention",
+      "若平台在 DSL 外强制租户隔离，应在内部基线中登记。",
+      "输入规范化可能由平台统一实现，DSL 无法验证。",
+      "运行时可能统一处理模型错误。"
+    ]
+  }
+}

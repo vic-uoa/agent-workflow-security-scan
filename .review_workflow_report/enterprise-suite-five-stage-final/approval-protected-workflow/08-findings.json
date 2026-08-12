@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-6b782aad0bb4",
+  "producer": "finding-merger",
+  "producer_version": "0.4.0",
+  "workflow_hash": "dcb76dfb38363457b47a60857264706126e57d3ea0edb98c907a05b146b4c7ca",
+  "created_at": "2026-08-12T07:53:27.103994+00:00",
+  "findings": []
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-2531c0b25f49",
+  "producer": "quality-gate",
+  "producer_version": "0.4.0",
+  "workflow_hash": "262027ad5543cfe6580c4e9771ee0ff7d5f7e411ee301cfd065b0c5a92dc6fc8",
+  "created_at": "2026-08-12T07:53:26.950822+00:00",
+  "quality_gate": {
+    "decision": "PASS",
+    "exit_code": 0,
+    "policy": {
+      "blocking_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "blocking_statuses": [
+        "CONFIRMED"
+      ],
+      "review_statuses": [
+        "COVERAGE_GAP",
+        "OBSERVED",
+        "PROBABLE"
+      ],
+      "waivers_require_workflow_hash_approver_justification_and_expiry": true
+    },
+    "blocking_finding_ids": [],
+    "review_finding_ids": [],
+    "blocking_count": 0,
+    "review_count": 0,
+    "waived_count": 0,
+    "waiver_audit": {
+      "applied": [],
+      "rejected": []
+    }
+  }
+}

@@ -8,6 +8,22 @@ rule_defaults:
   references:
     - https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan
   provenance: "Rule semantics independently adapted for static Dify DSL analysis; no upstream prompt text is embedded."
+control_domains:
+  structure_coverage: [FLOW-001, FLOW-002]
+  input_contract: [IN-001, IN-002, IN-003, IN-004, IN-005, IN-006]
+  instruction_boundary: [IN-007, IN-009, LLM-001, LLM-002, KB-004]
+  memory_identity_scope: [IN-008, KB-007, KB-011, KB-012]
+  untrusted_content_boundary: [FLOW-005, LLM-003, KB-005, KB-009, TOOL-012]
+  action_authorization: [FLOW-003, FLOW-006, LLM-007, LLM-008, TOOL-002, TOOL-008, TOOL-015, TOOL-016]
+  data_protection: [FLOW-004, FLOW-008, LLM-004, LLM-011, TOOL-007, TOOL-010, OUT-002, OUT-003, KB-006]
+  egress_control: [FLOW-009, TOOL-003, TOOL-017, OUT-009]
+  execution_boundary: [FLOW-010, TOOL-004, TOOL-005, TOOL-006]
+  structured_data_contract: [FLOW-011, LLM-005, LLM-006, TOOL-011, OUT-001, OUT-006]
+  resilience_budget: [FLOW-007, FLOW-012, LLM-009, LLM-010, TOOL-001, TOOL-009, TOOL-013, OUT-008]
+  output_safety: [OUT-004, OUT-005, OUT-007, OUT-010]
+  knowledge_governance: [KB-001, KB-002, KB-003, KB-008, KB-010]
+  supply_chain: [TOOL-014]
+  agent_governance: [FLOW-013]
 rules:
   - {id: FLOW-001, title: "断裂节点或变量引用", severity: MEDIUM, detectability: S, standards: [AISVS-C9]}
   - {id: FLOW-002, title: "未知节点造成扫描盲区", severity: MEDIUM, detectability: S, standards: [AISVS-C9]}
@@ -26,15 +42,15 @@ rules:
   - {id: IN-001, title: "输入字段缺少明确类型", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
   - {id: IN-002, title: "输入缺少长度或数量限制", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
   - {id: IN-003, title: "文件上传约束不足", severity: HIGH, detectability: S, standards: [AISVS-C2]}
-  - {id: IN-004, title: "未声明输入规范化", severity: LOW, detectability: M, standards: [AISVS-C2]}
+  - {id: IN-004, title: "未声明输入规范化", severity: LOW, detectability: M, standards: [AISVS-C2], root_cause_family: input_canonicalization, requires_dynamic_validation: true}
   - {id: IN-005, title: "对象输入允许未知字段", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
   - {id: IN-006, title: "敏感输入缺少保护", severity: HIGH, detectability: H, standards: [AISVS-C2, AISVS-C7]}
-  - {id: IN-007, title: "用户输入进入高权限 Prompt", severity: HIGH, detectability: S, standards: [ASI01]}
+  - {id: IN-007, title: "用户输入进入高权限 Prompt", severity: MEDIUM, detectability: S, standards: [ASI01], root_cause_family: prompt_boundary, requires_dynamic_validation: true}
   - {id: IN-008, title: "未验证输入被持久化", severity: HIGH, detectability: H, standards: [AISVS-C8]}
-  - {id: IN-009, title: "直接 Prompt Injection 可达模型", severity: HIGH, detectability: S, standards: [ASI01], attack_family: direct_prompt_injection}
+  - {id: IN-009, title: "直接 Prompt Injection 可达模型", severity: MEDIUM, detectability: S, standards: [ASI01], attack_family: direct_prompt_injection, root_cause_family: prompt_boundary, requires_dynamic_validation: true}
 
-  - {id: LLM-001, title: "不可信变量进入系统指令", severity: HIGH, detectability: S, standards: [ASI01]}
-  - {id: LLM-002, title: "指令与外部数据未隔离", severity: MEDIUM, detectability: H, standards: [ASI01]}
+  - {id: LLM-001, title: "不可信变量进入系统指令", severity: MEDIUM, detectability: S, standards: [ASI01], root_cause_family: prompt_boundary, requires_dynamic_validation: true}
+  - {id: LLM-002, title: "指令与外部数据未隔离", severity: MEDIUM, detectability: H, standards: [ASI01], root_cause_family: prompt_boundary, requires_dynamic_validation: true}
   - {id: LLM-003, title: "间接内容可控制工具", severity: HIGH, detectability: S, standards: [ASI01, ASI02]}
   - {id: LLM-004, title: "密钥或内部上下文暴露", severity: CRITICAL, detectability: S, standards: [ASI03]}
   - {id: LLM-005, title: "自由文本直接控制工具", severity: HIGH, detectability: S, standards: [AISVS-9.3]}
@@ -63,14 +79,14 @@ rules:
   - {id: TOOL-016, title: "用户可控身份或资源标识直达工具", severity: HIGH, detectability: S, standards: [ASI03], attack_family: authorization_bypass}
   - {id: TOOL-017, title: "敏感载荷与动态网络目标形成外带通道", severity: CRITICAL, detectability: S, standards: [ASI03], attack_family: web_exfiltration}
 
-  - {id: OUT-001, title: "结构化输出缺少 Schema", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
+  - {id: OUT-001, title: "结构化输出缺少 Schema", severity: MEDIUM, detectability: S, standards: [AISVS-C7], applies_to: [machine_consumed_structured_output], exclusion_facts: [human_readable_free_text_output]}
   - {id: OUT-002, title: "敏感信息可达外部输出", severity: HIGH, detectability: H, standards: [AISVS-C7]}
   - {id: OUT-003, title: "系统 Prompt 或内部信息泄露", severity: HIGH, detectability: S, standards: [ASI03]}
   - {id: OUT-004, title: "富文本输出缺少上下文编码", severity: HIGH, detectability: S, standards: [AISVS-C7]}
   - {id: OUT-005, title: "模型生成危险链接或协议", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
   - {id: OUT-006, title: "未验证输出进入下游执行者", severity: HIGH, detectability: S, standards: [AISVS-C7, ASI07]}
   - {id: OUT-007, title: "RAG 引用不可追踪", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
-  - {id: OUT-008, title: "低置信或失败输出无回退", severity: MEDIUM, detectability: H, standards: [AISVS-C7]}
+  - {id: OUT-008, title: "低置信或失败输出无回退", severity: MEDIUM, detectability: H, standards: [AISVS-C7], applies_to: [end_to_end_failure_path], exclusion_facts: [upstream_default_or_fail_closed_strategy]}
   - {id: OUT-009, title: "动态 Markdown 链接或图片可形成隐蔽外带", severity: HIGH, detectability: S, standards: [ASI03, AISVS-C7], attack_family: web_exfiltration}
   - {id: OUT-010, title: "面向人的高信任声明缺少来源证明", severity: MEDIUM, detectability: H, standards: [ASI09], attack_family: human_agent_trust_exploit}
 

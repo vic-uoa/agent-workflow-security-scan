@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.1.0",
+  "scan_id": "SCAN-e0dd17526c29",
+  "producer": "deterministic-fallback",
+  "producer_version": "0.3.0",
+  "workflow_hash": "940a278ec9308bfbcfdd6c19575fa11946573d11874376bbebf4066214d9f7e6",
+  "created_at": "2026-08-12T07:34:12.620934+00:00",
+  "semantic_inventory": {
+    "workflow_purpose": "内部工作流 non-strict-schema；未启用 LLM 时仅根据节点名称和能力推断。",
+    "assets": [
+      {
+        "asset_id": "ASSET-292a9dfe1af1",
+        "name": "工具能力：send-email",
+        "sensitivity": "CONFIDENTIAL",
+        "node_ids": [
+          "tool"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/2"
+        ],
+        "confidence": 0.9
+      }
+    ],
+    "trust_boundaries": [
+      {
+        "boundary_id": "BOUNDARY-8f4d0090e54c",
+        "from_zone": "workflow_runtime",
+        "to_zone": "model_service",
+        "node_ids": [
+          "llm"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/1"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-1bcbd3c9db45",
+        "from_zone": "model_or_workflow",
+        "to_zone": "tool_runtime",
+        "node_ids": [
+          "tool"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/2"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "boundary_id": "BOUNDARY-ce08811bff11",
+        "from_zone": "user",
+        "to_zone": "workflow_runtime",
+        "node_ids": [
+          "start"
+        ],
+        "evidence": [
+          "/workflow/graph/nodes/0"
+        ],
+        "confidence": 1.0
+      }
+    ],
+    "security_invariants": [
+      {
+        "invariant_id": "INV-001",
+        "statement": "不可信内容不得覆盖系统目标或授权策略。",
+        "node_ids": [
+          "llm"
+        ],
+        "evidence": []
+      },
+      {
+        "invariant_id": "INV-002",
+        "statement": "模型输出不得在无确定性校验时触发高影响工具。",
+        "node_ids": [
+          "tool"
+        ],
+        "evidence": []
+      },
+      {
+        "invariant_id": "INV-003",
+        "statement": "敏感数据不得未经授权离开工作流信任边界。",
+        "node_ids": [
+          "tool"
+        ],
+        "evidence": []
+      }
+    ],
+    "attack_hypotheses": [],
+    "assumptions": [
+      "语义清单为确定性降级结果，业务语义需在完整 LLM 扫描或人工复核中确认。"
+    ],
+    "producer": "deterministic-fallback"
+  }
+}

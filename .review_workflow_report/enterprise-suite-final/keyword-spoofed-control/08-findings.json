@@ -1,0 +1,192 @@
+{
+  "schema_version": "1.1.0",
+  "scan_id": "SCAN-a4f513f879eb",
+  "producer": "finding-merger",
+  "producer_version": "0.3.0",
+  "workflow_hash": "40460deac52ea45b02588aaef8ae4f3cc512ced4539c6c0a5bb078e726e6492e",
+  "created_at": "2026-08-12T07:34:11.982059+00:00",
+  "findings": [
+    {
+      "id": "FINDING-0a5266f18265",
+      "rule_id": "FLOW-003",
+      "title": "不可信输入到高危工具",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "start",
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-0a5266f18265"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "source_to_high_impact_sink",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-7bf40816dbd9",
+      "rule_id": "TOOL-002",
+      "title": "高危工具参数由模型控制",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-7bf40816dbd9"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "高影响工具的安全敏感参数由模型或上游变量控制。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "model_controlled_tool_argument",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-5ce38353b965",
+      "rule_id": "TOOL-008",
+      "title": "高影响操作缺少必经审批",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "start",
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-5ce38353b965"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "高影响工具存在不经过审批节点的可达路径。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "high_impact_action_approval",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-da3eb68a5f22",
+      "rule_id": "TOOL-015",
+      "title": "高影响工具缺少对象级授权约束",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.86,
+      "node_ids": [
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-da3eb68a5f22"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "高影响工具未声明 subject-object-action、所有权或租户范围的确定性授权检查。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "authorization_bypass",
+      "standards": [
+        "ASI03",
+        "AISVS-9.5.3"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "平台统一身份认证不等同于对象级授权；需要确认工具执行端是否重新授权。"
+      ],
+      "dynamic_test": "authorization_bypass",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-459ede83c546",
+      "rule_id": "TOOL-009",
+      "title": "工具能力超出业务目的",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-459ede83c546"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "tool_business_purpose",
+        "allowed_operations"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    }
+  ]
+}

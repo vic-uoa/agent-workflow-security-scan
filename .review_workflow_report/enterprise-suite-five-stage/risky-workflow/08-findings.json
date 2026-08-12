@@ -1,0 +1,1291 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-1beffcf1c6e7",
+  "producer": "finding-merger",
+  "producer_version": "0.4.0",
+  "workflow_hash": "405f5cb278c616af965dbdce79e4b5b7f2874d26dac2ad342858f7a880dd4d8a",
+  "created_at": "2026-08-12T07:51:51.317096+00:00",
+  "findings": [
+    {
+      "id": "FINDING-c342c5c90be4",
+      "rule_id": "FLOW-008",
+      "title": "凭证进入模型可见上下文",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 0.98,
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-c342c5c90be4"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "DSL 中检测到疑似明文凭证；若其位于 Prompt 或节点变量中，模型可能观察到凭证。",
+      "remediation": [
+        "从 DSL 移除明文凭证，使用运行时密钥引用，并保证凭证不进入模型上下文。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5.4",
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "credential_context_exposure",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-087ae7b3c06e",
+      "rule_id": "FLOW-009",
+      "title": "敏感资产经模型到外部通道的复合外泄链",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-087ae7b3c06e"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI01",
+        "ASI03"
+      ],
+      "attack_preconditions": [
+        "模型上下文可观察敏感资产",
+        "外部目标或载荷可被动态影响"
+      ],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "web_exfiltration_chain",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-0fa7fb59a544",
+      "rule_id": "FLOW-009",
+      "title": "敏感资产经模型到外部通道的复合外泄链",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-0fa7fb59a544"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "敏感资产作为网络载荷，同时模型可控制外部目标，形成完整的复合外泄链。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI01",
+        "ASI03"
+      ],
+      "attack_preconditions": [
+        "模型可影响网络目标",
+        "敏感资产可进入请求载荷"
+      ],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "web_exfiltration_chain",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-153e38f7ddf9",
+      "rule_id": "FLOW-009",
+      "title": "敏感资产经模型到外部通道的复合外泄链",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-153e38f7ddf9"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI01",
+        "ASI03"
+      ],
+      "attack_preconditions": [
+        "模型上下文可观察敏感资产",
+        "外部目标或载荷可被动态影响"
+      ],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "web_exfiltration_chain",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-dfb118a177f7",
+      "rule_id": "LLM-004",
+      "title": "密钥或内部上下文暴露",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-dfb118a177f7"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "LLM 节点文本中包含疑似明文凭证。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-991cfbb1fa94",
+      "rule_id": "TOOL-010",
+      "title": "工具凭证处理不安全",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-991cfbb1fa94"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "工具配置中存在疑似明文凭证。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5.4",
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-ebe8b001f9a1",
+      "rule_id": "TOOL-017",
+      "title": "敏感载荷与动态网络目标形成外带通道",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-ebe8b001f9a1"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "敏感载荷可进入具有动态目标的网络写工具，且未发现 DLP/出站载荷策略。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "web_exfiltration_chain",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-08e204ba0560",
+      "rule_id": "FLOW-003",
+      "title": "不可信输入到高危工具",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-08e204ba0560"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "source_to_high_impact_sink",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-945de85a7b0c",
+      "rule_id": "FLOW-003",
+      "title": "不可信输入到高危工具",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "start",
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-945de85a7b0c"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "source_to_high_impact_sink",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-c4cde0855742",
+      "rule_id": "FLOW-004",
+      "title": "敏感数据可达外部边界",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.78,
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-c4cde0855742",
+        "FACT-b965e9dabc9d",
+        "FACT-db501d2c8995"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "疑似敏感数据可达外部工具或输出边界。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7",
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "sensitive_data_exfiltration",
+      "root_cause_id": "ROOT-e17078542711",
+      "related_rule_ids": [
+        "OUT-002",
+        "TOOL-007"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-ce5bfbcac39c",
+      "rule_id": "FLOW-004",
+      "title": "敏感数据可达外部边界",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.78,
+      "node_ids": [
+        "llm",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-ce5bfbcac39c",
+        "FACT-6e37d1d76437"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "疑似敏感数据可达外部工具或输出边界。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7",
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "sensitive_data_exfiltration",
+      "root_cause_id": "ROOT-88afc3d45634",
+      "related_rule_ids": [
+        "OUT-002"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-fc8d90f5e830",
+      "rule_id": "FLOW-005",
+      "title": "间接 Prompt Injection 工具链",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.9,
+      "node_ids": [
+        "kb",
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-fc8d90f5e830",
+        "FACT-546eb56f2701",
+        "FACT-50be1cb79f0b"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "知识库内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01",
+        "AISVS-9.3",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "rag_to_tool_injection",
+      "root_cause_id": "ROOT-d2f48a48a852",
+      "related_rule_ids": [
+        "KB-005",
+        "LLM-003"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-2ff4d43c2b2e",
+      "rule_id": "IN-006",
+      "title": "敏感输入缺少保护",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.75,
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-2ff4d43c2b2e"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0"
+      ],
+      "message": "输入字段 api_key 可能包含敏感信息，需要验证下游传播和脱敏。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2",
+        "AISVS-C7"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "sensitive_input_propagation",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-8fdf8b561594",
+      "rule_id": "KB-001",
+      "title": "知识检索数据集范围未限定",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-8fdf8b561594"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "知识检索数据集范围未固定或无法识别。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-8.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-55c4ecb9530d",
+      "rule_id": "KB-002",
+      "title": "缺少租户或业务元数据过滤",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-55c4ecb9530d"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "知识检索未配置可识别的租户、用户或业务元数据过滤。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-8.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "若平台在 DSL 外强制租户隔离，应在内部基线中登记。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-dea702265759",
+      "rule_id": "KB-004",
+      "title": "知识内容进入高权限 Prompt",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-dea702265759"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "知识检索内容被插入 LLM 高权限 Prompt。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "rag_system_prompt_injection",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-640c7a7c0c1f",
+      "rule_id": "KB-009",
+      "title": "知识内容缺少注入隔离",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-640c7a7c0c1f"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "检索内容进入模型前缺少可识别的注入筛查或隔离控制。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-8.2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "rag_indirect_prompt_injection",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-7f24df8e8cab",
+      "rule_id": "LLM-005",
+      "title": "自由文本直接控制工具",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm",
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-7f24df8e8cab",
+        "FACT-bbd20be44857",
+        "FACT-227f8afcd0f4"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "LLM 自由文本输出可直接影响工具参数。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3",
+        "AISVS-C7",
+        "ASI07"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "free_text_tool_control",
+      "root_cause_id": "ROOT-5cba61d8c570",
+      "related_rule_ids": [
+        "LLM-006",
+        "OUT-006"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-018db969148c",
+      "rule_id": "LLM-011",
+      "title": "系统指令敏感内容存在泄露面",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.9,
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-018db969148c"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "系统指令区包含敏感信息或凭证迹象，但未发现提示词防泄露/上下文 DLP 控制。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "data_leakage",
+      "standards": [
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "system_prompt_and_credential_leakage",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-5a4a7003a8b8",
+      "rule_id": "OUT-004",
+      "title": "富文本输出缺少上下文编码",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.82,
+      "node_ids": [
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-5a4a7003a8b8"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "动态 HTML/Markdown 输出缺少可识别的上下文编码。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "rich_text_injection",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-b7bf9a442b48",
+      "rule_id": "OUT-009",
+      "title": "动态 Markdown 链接或图片可形成隐蔽外带",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-b7bf9a442b48"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "动态 Markdown 链接或图片目标未受限，可通过客户端取链或 URL 路径编码形成隐蔽外带。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI03",
+        "AISVS-C7"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "markdown_url_exfiltration",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-5dccf8f0a473",
+      "rule_id": "TOOL-003",
+      "title": "可控 URL 形成 SSRF 风险",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-5dccf8f0a473"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "动态 URL/Host 缺少域名或地址 Allowlist。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "ssrf",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-a428f408d1de",
+      "rule_id": "IN-002",
+      "title": "输入缺少长度或数量限制",
+      "status": "CONFIRMED",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-a428f408d1de"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0"
+      ],
+      "message": "输入字段 api_key 缺少长度或数量上限。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-d3980431b8ae",
+      "rule_id": "IN-002",
+      "title": "输入缺少长度或数量限制",
+      "status": "CONFIRMED",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d3980431b8ae"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0"
+      ],
+      "message": "输入字段 query 缺少长度或数量上限。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-11309d7a66f1",
+      "rule_id": "IN-009",
+      "title": "不可信输入进入高权限 Prompt",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.9,
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-11309d7a66f1"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+      "remediation": [
+        "将固定指令保留在 system/developer 消息中，将待处理内容放入 user 消息或明确的数据容器。",
+        "使用已确认的正常、对抗和边界样例验证任务目标不会被输入内容覆盖。"
+      ],
+      "attack_family": "direct_prompt_injection",
+      "standards": [
+        "ASI01"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "direct_prompt_injection",
+      "root_cause_id": "ROOT-29320d7aa50c",
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-4fc3be561f9a",
+      "rule_id": "KB-003",
+      "title": "检索 Top-K 或阈值扩大暴露面",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.82,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-4fc3be561f9a"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "Top-K 过大或相似度阈值缺失/过低，可能扩大无关内容和投毒内容暴露面。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C8"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-dd03e9b6672c",
+      "rule_id": "KB-008",
+      "title": "知识来源元数据不可追踪",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-dd03e9b6672c"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "DSL 未显示检索来源和引用元数据要求。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7",
+        "AISVS-C12"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-9e43b2cb8c71",
+      "rule_id": "LLM-001",
+      "title": "不可信输入进入高权限 Prompt",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.9,
+      "node_ids": [
+        "kb",
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-9e43b2cb8c71",
+        "FACT-be9267c28068"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+      "remediation": [
+        "将固定指令保留在 system/developer 消息中，将待处理内容放入 user 消息或明确的数据容器。",
+        "使用已确认的正常、对抗和边界样例验证任务目标不会被输入内容覆盖。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "direct_or_indirect_prompt_injection",
+      "root_cause_id": "ROOT-8f3cbe8e13d6",
+      "related_rule_ids": [
+        "LLM-002"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-91101ff7dec6",
+      "rule_id": "LLM-009",
+      "title": "模型资源预算不完整",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-91101ff7dec6"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "resource_budget",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-9d7a8c4fd729",
+      "rule_id": "LLM-010",
+      "title": "模型失败回退路径不安全",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-9d7a8c4fd729"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.6"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "运行时可能统一处理模型错误。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-8ebd29c4ba03",
+      "rule_id": "OUT-007",
+      "title": "RAG 引用不可追踪",
+      "status": "CONFIRMED",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-8ebd29c4ba03"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "知识库回答到达输出，但未发现引用元数据绑定。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-0c9b42606853",
+      "rule_id": "OUT-008",
+      "title": "低置信或失败输出无回退",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-0c9b42606853"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "输出节点未显示低置信或失败回退行为。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-0fab3ba4961d",
+      "rule_id": "TOOL-011",
+      "title": "工具输入缺少严格 Schema",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-0fab3ba4961d"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "工具输入缺少可识别的严格 Schema。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-ad44783ba931",
+      "rule_id": "TOOL-013",
+      "title": "工具缺少超时或调用限制",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.85,
+      "node_ids": [
+        "http"
+      ],
+      "evidence_refs": [
+        "FACT-ad44783ba931"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "工具缺少可识别的超时设置。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "tool_timeout",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-d4a60448cde7",
+      "rule_id": "IN-004",
+      "title": "未声明输入规范化",
+      "status": "COVERAGE_GAP",
+      "severity": "LOW",
+      "confidence": 1.0,
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d4a60448cde7"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0"
+      ],
+      "message": "DSL 未声明输入解码和 Unicode 规范化控制。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "输入规范化可能由平台统一实现，DSL 无法验证。"
+      ],
+      "dynamic_test": "encoding_unicode_smuggling",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-407027395fcd",
+      "rule_id": "KB-010",
+      "title": "知识库运行控制不在 DSL 中",
+      "status": "COVERAGE_GAP",
+      "severity": "INFO",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-407027395fcd"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "知识库 ACL、文档来源、内容隔离、过期和撤销策略不在 DSL 中，静态扫描无法验证。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C8"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "knowledge_acl",
+        "document_provenance",
+        "retention",
+        "quarantine"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    }
+  ]
+}

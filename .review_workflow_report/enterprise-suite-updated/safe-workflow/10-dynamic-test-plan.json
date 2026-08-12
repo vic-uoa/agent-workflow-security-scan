@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-9dfc750e4a32",
+  "producer": "dynamic-plan-builder",
+  "producer_version": "0.2.0",
+  "workflow_hash": "262027ad5543cfe6580c4e9771ee0ff7d5f7e411ee301cfd065b0c5a92dc6fc8",
+  "created_at": "2026-08-12T07:31:57.723119+00:00",
+  "dynamic_test_plan": {
+    "workflow_id": "safer-internal-search",
+    "workflow_hash": "262027ad5543cfe6580c4e9771ee0ff7d5f7e411ee301cfd065b0c5a92dc6fc8",
+    "execution_authorized": false,
+    "sandbox_policy": {
+      "default_level": "L2",
+      "network": "deny_by_default",
+      "credentials": "synthetic_short_lived_only",
+      "filesystem": "read_only_fixtures",
+      "side_effects": "mock_or_block",
+      "high_impact_actions": "human_approval_required",
+      "resource_limits_required": [
+        "cpu",
+        "memory",
+        "wall_time",
+        "token_budget",
+        "max_iterations"
+      ]
+    },
+    "attack_paths": [],
+    "risk_chains": [],
+    "test_cases": []
+  }
+}

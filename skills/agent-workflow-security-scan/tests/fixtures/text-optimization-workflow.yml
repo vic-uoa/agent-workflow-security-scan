@@ -1,0 +1,51 @@
+app:
+  name: 普通文本优化工作流
+  mode: workflow
+  version: 0.5.0
+workflow:
+  graph:
+    edges:
+      - id: start-llm
+        source: start
+        target: llm
+      - id: llm-end
+        source: llm
+        target: end
+    nodes:
+      - id: start
+        data:
+          type: start
+          title: 用户输入
+          variables:
+            - variable: inputStr
+              label: 待优化文本
+              type: paragraph
+              required: true
+              max_length: null
+      - id: llm
+        data:
+          type: llm
+          title: LLM
+          error_strategy: default-value
+          default_value:
+            - key: text
+              type: string
+              value: 大模型响应异常，请稍后重试！
+          model:
+            mode: chat
+            completion_params:
+              max_tokens: 2000
+          prompt_template:
+            - role: system
+              text: |
+                你是一名中文写作改进专家。请只输出优化后的普通文本。
+                输入：{{#start.inputStr#}}
+          structured_output_enabled: true
+      - id: end
+        data:
+          type: end
+          title: 输出
+          outputs:
+            - variable: result
+              value_type: string
+              value_selector: [llm, text]

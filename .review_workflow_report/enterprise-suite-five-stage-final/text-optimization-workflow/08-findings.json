@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-c040509b4a56",
+  "producer": "finding-merger",
+  "producer_version": "0.4.0",
+  "workflow_hash": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
+  "created_at": "2026-08-12T07:53:27.702040+00:00",
+  "findings": [
+    {
+      "id": "FINDING-a3b727da46b4",
+      "rule_id": "IN-002",
+      "title": "输入缺少长度或数量限制",
+      "status": "CONFIRMED",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-a3b727da46b4"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0"
+      ],
+      "message": "输入字段 inputStr 缺少长度或数量上限。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-a5f0d2be15e6",
+      "rule_id": "LLM-001",
+      "title": "不可信输入进入高权限 Prompt",
+      "status": "OBSERVED",
+      "severity": "MEDIUM",
+      "confidence": 0.9,
+      "node_ids": [
+        "start",
+        "llm"
+      ],
+      "evidence_refs": [
+        "FACT-a5f0d2be15e6",
+        "FACT-d095317c7327",
+        "FACT-11309d7a66f1",
+        "FACT-334bb61249e3"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+      "remediation": [
+        "将固定指令保留在 system/developer 消息中，将待处理内容放入 user 消息或明确的数据容器。",
+        "使用已确认的正常、对抗和边界样例验证任务目标不会被输入内容覆盖。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "direct_or_indirect_prompt_injection",
+      "root_cause_id": "ROOT-29320d7aa50c",
+      "related_rule_ids": [
+        "IN-007",
+        "IN-009",
+        "LLM-002"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "FINDING-d4a60448cde7",
+      "rule_id": "IN-004",
+      "title": "未声明输入规范化",
+      "status": "COVERAGE_GAP",
+      "severity": "LOW",
+      "confidence": 1.0,
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d4a60448cde7"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0"
+      ],
+      "message": "DSL 未声明输入解码和 Unicode 规范化控制。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "输入规范化可能由平台统一实现，DSL 无法验证。"
+      ],
+      "dynamic_test": "encoding_unicode_smuggling",
+      "root_cause_id": null,
+      "related_rule_ids": [],
+      "waived": false,
+      "waiver_id": null
+    }
+  ]
+}

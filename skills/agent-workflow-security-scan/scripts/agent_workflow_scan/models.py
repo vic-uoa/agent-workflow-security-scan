@@ -9,7 +9,7 @@ from typing import Any
 import json
 
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.3.0"
 
 
 class NodeType(str, Enum):
@@ -29,6 +29,7 @@ class NodeType(str, Enum):
 
 
 class Status(str, Enum):
+    OBSERVED = "OBSERVED"
     CONFIRMED = "CONFIRMED"
     PROBABLE = "PROBABLE"
     CANDIDATE = "CANDIDATE"
@@ -106,6 +107,15 @@ class Finding:
     counter_evidence: list[str] = field(default_factory=list)
     missing_context: list[str] = field(default_factory=list)
     dynamic_test: str | None = None
+    root_cause_id: str | None = None
+    related_rule_ids: list[str] = field(default_factory=list)
+    anchor_node_id: str | None = None
+    control_domain: str = "general_security_control"
+    potential_severity: str | None = None
+    finding_instance_ids: list[str] = field(default_factory=list)
+    path_variants: list[list[str]] = field(default_factory=list)
+    instance_summaries: list[dict[str, Any]] = field(default_factory=list)
+    dynamic_tests: list[str] = field(default_factory=list)
     waived: bool = False
     waiver_id: str | None = None
 

@@ -1,0 +1,941 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-f29efc6810c5",
+  "producer": "report-builder",
+  "producer_version": "0.5.0",
+  "workflow_hash": "940a278ec9308bfbcfdd6c19575fa11946573d11874376bbebf4066214d9f7e6",
+  "created_at": "2026-08-12T08:26:58.510810+00:00",
+  "report": {
+    "summary": {
+      "workflow_id": "non-strict-schema",
+      "workflow_hash": "940a278ec9308bfbcfdd6c19575fa11946573d11874376bbebf4066214d9f7e6",
+      "node_count": 4,
+      "edge_count": 3,
+      "finding_count": 2,
+      "risk_item_count": 2,
+      "evidence_instance_count": 5,
+      "raw_observation_count": 3,
+      "coverage_gap_count": 1,
+      "severity_counts": {
+        "HIGH": 2
+      },
+      "status_counts": {
+        "CONFIRMED": 2,
+        "COVERAGE_GAP": 1
+      },
+      "waived_count": 0,
+      "executive_summary": "扫描已完成。报告中的确定性证据、语义候选和覆盖缺口已分开呈现。"
+    },
+    "workflow": {
+      "nodes": [
+        {
+          "id": "start",
+          "title": "start",
+          "type": "INPUT",
+          "capabilities": []
+        },
+        {
+          "id": "llm",
+          "title": "llm",
+          "type": "LLM",
+          "capabilities": []
+        },
+        {
+          "id": "tool",
+          "title": "send-email",
+          "type": "TOOL",
+          "capabilities": [
+            "MESSAGE_SEND",
+            "NETWORK_READ",
+            "NETWORK_WRITE"
+          ]
+        },
+        {
+          "id": "answer",
+          "title": "answer",
+          "type": "OUTPUT",
+          "capabilities": [
+            "USER_OUTPUT"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "start",
+          "target": "llm",
+          "source_handle": null,
+          "target_handle": null
+        },
+        {
+          "id": "e2",
+          "source": "llm",
+          "target": "tool",
+          "source_handle": null,
+          "target_handle": null
+        },
+        {
+          "id": "e3",
+          "source": "tool",
+          "target": "answer",
+          "source_handle": null,
+          "target_handle": null
+        }
+      ]
+    },
+    "semantic_inventory": {
+      "workflow_purpose": "内部工作流 non-strict-schema；未启用 LLM 时仅根据节点名称和能力推断。",
+      "assets": [
+        {
+          "asset_id": "ASSET-292a9dfe1af1",
+          "name": "工具能力：send-email",
+          "sensitivity": "CONFIDENTIAL",
+          "node_ids": [
+            "tool"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 0.9
+        }
+      ],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-8f4d0090e54c",
+          "from_zone": "workflow_runtime",
+          "to_zone": "model_service",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/1"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-1bcbd3c9db45",
+          "from_zone": "model_or_workflow",
+          "to_zone": "tool_runtime",
+          "node_ids": [
+            "tool"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-ce08811bff11",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "security_invariants": [
+        {
+          "invariant_id": "INV-001",
+          "statement": "不可信内容不得覆盖系统目标或授权策略。",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-002",
+          "statement": "模型输出不得在无确定性校验时触发高影响工具。",
+          "node_ids": [
+            "tool"
+          ],
+          "evidence": []
+        },
+        {
+          "invariant_id": "INV-003",
+          "statement": "敏感数据不得未经授权离开工作流信任边界。",
+          "node_ids": [
+            "tool"
+          ],
+          "evidence": []
+        }
+      ],
+      "attack_hypotheses": [],
+      "assumptions": [
+        "语义清单为确定性降级结果，业务语义需在完整 LLM 扫描或人工复核中确认。"
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "findings": [
+      {
+        "id": "RISK-d24112f5fd2c",
+        "rule_id": "LLM-005",
+        "title": "send-email：结构化数据契约不足",
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "confidence": 1.0,
+        "node_ids": [
+          "llm",
+          "tool"
+        ],
+        "evidence_refs": [
+          "FACT-d2631fec976a",
+          "FACT-4251f6ea6034",
+          "FACT-b50035a187e1",
+          "FACT-22f64fdc334c"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/2",
+          "/workflow/graph/nodes/1"
+        ],
+        "message": "责任节点“send-email”在“结构化数据契约不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "remediation": [
+          "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+          "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "AISVS-9.3",
+          "AISVS-C7",
+          "ASI07"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [],
+        "dynamic_test": "free_text_tool_control",
+        "root_cause_id": "RISK-d24112f5fd2c",
+        "related_rule_ids": [
+          "TOOL-011",
+          "LLM-006",
+          "OUT-006"
+        ],
+        "anchor_node_id": "tool",
+        "control_domain": "structured_data_contract",
+        "finding_instance_ids": [
+          "FINDING-d2631fec976a",
+          "FINDING-4251f6ea6034",
+          "FINDING-b50035a187e1",
+          "FINDING-22f64fdc334c"
+        ],
+        "path_variants": [
+          [
+            "tool"
+          ],
+          [
+            "llm",
+            "tool"
+          ]
+        ],
+        "instance_summaries": [
+          {
+            "finding_id": "FINDING-d2631fec976a",
+            "rule_ids": [
+              "TOOL-011"
+            ],
+            "status": "PROBABLE",
+            "severity": "MEDIUM",
+            "path": [
+              "tool"
+            ],
+            "message": "工具输入缺少可识别的严格 Schema。",
+            "evidence_refs": [
+              "FACT-d2631fec976a"
+            ]
+          },
+          {
+            "finding_id": "FINDING-4251f6ea6034",
+            "rule_ids": [
+              "LLM-005",
+              "LLM-006",
+              "OUT-006"
+            ],
+            "status": "CONFIRMED",
+            "severity": "HIGH",
+            "path": [
+              "llm",
+              "tool"
+            ],
+            "message": "LLM 自由文本输出可直接影响工具参数。",
+            "evidence_refs": [
+              "FACT-4251f6ea6034",
+              "FACT-b50035a187e1",
+              "FACT-22f64fdc334c"
+            ]
+          }
+        ],
+        "dynamic_tests": [
+          "free_text_tool_control"
+        ],
+        "waived": false,
+        "waiver_id": null
+      },
+      {
+        "id": "RISK-808c4fa56b05",
+        "rule_id": "TOOL-008",
+        "title": "send-email：高影响动作授权控制不足",
+        "status": "CONFIRMED",
+        "severity": "HIGH",
+        "confidence": 1.0,
+        "node_ids": [
+          "start",
+          "llm",
+          "tool"
+        ],
+        "evidence_refs": [
+          "FACT-0c7f731b69a8",
+          "FACT-1ce58e786784",
+          "FACT-7641c3cbfc99"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/0",
+          "/workflow/graph/nodes/1",
+          "/workflow/graph/nodes/2"
+        ],
+        "message": "责任节点“send-email”在“高影响动作授权控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+        "remediation": [
+          "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+          "在风险路径的必经位置增加确定性控制，并验证不存在旁路。",
+          "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "AISVS-9.2",
+          "ASI02"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [],
+        "dynamic_test": "high_impact_action_approval",
+        "root_cause_id": "RISK-808c4fa56b05",
+        "related_rule_ids": [
+          "FLOW-003",
+          "LLM-008"
+        ],
+        "anchor_node_id": "tool",
+        "control_domain": "action_authorization",
+        "finding_instance_ids": [
+          "RISK-808c4fa56b05",
+          "FINDING-1ce58e786784",
+          "FINDING-7641c3cbfc99"
+        ],
+        "path_variants": [
+          [
+            "start",
+            "llm",
+            "tool"
+          ],
+          [
+            "llm",
+            "tool"
+          ]
+        ],
+        "instance_summaries": [
+          {
+            "finding_id": "FINDING-0c7f731b69a8",
+            "rule_ids": [
+              "TOOL-008"
+            ],
+            "status": "CONFIRMED",
+            "severity": "HIGH",
+            "path": [
+              "start",
+              "llm",
+              "tool"
+            ],
+            "message": "高影响工具存在不经过审批节点的可达路径。",
+            "evidence_refs": [
+              "FACT-0c7f731b69a8"
+            ]
+          },
+          {
+            "finding_id": "FINDING-1ce58e786784",
+            "rule_ids": [
+              "FLOW-003"
+            ],
+            "status": "CONFIRMED",
+            "severity": "HIGH",
+            "path": [
+              "start",
+              "llm",
+              "tool"
+            ],
+            "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+            "evidence_refs": [
+              "FACT-1ce58e786784"
+            ]
+          },
+          {
+            "finding_id": "FINDING-7641c3cbfc99",
+            "rule_ids": [
+              "LLM-008"
+            ],
+            "status": "PROBABLE",
+            "severity": "HIGH",
+            "path": [
+              "llm",
+              "tool"
+            ],
+            "message": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。",
+            "evidence_refs": [
+              "FACT-7641c3cbfc99"
+            ]
+          }
+        ],
+        "dynamic_tests": [
+          "high_impact_action_approval",
+          "source_to_high_impact_sink",
+          "high_impact_model_decision"
+        ],
+        "waived": false,
+        "waiver_id": null
+      },
+      {
+        "id": "RISK-a81c6781e7ab",
+        "rule_id": "TOOL-009",
+        "title": "send-email：失败处理与资源预算不足",
+        "status": "COVERAGE_GAP",
+        "severity": "MEDIUM",
+        "confidence": 1.0,
+        "node_ids": [
+          "tool"
+        ],
+        "evidence_refs": [
+          "FACT-3eadf75a309c"
+        ],
+        "dsl_locations": [
+          "/workflow/graph/nodes/2"
+        ],
+        "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+        "remediation": [
+          "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+        ],
+        "attack_family": "general_workflow_security",
+        "standards": [
+          "ASI02"
+        ],
+        "attack_preconditions": [],
+        "counter_evidence": [],
+        "missing_context": [
+          "tool_business_purpose",
+          "allowed_operations"
+        ],
+        "dynamic_test": null,
+        "root_cause_id": "RISK-a81c6781e7ab",
+        "related_rule_ids": [],
+        "anchor_node_id": "tool",
+        "control_domain": "resilience_budget",
+        "finding_instance_ids": [
+          "RISK-a81c6781e7ab"
+        ],
+        "path_variants": [
+          [
+            "tool"
+          ]
+        ],
+        "instance_summaries": [
+          {
+            "finding_id": "FINDING-3eadf75a309c",
+            "rule_ids": [
+              "TOOL-009"
+            ],
+            "status": "COVERAGE_GAP",
+            "severity": "MEDIUM",
+            "path": [
+              "tool"
+            ],
+            "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+            "evidence_refs": [
+              "FACT-3eadf75a309c"
+            ]
+          }
+        ],
+        "dynamic_tests": [],
+        "waived": false,
+        "waiver_id": null
+      }
+    ],
+    "node_risk_summary": [
+      {
+        "node_id": "tool",
+        "node_title": "send-email",
+        "node_type": "TOOL",
+        "risk_item_count": 2,
+        "risk_item_ids": [
+          "RISK-d24112f5fd2c",
+          "RISK-808c4fa56b05"
+        ],
+        "control_domains": [
+          "structured_data_contract",
+          "action_authorization"
+        ],
+        "highest_severity": "HIGH"
+      }
+    ],
+    "attack_surface": {
+      "entrypoints": [
+        {
+          "entrypoint_id": "ENTRY-cced28c6dc3f",
+          "node_id": "start",
+          "name": "start",
+          "type": "INPUT",
+          "trust": "UNTRUSTED",
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ]
+        },
+        {
+          "entrypoint_id": "ENTRY-4d8c3a03f5ee",
+          "node_id": "tool",
+          "name": "工具返回：send-email",
+          "type": "TOOL_OUTPUT",
+          "trust": "UNTRUSTED",
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "asset_id": "ASSET-292a9dfe1af1",
+          "name": "工具能力：send-email",
+          "sensitivity": "CONFIDENTIAL",
+          "node_ids": [
+            "tool"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 0.9
+        }
+      ],
+      "trust_boundaries": [
+        {
+          "boundary_id": "BOUNDARY-8f4d0090e54c",
+          "from_zone": "workflow_runtime",
+          "to_zone": "model_service",
+          "node_ids": [
+            "llm"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/1"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-1bcbd3c9db45",
+          "from_zone": "model_or_workflow",
+          "to_zone": "tool_runtime",
+          "node_ids": [
+            "tool"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/2"
+          ],
+          "confidence": 1.0
+        },
+        {
+          "boundary_id": "BOUNDARY-ce08811bff11",
+          "from_zone": "user",
+          "to_zone": "workflow_runtime",
+          "node_ids": [
+            "start"
+          ],
+          "evidence": [
+            "/workflow/graph/nodes/0"
+          ],
+          "confidence": 1.0
+        }
+      ],
+      "capabilities": [
+        {
+          "node_id": "tool",
+          "name": "send-email",
+          "capabilities": [
+            "MESSAGE_SEND",
+            "NETWORK_READ",
+            "NETWORK_WRITE"
+          ],
+          "external": true,
+          "high_impact": true
+        },
+        {
+          "node_id": "answer",
+          "name": "answer",
+          "capabilities": [
+            "USER_OUTPUT"
+          ],
+          "external": false,
+          "high_impact": false
+        }
+      ],
+      "attack_paths": [
+        {
+          "attack_path_id": "AP-a67e0d7ed2b6",
+          "finding_id": "RISK-d24112f5fd2c",
+          "anchor_node_id": "tool",
+          "control_domain": "structured_data_contract",
+          "rule_ids": [
+            "TOOL-011"
+          ],
+          "attack_family": "general_workflow_security",
+          "entrypoint_node": "tool",
+          "target_node": "tool",
+          "path": [
+            "tool"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "attack_preconditions": [],
+          "missing_runtime_context": [],
+          "test_case_ids": [
+            "TC-791f53f9564d"
+          ],
+          "description": "工具输入缺少可识别的严格 Schema。"
+        },
+        {
+          "attack_path_id": "AP-8559c69afa81",
+          "finding_id": "RISK-d24112f5fd2c",
+          "anchor_node_id": "tool",
+          "control_domain": "structured_data_contract",
+          "rule_ids": [
+            "LLM-005",
+            "LLM-006",
+            "OUT-006"
+          ],
+          "attack_family": "general_workflow_security",
+          "entrypoint_node": "llm",
+          "target_node": "tool",
+          "path": [
+            "llm",
+            "tool"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "attack_preconditions": [],
+          "missing_runtime_context": [],
+          "test_case_ids": [
+            "TC-791f53f9564d"
+          ],
+          "description": "LLM 自由文本输出可直接影响工具参数。"
+        },
+        {
+          "attack_path_id": "AP-b1db6bf28c09",
+          "finding_id": "RISK-808c4fa56b05",
+          "anchor_node_id": "tool",
+          "control_domain": "action_authorization",
+          "rule_ids": [
+            "TOOL-008"
+          ],
+          "attack_family": "general_workflow_security",
+          "entrypoint_node": "start",
+          "target_node": "tool",
+          "path": [
+            "start",
+            "llm",
+            "tool"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "attack_preconditions": [],
+          "missing_runtime_context": [],
+          "test_case_ids": [
+            "TC-2041e398bda4",
+            "TC-b5743ca1f646",
+            "TC-67cf3348adad"
+          ],
+          "description": "高影响工具存在不经过审批节点的可达路径。"
+        },
+        {
+          "attack_path_id": "AP-83c58cecd681",
+          "finding_id": "RISK-808c4fa56b05",
+          "anchor_node_id": "tool",
+          "control_domain": "action_authorization",
+          "rule_ids": [
+            "LLM-008"
+          ],
+          "attack_family": "general_workflow_security",
+          "entrypoint_node": "llm",
+          "target_node": "tool",
+          "path": [
+            "llm",
+            "tool"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "attack_preconditions": [],
+          "missing_runtime_context": [],
+          "test_case_ids": [
+            "TC-2041e398bda4",
+            "TC-b5743ca1f646",
+            "TC-67cf3348adad"
+          ],
+          "description": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。"
+        }
+      ],
+      "risk_chains": [
+        {
+          "risk_chain_id": "CHAIN-1d0f717c9357",
+          "path": [
+            "start",
+            "llm",
+            "tool"
+          ],
+          "entrypoint_node": "start",
+          "target_node": "tool",
+          "finding_ids": [
+            "RISK-808c4fa56b05"
+          ],
+          "rule_ids": [
+            "TOOL-008"
+          ],
+          "attack_families": [
+            "general_workflow_security"
+          ],
+          "severity": "HIGH",
+          "statuses": [
+            "CONFIRMED"
+          ],
+          "test_case_ids": [
+            "TC-2041e398bda4",
+            "TC-b5743ca1f646",
+            "TC-67cf3348adad"
+          ],
+          "attack_preconditions": [],
+          "missing_runtime_context": []
+        },
+        {
+          "risk_chain_id": "CHAIN-efd6d8533c71",
+          "path": [
+            "llm",
+            "tool"
+          ],
+          "entrypoint_node": "llm",
+          "target_node": "tool",
+          "finding_ids": [
+            "RISK-d24112f5fd2c",
+            "RISK-808c4fa56b05"
+          ],
+          "rule_ids": [
+            "LLM-005",
+            "LLM-006",
+            "OUT-006",
+            "LLM-008"
+          ],
+          "attack_families": [
+            "general_workflow_security"
+          ],
+          "severity": "HIGH",
+          "statuses": [
+            "CONFIRMED",
+            "PROBABLE"
+          ],
+          "test_case_ids": [
+            "TC-791f53f9564d",
+            "TC-2041e398bda4",
+            "TC-b5743ca1f646",
+            "TC-67cf3348adad"
+          ],
+          "attack_preconditions": [],
+          "missing_runtime_context": []
+        },
+        {
+          "risk_chain_id": "CHAIN-7c9bbe5ec9b3",
+          "path": [
+            "tool"
+          ],
+          "entrypoint_node": "tool",
+          "target_node": "tool",
+          "finding_ids": [
+            "RISK-d24112f5fd2c"
+          ],
+          "rule_ids": [
+            "TOOL-011"
+          ],
+          "attack_families": [
+            "general_workflow_security"
+          ],
+          "severity": "MEDIUM",
+          "statuses": [
+            "PROBABLE"
+          ],
+          "test_case_ids": [
+            "TC-791f53f9564d"
+          ],
+          "attack_preconditions": [],
+          "missing_runtime_context": []
+        }
+      ],
+      "semantic_attack_hypotheses": [],
+      "test_coverage": {
+        "covered_finding_ids": [
+          "RISK-808c4fa56b05",
+          "RISK-d24112f5fd2c"
+        ],
+        "uncovered_finding_ids": [],
+        "execution_evidence_present": false,
+        "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。"
+      },
+      "missing_runtime_context": [
+        "allowed_operations",
+        "tool_business_purpose"
+      ]
+    },
+    "test_cluster_summary": {
+      "case_count": 4,
+      "case_ids": [
+        "TC-791f53f9564d",
+        "TC-2041e398bda4",
+        "TC-b5743ca1f646",
+        "TC-67cf3348adad"
+      ],
+      "case_type_counts": {
+        "negative": 4
+      },
+      "seed_sample_ids": [],
+      "lineage_verified": true,
+      "execution_evidence_present": false
+    },
+    "priority_actions": [],
+    "verification": {
+      "valid": true,
+      "invalid_adjudication_refs": [],
+      "invalid_review_refs": [],
+      "applied_adjudications": [
+        {
+          "candidate_id": "CANDIDATE-6c39d8103ab9",
+          "finding_id": "RISK-d24112f5fd2c"
+        },
+        {
+          "candidate_id": "CANDIDATE-d74895d629e6",
+          "finding_id": "RISK-808c4fa56b05"
+        },
+        {
+          "candidate_id": "CANDIDATE-d04f2b416192",
+          "finding_id": "RISK-a81c6781e7ab"
+        }
+      ],
+      "applied_reviews": [
+        {
+          "finding_id": "RISK-d24112f5fd2c",
+          "decision": "ACCEPT"
+        },
+        {
+          "finding_id": "RISK-808c4fa56b05",
+          "decision": "ACCEPT"
+        }
+      ],
+      "policy": {
+        "llm_can_modify_confirmed": false,
+        "llm_can_promote_to_confirmed": false,
+        "llm_generated_tests_are_finding_evidence": false,
+        "root_cause_aggregation_may_drop_rule_coverage": false,
+        "unknown_references_rejected": true
+      },
+      "coverage_accounting": {
+        "catalog_rule_count": 72,
+        "raw_match_count": 8,
+        "root_finding_count": 3,
+        "raw_rule_ids": [
+          "FLOW-003",
+          "LLM-005",
+          "LLM-006",
+          "LLM-008",
+          "OUT-006",
+          "TOOL-008",
+          "TOOL-009",
+          "TOOL-011"
+        ],
+        "final_primary_or_related_rule_ids": [
+          "FLOW-003",
+          "LLM-005",
+          "LLM-006",
+          "LLM-008",
+          "OUT-006",
+          "TOOL-008",
+          "TOOL-009",
+          "TOOL-011"
+        ],
+        "lost_rule_ids": [],
+        "lossless_root_cause_aggregation": true
+      },
+      "test_cluster": {
+        "seed_sample_ids": [],
+        "case_type_counts": {
+          "positive": 0,
+          "negative": 4,
+          "boundary": 0,
+          "metamorphic": 0
+        },
+        "all_cases_not_executed": true,
+        "accepted_case_count": 4,
+        "rejected_model_cases": [],
+        "required_case_types_present": true,
+        "lineage_verified": true,
+        "execution_evidence_present": false
+      },
+      "review": {
+        "reviews": [
+          {
+            "finding_id": "RISK-d24112f5fd2c",
+            "decision": "ACCEPT",
+            "evidence_refs": [
+              "FACT-d2631fec976a",
+              "FACT-4251f6ea6034",
+              "FACT-b50035a187e1",
+              "FACT-22f64fdc334c"
+            ],
+            "reason": "Deterministic fallback retained the engine decision."
+          },
+          {
+            "finding_id": "RISK-808c4fa56b05",
+            "decision": "ACCEPT",
+            "evidence_refs": [
+              "FACT-0c7f731b69a8",
+              "FACT-1ce58e786784",
+              "FACT-7641c3cbfc99"
+            ],
+            "reason": "Deterministic fallback retained the engine decision."
+          }
+        ],
+        "producer": "deterministic-fallback"
+      },
+      "llm_errors": []
+    },
+    "quality_gate": {
+      "decision": "FAIL",
+      "exit_code": 1,
+      "policy": {
+        "blocking_severities": [
+          "CRITICAL",
+          "HIGH"
+        ],
+        "blocking_statuses": [
+          "CONFIRMED"
+        ],
+        "review_statuses": [
+          "COVERAGE_GAP",
+          "OBSERVED",
+          "PROBABLE"
+        ],
+        "waivers_require_workflow_hash_approver_justification_and_expiry": true
+      },
+      "blocking_finding_ids": [
+        "RISK-d24112f5fd2c",
+        "RISK-808c4fa56b05"
+      ],
+      "review_finding_ids": [
+        "RISK-a81c6781e7ab"
+      ],
+      "blocking_count": 2,
+      "review_count": 1,
+      "waived_count": 0,
+      "waiver_audit": {
+        "applied": [],
+        "rejected": []
+      }
+    }
+  }
+}

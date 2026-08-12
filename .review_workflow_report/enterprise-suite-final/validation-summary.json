@@ -1,0 +1,209 @@
+{
+  "suite": "enterprise-dify-workflow-security",
+  "passed": true,
+  "cases": [
+    {
+      "case": "safe-workflow",
+      "expected_gate": "PASS",
+      "actual_gate": "PASS",
+      "finding_count": 0,
+      "risk_chain_count": 0,
+      "test_case_count": 0,
+      "expected_present": [],
+      "expected_absent": [
+        "FLOW-003",
+        "TOOL-003",
+        "TOOL-008"
+      ],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "approval-protected-workflow",
+      "expected_gate": "PASS",
+      "actual_gate": "PASS",
+      "finding_count": 0,
+      "risk_chain_count": 0,
+      "test_case_count": 0,
+      "expected_present": [],
+      "expected_absent": [
+        "FLOW-003",
+        "FLOW-006",
+        "TOOL-008"
+      ],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "approval-bypass-workflow",
+      "expected_gate": "FAIL",
+      "actual_gate": "FAIL",
+      "finding_count": 1,
+      "risk_chain_count": 1,
+      "test_case_count": 1,
+      "expected_present": [
+        "FLOW-006"
+      ],
+      "expected_absent": [],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "keyword-spoofed-control",
+      "expected_gate": "FAIL",
+      "actual_gate": "FAIL",
+      "finding_count": 4,
+      "risk_chain_count": 3,
+      "test_case_count": 4,
+      "expected_present": [
+        "FLOW-003",
+        "TOOL-008"
+      ],
+      "expected_absent": [],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "parameter-precision-workflow",
+      "expected_gate": "PASS",
+      "actual_gate": "PASS",
+      "finding_count": 0,
+      "risk_chain_count": 0,
+      "test_case_count": 0,
+      "expected_present": [],
+      "expected_absent": [
+        "TOOL-003",
+        "TOOL-017"
+      ],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "text-optimization-workflow",
+      "expected_gate": "REVIEW",
+      "actual_gate": "REVIEW",
+      "finding_count": 2,
+      "risk_chain_count": 1,
+      "test_case_count": 2,
+      "expected_present": [
+        "IN-002",
+        "LLM-001"
+      ],
+      "expected_absent": [
+        "OUT-001",
+        "OUT-008"
+      ],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "review-only-workflow",
+      "expected_gate": "REVIEW",
+      "actual_gate": "REVIEW",
+      "finding_count": 1,
+      "risk_chain_count": 0,
+      "test_case_count": 1,
+      "expected_present": [
+        "LLM-009",
+        "LLM-010"
+      ],
+      "expected_absent": [
+        "LLM-006"
+      ],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "non-strict-schema-workflow",
+      "expected_gate": "FAIL",
+      "actual_gate": "FAIL",
+      "finding_count": 5,
+      "risk_chain_count": 2,
+      "test_case_count": 4,
+      "expected_present": [
+        "LLM-006",
+        "TOOL-011"
+      ],
+      "expected_absent": [],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "document-indirect-injection-workflow",
+      "expected_gate": "FAIL",
+      "actual_gate": "FAIL",
+      "finding_count": 11,
+      "risk_chain_count": 5,
+      "test_case_count": 10,
+      "expected_present": [
+        "FLOW-005",
+        "FLOW-010",
+        "LLM-003"
+      ],
+      "expected_absent": [],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "risky-workflow",
+      "expected_gate": "FAIL",
+      "actual_gate": "FAIL",
+      "finding_count": 32,
+      "risk_chain_count": 14,
+      "test_case_count": 22,
+      "expected_present": [
+        "FLOW-005",
+        "KB-005",
+        "TOOL-003",
+        "TOOL-010"
+      ],
+      "expected_absent": [],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    },
+    {
+      "case": "tencent-inspired-workflow",
+      "expected_gate": "FAIL",
+      "actual_gate": "FAIL",
+      "finding_count": 74,
+      "risk_chain_count": 34,
+      "test_case_count": 60,
+      "expected_present": [
+        "FLOW-009",
+        "FLOW-010",
+        "FLOW-011",
+        "FLOW-012",
+        "FLOW-013",
+        "KB-012",
+        "OUT-009",
+        "TOOL-016",
+        "TOOL-017"
+      ],
+      "expected_absent": [],
+      "missing_rules": [],
+      "unexpected_rules": [],
+      "count_within_limit": true,
+      "passed": true
+    }
+  ]
+}

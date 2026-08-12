@@ -1,0 +1,443 @@
+{
+  "schema_version": "1.1.0",
+  "scan_id": "SCAN-063b89081ed2",
+  "producer": "evidence-verifier",
+  "producer_version": "0.3.0",
+  "workflow_hash": "405f5cb278c616af965dbdce79e4b5b7f2874d26dac2ad342858f7a880dd4d8a",
+  "created_at": "2026-08-12T07:34:13.023635+00:00",
+  "verification": {
+    "valid": true,
+    "invalid_adjudication_refs": [],
+    "invalid_review_refs": [],
+    "applied_adjudications": [
+      {
+        "candidate_id": "CANDIDATE-40b2ad891950",
+        "finding_id": "FINDING-c342c5c90be4"
+      },
+      {
+        "candidate_id": "CANDIDATE-7273d0fc5cb4",
+        "finding_id": "FINDING-087ae7b3c06e"
+      },
+      {
+        "candidate_id": "CANDIDATE-1e473bba6fc4",
+        "finding_id": "FINDING-0fa7fb59a544"
+      },
+      {
+        "candidate_id": "CANDIDATE-b04f5339c902",
+        "finding_id": "FINDING-153e38f7ddf9"
+      },
+      {
+        "candidate_id": "CANDIDATE-b945eda4bbae",
+        "finding_id": "FINDING-dfb118a177f7"
+      },
+      {
+        "candidate_id": "CANDIDATE-8581bcca6dda",
+        "finding_id": "FINDING-991cfbb1fa94"
+      },
+      {
+        "candidate_id": "CANDIDATE-e12bb6f70b54",
+        "finding_id": "FINDING-ebe8b001f9a1"
+      },
+      {
+        "candidate_id": "CANDIDATE-c87f83394e28",
+        "finding_id": "FINDING-08e204ba0560"
+      },
+      {
+        "candidate_id": "CANDIDATE-4c1b0e40ea3b",
+        "finding_id": "FINDING-945de85a7b0c"
+      },
+      {
+        "candidate_id": "CANDIDATE-71a03bd0c198",
+        "finding_id": "FINDING-c4cde0855742"
+      },
+      {
+        "candidate_id": "CANDIDATE-0b3f6308962f",
+        "finding_id": "FINDING-ce5bfbcac39c"
+      },
+      {
+        "candidate_id": "CANDIDATE-82193ef76cb1",
+        "finding_id": "FINDING-fc8d90f5e830"
+      },
+      {
+        "candidate_id": "CANDIDATE-4bd7bcbfe2e0",
+        "finding_id": "FINDING-2ff4d43c2b2e"
+      },
+      {
+        "candidate_id": "CANDIDATE-a33689c29238",
+        "finding_id": "FINDING-8fdf8b561594"
+      },
+      {
+        "candidate_id": "CANDIDATE-b37993cc2a22",
+        "finding_id": "FINDING-55c4ecb9530d"
+      },
+      {
+        "candidate_id": "CANDIDATE-285e8f3c951c",
+        "finding_id": "FINDING-dea702265759"
+      },
+      {
+        "candidate_id": "CANDIDATE-5e360f0ba124",
+        "finding_id": "FINDING-640c7a7c0c1f"
+      },
+      {
+        "candidate_id": "CANDIDATE-abfa9f21e1eb",
+        "finding_id": "FINDING-7f24df8e8cab"
+      },
+      {
+        "candidate_id": "CANDIDATE-1bc3a3d3589c",
+        "finding_id": "FINDING-018db969148c"
+      },
+      {
+        "candidate_id": "CANDIDATE-b52299b0bd46",
+        "finding_id": "FINDING-5a4a7003a8b8"
+      },
+      {
+        "candidate_id": "CANDIDATE-2171b0552a27",
+        "finding_id": "FINDING-b7bf9a442b48"
+      },
+      {
+        "candidate_id": "CANDIDATE-8e4d192b7456",
+        "finding_id": "FINDING-5dccf8f0a473"
+      },
+      {
+        "candidate_id": "CANDIDATE-d9d3befd5f25",
+        "finding_id": "FINDING-a428f408d1de"
+      },
+      {
+        "candidate_id": "CANDIDATE-c87675d55aca",
+        "finding_id": "FINDING-d3980431b8ae"
+      },
+      {
+        "candidate_id": "CANDIDATE-55d9b91e1cac",
+        "finding_id": "FINDING-11309d7a66f1"
+      },
+      {
+        "candidate_id": "CANDIDATE-d8f98d7637ab",
+        "finding_id": "FINDING-4fc3be561f9a"
+      },
+      {
+        "candidate_id": "CANDIDATE-72b2374b3172",
+        "finding_id": "FINDING-dd03e9b6672c"
+      },
+      {
+        "candidate_id": "CANDIDATE-f10de959d667",
+        "finding_id": "FINDING-9e43b2cb8c71"
+      },
+      {
+        "candidate_id": "CANDIDATE-64a5fb8538ed",
+        "finding_id": "FINDING-91101ff7dec6"
+      },
+      {
+        "candidate_id": "CANDIDATE-c6941efedd5c",
+        "finding_id": "FINDING-9d7a8c4fd729"
+      },
+      {
+        "candidate_id": "CANDIDATE-f78d5707fbd5",
+        "finding_id": "FINDING-8ebd29c4ba03"
+      },
+      {
+        "candidate_id": "CANDIDATE-9a464f68c923",
+        "finding_id": "FINDING-0c9b42606853"
+      },
+      {
+        "candidate_id": "CANDIDATE-550ba4a239b0",
+        "finding_id": "FINDING-0fab3ba4961d"
+      },
+      {
+        "candidate_id": "CANDIDATE-eea8ada90dfc",
+        "finding_id": "FINDING-ad44783ba931"
+      },
+      {
+        "candidate_id": "CANDIDATE-2fa075828bf8",
+        "finding_id": "FINDING-d4a60448cde7"
+      },
+      {
+        "candidate_id": "CANDIDATE-bb47bc669d2b",
+        "finding_id": "FINDING-407027395fcd"
+      }
+    ],
+    "applied_reviews": [
+      {
+        "finding_id": "FINDING-c342c5c90be4",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-087ae7b3c06e",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-0fa7fb59a544",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-153e38f7ddf9",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-dfb118a177f7",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-991cfbb1fa94",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-ebe8b001f9a1",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-08e204ba0560",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-945de85a7b0c",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-c4cde0855742",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-ce5bfbcac39c",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-fc8d90f5e830",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-2ff4d43c2b2e",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-8fdf8b561594",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-55c4ecb9530d",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-dea702265759",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-640c7a7c0c1f",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-7f24df8e8cab",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-018db969148c",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-5a4a7003a8b8",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-b7bf9a442b48",
+        "decision": "ACCEPT"
+      },
+      {
+        "finding_id": "FINDING-5dccf8f0a473",
+        "decision": "ACCEPT"
+      }
+    ],
+    "policy": {
+      "llm_can_modify_confirmed": false,
+      "llm_can_promote_to_confirmed": false,
+      "unknown_references_rejected": true
+    },
+    "review": {
+      "reviews": [
+        {
+          "finding_id": "FINDING-c342c5c90be4",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-c342c5c90be4"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-087ae7b3c06e",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-087ae7b3c06e"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-0fa7fb59a544",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-0fa7fb59a544"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-153e38f7ddf9",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-153e38f7ddf9"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-dfb118a177f7",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-dfb118a177f7"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-991cfbb1fa94",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-991cfbb1fa94"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-ebe8b001f9a1",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-ebe8b001f9a1"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-08e204ba0560",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-08e204ba0560"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-945de85a7b0c",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-945de85a7b0c"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-c4cde0855742",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-c4cde0855742",
+            "FACT-b965e9dabc9d",
+            "FACT-db501d2c8995"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-ce5bfbcac39c",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-ce5bfbcac39c",
+            "FACT-6e37d1d76437"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-fc8d90f5e830",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-fc8d90f5e830",
+            "FACT-546eb56f2701",
+            "FACT-50be1cb79f0b"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-2ff4d43c2b2e",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-2ff4d43c2b2e"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-8fdf8b561594",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-8fdf8b561594"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-55c4ecb9530d",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-55c4ecb9530d"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-dea702265759",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-dea702265759"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-640c7a7c0c1f",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-640c7a7c0c1f"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-7f24df8e8cab",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-7f24df8e8cab",
+            "FACT-bbd20be44857",
+            "FACT-227f8afcd0f4"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-018db969148c",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-018db969148c"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-5a4a7003a8b8",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-5a4a7003a8b8"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-b7bf9a442b48",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-b7bf9a442b48"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        },
+        {
+          "finding_id": "FINDING-5dccf8f0a473",
+          "decision": "ACCEPT",
+          "evidence_refs": [
+            "FACT-5dccf8f0a473"
+          ],
+          "reason": "Deterministic fallback retained the engine decision."
+        }
+      ],
+      "producer": "deterministic-fallback"
+    },
+    "llm_errors": []
+  }
+}

@@ -26,6 +26,26 @@ SENSITIVE_WORDS = (
     "password", "passwd", "secret", "token", "credential", "api_key", "apikey",
     "身份证", "手机号", "银行卡", "病例", "薪资", "密钥", "密码", "令牌",
 )
+
+
+CONTROL_DOMAIN_TITLES = {
+    "input_contract": "输入契约与边界控制不足",
+    "instruction_boundary": "模型指令与数据边界不足",
+    "memory_identity_scope": "记忆身份与隔离控制不足",
+    "untrusted_content_boundary": "外部内容信任边界不足",
+    "action_authorization": "高影响动作授权控制不足",
+    "data_protection": "敏感数据保护控制不足",
+    "egress_control": "网络与输出外发控制不足",
+    "execution_boundary": "代码、命令或查询执行边界不足",
+    "structured_data_contract": "结构化数据契约不足",
+    "resilience_budget": "失败处理与资源预算不足",
+    "output_safety": "用户输出安全控制不足",
+    "knowledge_governance": "知识资产治理控制不足",
+    "supply_chain": "工具供应链控制不足",
+    "agent_governance": "Agent 目标与停止边界不足",
+    "structure_coverage": "DSL 结构覆盖不足",
+    "general_security_control": "安全控制不足",
+}
 DANGEROUS_ARG_WORDS = (
     "url", "host", "command", "cmd", "script", "code", "sql", "query", "path",
     "file", "recipient", "email", "amount", "resource", "user_id", "role",
@@ -330,6 +350,22 @@ class RuleCatalog:
             str(rule["id"]): {**defaults, **rule}
             for rule in rules if isinstance(rule, dict) and rule.get("id")
         }
+        domains = payload.get("control_domains", {}) if isinstance(payload, dict) else {}
+        self.control_domain_by_rule: dict[str, str] = {}
+        for domain, rule_ids in domains.items():
+            if not isinstance(rule_ids, list):
+                raise ValueError(f"Control domain {domain} must contain a rule ID list")
+            for rule_id in rule_ids:
+                rule_id = str(rule_id)
+                if rule_id in self.control_domain_by_rule:
+                    raise ValueError(f"Rule {rule_id} is assigned to more than one control domain")
+                self.control_domain_by_rule[rule_id] = str(domain)
+        unknown_domain_rules = sorted(set(self.control_domain_by_rule) - set(self.rules))
+        missing_domain_rules = sorted(set(self.rules) - set(self.control_domain_by_rule))
+        if unknown_domain_rules or missing_domain_rules:
+            raise ValueError(
+                f"Control-domain taxonomy mismatch; unknown={unknown_domain_rules}, missing={missing_domain_rules}"
+            )
         required = {"id", "title", "severity", "detectability", "standards", "applicability", "confidence_policy", "evidence_policy"}
         for rule_id, rule in self.rules.items():
             missing = sorted(required - set(rule))
@@ -348,6 +384,9 @@ class RuleCatalog:
             raise KeyError(f"Unknown rule ID: {rule_id}")
         return self.rules[rule_id]
 
+    def control_domain(self, rule_id: str) -> str:
+        return self.control_domain_by_rule[rule_id]
+
 
 class SecurityEngine:
     def __init__(self, ir: WorkflowIR, catalog: RuleCatalog) -> None:
@@ -356,6 +395,7 @@ class SecurityEngine:
         self.catalog = catalog
         self.facts: list[Fact] = []
         self.findings: list[Finding] = []
+        self.raw_rule_matches: list[dict[str, Any]] = []
         self._dedupe: set[tuple[str, tuple[str, ...], str]] = set()
 
     def _emit(
@@ -422,8 +462,193 @@ class SecurityEngine:
             }.get(node.type, lambda _: None)(node)
         self._cross_node_rules()
         severity_rank = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
+        self.raw_rule_matches = [
+            {
+                "match_id": stable_id("MATCH", finding.id),
+                "finding_id_before_aggregation": finding.id,
+                "rule_id": finding.rule_id,
+                "node_ids": list(finding.node_ids),
+                "evidence_refs": list(finding.evidence_refs),
+                "status": finding.status,
+                "severity": finding.severity,
+            }
+            for finding in self.findings
+        ]
+        self.findings = self._correlate_root_causes(self.findings)
+        self.findings = self._aggregate_by_node_control(self.findings)
         self.findings.sort(key=lambda finding: (severity_rank.get(finding.severity, 9), finding.rule_id, finding.id))
         return self.facts, self.findings
+
+    def _control_anchor(self, finding: Finding, domain: str) -> str:
+        if not finding.node_ids:
+            return "workflow"
+        if domain in {"instruction_boundary", "untrusted_content_boundary", "agent_governance"}:
+            return next(
+                (node_id for node_id in reversed(finding.node_ids) if self.graph.nodes.get(node_id) and self.graph.nodes[node_id].type == NodeType.LLM.value),
+                finding.node_ids[-1],
+            )
+        if domain == "memory_identity_scope":
+            for node_id in finding.node_ids:
+                node = self.graph.nodes.get(node_id)
+                if node and _has_words(f"{node.original_type} {node.title}", MEMORY_WRITE_WORDS):
+                    return node_id
+        if domain == "input_contract":
+            return finding.node_ids[0]
+        return finding.node_ids[-1]
+
+    def _aggregate_by_node_control(self, findings: list[Finding]) -> list[Finding]:
+        """Present one remediation item per responsible node and control domain."""
+        grouped: dict[tuple[str, str, str], list[Finding]] = {}
+        for finding in findings:
+            domain = self.catalog.control_domain(finding.rule_id)
+            anchor = self._control_anchor(finding, domain)
+            evidence_class = "coverage_gap" if finding.status == Status.COVERAGE_GAP.value else "risk"
+            grouped.setdefault((anchor, domain, evidence_class), []).append(finding)
+
+        severity_rank = {"INFO": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
+        status_rank = {
+            "MITIGATED": 0, "COVERAGE_GAP": 1, "CANDIDATE": 2,
+            "OBSERVED": 3, "PROBABLE": 4, "CONFIRMED": 5,
+        }
+        result: list[Finding] = []
+        for (anchor, domain, evidence_class), members in grouped.items():
+            aggregate_status = max((item.status for item in members), key=lambda value: status_rank.get(value, -1))
+            status_members = [item for item in members if item.status == aggregate_status]
+            primary = max(status_members, key=lambda item: (severity_rank.get(item.severity, -1), item.confidence))
+            aggregate_severity = max(
+                (item.severity for item in status_members), key=lambda value: severity_rank.get(value, -1)
+            )
+            all_rule_ids = list(dict.fromkeys(
+                rule_id for item in members for rule_id in (item.rule_id, *item.related_rule_ids)
+            ))
+            paths: list[list[str]] = []
+            for item in members:
+                for path in (item.path_variants or [item.node_ids]):
+                    if path and path not in paths:
+                        paths.append(list(path))
+            instance_summaries = [{
+                "finding_id": item.id,
+                "rule_ids": list(dict.fromkeys([item.rule_id, *item.related_rule_ids])),
+                "status": item.status,
+                "severity": item.severity,
+                "path": list(item.node_ids),
+                "message": item.message,
+                "evidence_refs": list(item.evidence_refs),
+            } for item in members]
+            anchor_title = self.graph.nodes[anchor].title if anchor in self.graph.nodes else "Workflow"
+            primary.id = stable_id("RISK", anchor, domain, evidence_class)
+            primary.root_cause_id = primary.id
+            primary.anchor_node_id = None if anchor == "workflow" else anchor
+            primary.control_domain = domain
+            primary.title = f"{anchor_title}：{CONTROL_DOMAIN_TITLES[domain]}"
+            primary.status = aggregate_status
+            primary.severity = aggregate_severity
+            primary.potential_severity = max(
+                (item.severity for item in members), key=lambda value: severity_rank.get(value, -1)
+            )
+            primary.confidence = max(item.confidence for item in status_members)
+            primary.related_rule_ids = [rule_id for rule_id in all_rule_ids if rule_id != primary.rule_id]
+            primary.finding_instance_ids = list(dict.fromkeys(
+                instance_id for item in members for instance_id in (item.finding_instance_ids or [item.id])
+            ))
+            primary.path_variants = paths
+            primary.instance_summaries = instance_summaries
+            primary.dynamic_tests = list(dict.fromkeys(
+                test for item in members for test in [*item.dynamic_tests, item.dynamic_test] if test
+            ))
+            primary.dynamic_test = primary.dynamic_tests[0] if primary.dynamic_tests else None
+            primary.evidence_refs = list(dict.fromkeys(ref for item in members for ref in item.evidence_refs))
+            primary.dsl_locations = list(dict.fromkeys(loc for item in members for loc in item.dsl_locations))
+            primary.standards = list(dict.fromkeys(value for item in members for value in item.standards))
+            primary.attack_preconditions = list(dict.fromkeys(value for item in members for value in item.attack_preconditions))
+            primary.counter_evidence = list(dict.fromkeys(value for item in members for value in item.counter_evidence))
+            primary.missing_context = list(dict.fromkeys(value for item in members for value in item.missing_context))
+            primary.remediation = list(dict.fromkeys(value for item in members for value in item.remediation))
+            if len(members) > 1:
+                primary.message = (
+                    f"责任节点“{anchor_title}”在“{CONTROL_DOMAIN_TITLES[domain]}”方面存在 "
+                    f"{len(members)} 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。"
+                )
+            result.append(primary)
+        return result
+
+    def _correlate_root_causes(self, findings: list[Finding]) -> list[Finding]:
+        """Collapse rule aliases that describe the same source-to-sink weakness."""
+        alias_families = {
+            "prompt_boundary": {"IN-007", "IN-009", "LLM-001", "LLM-002"},
+            "indirect_prompt_to_tool": {"FLOW-005", "LLM-003", "KB-005"},
+            "free_text_tool_control": {"LLM-005", "LLM-006", "OUT-006"},
+            "sensitive_data_egress": {"FLOW-004", "OUT-002", "TOOL-007"},
+        }
+        family_by_rule = {
+            rule_id: family for family, rule_ids in alias_families.items() for rule_id in rule_ids
+        }
+        grouped: dict[tuple[str, str, str], list[Finding]] = {}
+        passthrough: list[Finding] = []
+        for finding in findings:
+            family = family_by_rule.get(finding.rule_id)
+            if not family or not finding.node_ids:
+                passthrough.append(finding)
+                continue
+            key = (family, finding.node_ids[0], finding.node_ids[-1])
+            grouped.setdefault(key, []).append(finding)
+
+        severity_rank = {"INFO": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
+        status_rank = {
+            "MITIGATED": 0, "COVERAGE_GAP": 1, "CANDIDATE": 2,
+            "OBSERVED": 3, "PROBABLE": 4, "CONFIRMED": 5,
+        }
+        canonical_rule = {
+            "prompt_boundary": "LLM-001",
+            "indirect_prompt_to_tool": "FLOW-005",
+            "free_text_tool_control": "LLM-005",
+            "sensitive_data_egress": "FLOW-004",
+        }
+        for (family, source, sink), members in grouped.items():
+            primary = next(
+                (item for item in members if item.rule_id == canonical_rule[family]),
+                sorted(
+                    members,
+                    key=lambda item: (-status_rank.get(item.status, 0), -severity_rank.get(item.severity, 0), item.rule_id),
+                )[0],
+            )
+            all_rule_ids = sorted({item.rule_id for item in members})
+            primary.related_rule_ids = [item for item in all_rule_ids if item != primary.rule_id]
+            primary.root_cause_id = stable_id("ROOT", family, source, sink)
+            primary.finding_instance_ids = [item.id for item in members]
+            primary.path_variants = list(dict.fromkeys(tuple(item.node_ids) for item in members))
+            primary.path_variants = [list(path) for path in primary.path_variants]
+            primary.dynamic_tests = list(dict.fromkeys(item.dynamic_test for item in members if item.dynamic_test))
+            primary.evidence_refs = list(dict.fromkeys(ref for item in members for ref in item.evidence_refs))
+            primary.dsl_locations = list(dict.fromkeys(loc for item in members for loc in item.dsl_locations))
+            primary.standards = list(dict.fromkeys(value for item in members for value in item.standards))
+            primary.attack_preconditions = list(dict.fromkeys(value for item in members for value in item.attack_preconditions))
+            primary.counter_evidence = list(dict.fromkeys(value for item in members for value in item.counter_evidence))
+            primary.missing_context = list(dict.fromkeys(value for item in members for value in item.missing_context))
+            if family == "prompt_boundary":
+                downstream_tools = [
+                    node for node in self.ir.nodes
+                    if node.type in {NodeType.TOOL.value, NodeType.CODE.value}
+                    and self.graph.path(sink, node.id)
+                ]
+                sensitive_context = any(
+                    node.id == sink and _is_sensitive(node) for node in self.ir.nodes
+                )
+                if downstream_tools or sensitive_context:
+                    primary.severity = "HIGH" if any(node.high_impact for node in downstream_tools) else "MEDIUM"
+                    primary.status = "PROBABLE"
+                else:
+                    primary.severity = "MEDIUM"
+                    primary.status = "OBSERVED"
+                primary.confidence = min(primary.confidence, 0.9)
+                primary.title = "不可信输入进入高权限 Prompt"
+                primary.message = "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。"
+                primary.remediation = [
+                    "将固定指令保留在 system/developer 消息中，将待处理内容放入 user 消息或明确的数据容器。",
+                    "使用已确认的正常、对抗和边界样例验证任务目标不会被输入内容覆盖。",
+                ]
+            passthrough.append(primary)
+        return passthrough
 
     def _global_rules(self) -> None:
         for gap in self.ir.coverage_gaps:
@@ -461,7 +686,8 @@ class SecurityEngine:
             if not value_type:
                 self._emit("IN-001", [node.id], f"输入字段 {name} 未声明类型。", status=Status.CONFIRMED)
             if value_type in {"text-input", "paragraph", "string", "text", "array", "list", "file", "file-list", "files"}:
-                if not any(key in variable for key in ("max_length", "maxLength", "max_items", "maxItems", "size_limit", "max_files")):
+                limits = [variable.get(key) for key in ("max_length", "maxLength", "max_items", "maxItems", "size_limit", "max_files") if key in variable]
+                if not limits or all(value in (None, "", 0, False) for value in limits):
                     self._emit("IN-002", [node.id], f"输入字段 {name} 缺少长度或数量上限。", status=Status.CONFIRMED)
             if "file" in value_type:
                 has_file_controls = any(key in variable for key in ("allowed_file_types", "allowed_extensions", "mime_types", "size_limit"))
@@ -491,7 +717,7 @@ class SecurityEngine:
         }
         system_has_ref = any(_prompt_references_node(system_text, producer) for producer in untrusted_producers)
         if system_has_ref:
-            self._emit("LLM-001", [*sorted(untrusted_producers), node.id], "不可信变量被插入系统或高权限指令区域。", status=Status.CONFIRMED, dynamic_test="direct_or_indirect_prompt_injection")
+            self._emit("LLM-001", [*sorted(untrusted_producers), node.id], "不可信变量被插入系统或高权限指令区域。", status=Status.OBSERVED, dynamic_test="direct_or_indirect_prompt_injection")
         if untrusted_producers and not _has_words(system_text, INJECTION_GUARD_WORDS):
             self._emit("LLM-002", [*sorted(untrusted_producers), node.id], "外部内容进入 LLM，但系统指令中未发现明确的数据/指令隔离约束。", status=Status.PROBABLE, confidence=0.72, dynamic_test="instruction_data_boundary")
         if contains_secret(node.text):
@@ -585,7 +811,14 @@ class SecurityEngine:
 
     def _output_rules(self, node: Node) -> None:
         dynamic = bool(node.variable_refs) or contains_template(node.config)
-        if dynamic and not _has_schema(node):
+        output_types = {
+            str(value).lower() for value in _key_values(node.config, ("value_type", "output_type", "type"))
+            if isinstance(value, str)
+        }
+        structured_contract = bool(output_types & {"object", "json", "map", "array", "array[object]"}) or _key_matches(
+            node.config, ("requires_structured_output", "json_output", "parse_output")
+        )
+        if dynamic and structured_contract and not _has_schema(node):
             self._emit("OUT-001", [node.id], "动态输出缺少结构化 Schema。", status=Status.CONFIRMED)
         if dynamic and _has_words(node.text, ("html", "markdown", "md")) and not _key_matches(node.config, ("escape", "sanitize", "encoding")):
             self._emit("OUT-004", [node.id], "动态 HTML/Markdown 输出缺少可识别的上下文编码。", status=Status.PROBABLE, confidence=0.82, dynamic_test="rich_text_injection")
@@ -611,7 +844,13 @@ class SecurityEngine:
             )
         if _has_words(node.text, ("system prompt", "stack trace", "debug", "系统提示词", "错误堆栈")):
             self._emit("OUT-003", [node.id], "输出模板可能暴露系统 Prompt、调试或错误信息。", status=Status.PROBABLE, confidence=0.8, dynamic_test="system_context_disclosure")
-        if not _key_matches(node.config, ("fallback", "uncertainty", "confidence", "on_error")):
+        upstream_ids = self.graph.predecessors(node.id)
+        upstream_has_fallback = any(
+            upstream_id in self.graph.nodes
+            and _key_matches(self.graph.nodes[upstream_id].config, ("fallback", "error_strategy", "default_value", "on_error", "fail_closed"))
+            for upstream_id in upstream_ids
+        )
+        if not upstream_has_fallback and not _key_matches(node.config, ("fallback", "uncertainty", "confidence", "on_error")):
             self._emit("OUT-008", [node.id], "输出节点未显示低置信或失败回退行为。", status=Status.COVERAGE_GAP, confidence=1.0)
 
     def _knowledge_rules(self, node: Node) -> None:
@@ -692,14 +931,14 @@ class SecurityEngine:
                     self._emit(
                         "IN-009", path,
                         "用户消息可直接到达模型，且系统指令未声明对角色覆盖、目标劫持或提示词提取的防护边界。",
-                        status=Status.CONFIRMED,
+                        status=Status.OBSERVED,
                         dynamic_test="direct_prompt_injection",
                     )
                 if path and _prompt_references_node(_system_prompt_text(llm), source.id):
                     self._emit(
                         "IN-007", path,
                         "用户输入变量被插入系统/开发者指令区域。",
-                        status=Status.CONFIRMED,
+                        status=Status.OBSERVED,
                         dynamic_test="direct_prompt_injection",
                     )
 
@@ -939,6 +1178,9 @@ def execute_rules(ir: WorkflowIR, catalog_path: Path) -> tuple[list[Fact], list[
     facts, findings = engine.run()
     candidates = {
         "rule_count": len(catalog.rules),
+        "raw_match_count": len(engine.raw_rule_matches),
+        "raw_rule_ids": sorted({item["rule_id"] for item in engine.raw_rule_matches}),
+        "raw_matches": engine.raw_rule_matches,
         "candidate_count": len(findings),
         "candidates": [
             {

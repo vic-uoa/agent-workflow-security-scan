@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "scan_id": "SCAN-444596068b3a",
+  "producer": "scanner",
+  "producer_version": "0.2.0",
+  "workflow_hash": "262027ad5543cfe6580c4e9771ee0ff7d5f7e411ee301cfd065b0c5a92dc6fc8",
+  "created_at": "2026-08-12T06:19:21.192929+00:00",
+  "dsl_file": "safe-workflow.yml",
+  "samples_file": null,
+  "baseline_file": "internal-baseline.yml",
+  "rules_file": "core-rules.yml",
+  "rules_hash": "3aae39a4080542b9b7258aa4542354414aab9426f8a21f7bd2dee854915ba76f",
+  "baseline_hash": "3d06fda211528fe1abdb467b069663d471cacfcec214c4279469c83a064fc86e",
+  "waivers_file": null,
+  "waivers_hash": null,
+  "llm_requested": "disabled",
+  "llm_enabled": false,
+  "analyst_model": "gpt-5.6-terra",
+  "reviewer_model": "gpt-5.6-sol",
+  "scope": {
+    "platform_detection": false,
+    "runtime_iam": false,
+    "container_security": false,
+    "workflow_execution": false
+  }
+}

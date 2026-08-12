@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.1.0",
+  "scan_id": "SCAN-d9e774841c2a",
+  "producer": "rule-engine",
+  "producer_version": "0.3.0",
+  "workflow_hash": "027bcdc15888de1c4fc8a97414142f2b0604537927b9f39df3c6410e973c1ee8",
+  "created_at": "2026-08-12T07:34:11.835378+00:00",
+  "rule_count": 72,
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "candidate_id": "CANDIDATE-dbde405a349a",
+      "finding_id": "FINDING-2647bae3efca",
+      "rule_id": "FLOW-006",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02",
+        "ASI03"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "approve",
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-2647bae3efca"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    }
+  ]
+}

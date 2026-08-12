@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-d2f22d4dd81a",
+  "producer": "rule-engine",
+  "producer_version": "0.5.0",
+  "workflow_hash": "40460deac52ea45b02588aaef8ae4f3cc512ced4539c6c0a5bb078e726e6492e",
+  "created_at": "2026-08-12T08:26:57.851992+00:00",
+  "rule_count": 72,
+  "raw_match_count": 5,
+  "raw_rule_ids": [
+    "FLOW-003",
+    "TOOL-002",
+    "TOOL-008",
+    "TOOL-009",
+    "TOOL-015"
+  ],
+  "raw_matches": [
+    {
+      "match_id": "MATCH-73f3fe334555",
+      "finding_id_before_aggregation": "FINDING-7bf40816dbd9",
+      "rule_id": "TOOL-002",
+      "node_ids": [
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-7bf40816dbd9"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-e4d1f363b684",
+      "finding_id_before_aggregation": "FINDING-5ce38353b965",
+      "rule_id": "TOOL-008",
+      "node_ids": [
+        "start",
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-5ce38353b965"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-0042268d27f6",
+      "finding_id_before_aggregation": "FINDING-459ede83c546",
+      "rule_id": "TOOL-009",
+      "node_ids": [
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-459ede83c546"
+      ],
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM"
+    },
+    {
+      "match_id": "MATCH-ccc55054d931",
+      "finding_id_before_aggregation": "FINDING-da3eb68a5f22",
+      "rule_id": "TOOL-015",
+      "node_ids": [
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-da3eb68a5f22"
+      ],
+      "status": "PROBABLE",
+      "severity": "HIGH"
+    },
+    {
+      "match_id": "MATCH-e11095a39582",
+      "finding_id_before_aggregation": "FINDING-0a5266f18265",
+      "rule_id": "FLOW-003",
+      "node_ids": [
+        "start",
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-0a5266f18265"
+      ],
+      "status": "CONFIRMED",
+      "severity": "HIGH"
+    }
+  ],
+  "candidate_count": 2,
+  "candidates": [
+    {
+      "candidate_id": "CANDIDATE-60671aed83af",
+      "finding_id": "RISK-1a396cfa0e2b",
+      "rule_id": "TOOL-002",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5"
+      ],
+      "detectability": "S",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "fake_control",
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-7bf40816dbd9",
+        "FACT-5ce38353b965",
+        "FACT-da3eb68a5f22",
+        "FACT-0a5266f18265"
+      ],
+      "recommended_status": "CONFIRMED",
+      "recommended_severity": "HIGH"
+    },
+    {
+      "candidate_id": "CANDIDATE-3ec6ccab8645",
+      "finding_id": "RISK-a04853bf158d",
+      "rule_id": "TOOL-009",
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI02"
+      ],
+      "detectability": "H",
+      "references": [
+        "https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan"
+      ],
+      "node_ids": [
+        "delete_tool"
+      ],
+      "evidence_refs": [
+        "FACT-459ede83c546"
+      ],
+      "recommended_status": "COVERAGE_GAP",
+      "recommended_severity": "MEDIUM"
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-adbab10e5eae",
+  "producer": "rule-engine",
+  "producer_version": "0.4.0",
+  "workflow_hash": "940a278ec9308bfbcfdd6c19575fa11946573d11874376bbebf4066214d9f7e6",
+  "created_at": "2026-08-12T07:53:28.016530+00:00",
+  "facts": [
+    {
+      "id": "FACT-0c7f731b69a8",
+      "kind": "TOOL-008",
+      "node_ids": [
+        "start",
+        "llm",
+        "tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "高影响工具存在不经过审批节点的可达路径。"
+      }
+    },
+    {
+      "id": "FACT-3eadf75a309c",
+      "kind": "TOOL-009",
+      "node_ids": [
+        "tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。"
+      }
+    },
+    {
+      "id": "FACT-d2631fec976a",
+      "kind": "TOOL-011",
+      "node_ids": [
+        "tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "工具输入缺少可识别的严格 Schema。"
+      }
+    },
+    {
+      "id": "FACT-1ce58e786784",
+      "kind": "FLOW-003",
+      "node_ids": [
+        "start",
+        "llm",
+        "tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。"
+      }
+    },
+    {
+      "id": "FACT-4251f6ea6034",
+      "kind": "LLM-005",
+      "node_ids": [
+        "llm",
+        "tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "LLM 自由文本输出可直接影响工具参数。"
+      }
+    },
+    {
+      "id": "FACT-b50035a187e1",
+      "kind": "LLM-006",
+      "node_ids": [
+        "llm",
+        "tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "下游工具依赖 LLM 输出，但节点未声明严格结构化输出。"
+      }
+    },
+    {
+      "id": "FACT-22f64fdc334c",
+      "kind": "OUT-006",
+      "node_ids": [
+        "llm",
+        "tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "未经严格结构验证的模型输出进入下游执行节点。"
+      }
+    },
+    {
+      "id": "FACT-7641c3cbfc99",
+      "kind": "LLM-008",
+      "node_ids": [
+        "llm",
+        "tool"
+      ],
+      "evidence": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/2"
+      ],
+      "data": {
+        "message": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。"
+      }
+    }
+  ]
+}

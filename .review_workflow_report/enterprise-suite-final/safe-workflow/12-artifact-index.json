@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.1.0",
+  "scan_id": "SCAN-57860b55fbe1",
+  "producer": "artifact-integrity-index",
+  "producer_version": "0.3.0",
+  "workflow_hash": "262027ad5543cfe6580c4e9771ee0ff7d5f7e411ee301cfd065b0c5a92dc6fc8",
+  "created_at": "2026-08-12T07:34:11.644082+00:00",
+  "artifacts": [
+    {
+      "name": "00-scan-manifest.json",
+      "sha256": "ab05241f3678c79199639bd5c1328a3efcdb3d026932db9ac5e689a66f61e059",
+      "size_bytes": 943
+    },
+    {
+      "name": "01-workflow-ir.json",
+      "sha256": "99d0a36698b94708be2f1eebf84884329255d86e722580947226facef5fbc274",
+      "size_bytes": 5055
+    },
+    {
+      "name": "02-security-facts.json",
+      "sha256": "2e02c5150280df05f249f31f9116740eddd0f16a5ee2879e01d851289acc0576",
+      "size_bytes": 287
+    },
+    {
+      "name": "03-semantic-inventory.json",
+      "sha256": "eb85c1a059f17a2388bee609ce2a869f98563a1a7618d4586409f1738ab71a63",
+      "size_bytes": 1932
+    },
+    {
+      "name": "04-rule-candidates.json",
+      "sha256": "729dfb52fe9e0dfcdea1e87c2fb58d5f9d9674cc4715902e57e4d6c68766092e",
+      "size_bytes": 338
+    },
+    {
+      "name": "05-test-cluster.json",
+      "sha256": "62e8ef460c303a8633745d487935707335675d6f1f5babf40aac84b492a57e04",
+      "size_bytes": 369
+    },
+    {
+      "name": "06-llm-adjudication.json",
+      "sha256": "62fb4d6f6d3ac654748d863a1be90e33c8f88efe9ea5deb7ba0270c82cf0b2da",
+      "size_bytes": 377
+    },
+    {
+      "name": "07-verification.json",
+      "sha256": "32a8e8b921b8dfc3113b6dc46d85a97d6d09bef53bb183459b9a66cd8b10854b",
+      "size_bytes": 725
+    },
+    {
+      "name": "08-findings.json",
+      "sha256": "ca58254cb6119b1a5786bdacc1bcc334e85661e4fa3f08a0584b5dccf302d39c",
+      "size_bytes": 293
+    },
+    {
+      "name": "09-attack-surface.json",
+      "sha256": "246f3948049d29961299c77434993668099bdc3c830b542406e37112960ecd56",
+      "size_bytes": 1594
+    },
+    {
+      "name": "10-dynamic-test-plan.json",
+      "sha256": "f578e189948af69653009390066e5d744496c53caae4f8cb5a1ef62be8812ae1",
+      "size_bytes": 1000
+    },
+    {
+      "name": "11-quality-gate.json",
+      "sha256": "35fcf0aece75d5c53243b2f26001f80be4bddbb180ebfa0ff3ca993d57b4e773",
+      "size_bytes": 905
+    },
+    {
+      "name": "report.json",
+      "sha256": "9d247751ae7e55f9ea2a8dd5db58a16370da3adade7f40d477433586acc32808",
+      "size_bytes": 6190
+    },
+    {
+      "name": "report.md",
+      "sha256": "322881666bec4471e34e8b46e6521e5c0f7f4819bf9f8136c18fa6f4fee7e775",
+      "size_bytes": 821
+    }
+  ],
+  "unexpected_files": []
+}

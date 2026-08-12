@@ -19,13 +19,14 @@ CASES = [
     {"name": "safe-workflow", "gate": "PASS", "present": set(), "absent": {"FLOW-003", "TOOL-003", "TOOL-008"}, "zero": True},
     {"name": "approval-protected-workflow", "gate": "PASS", "present": set(), "absent": {"FLOW-003", "FLOW-006", "TOOL-008"}, "zero": True},
     {"name": "approval-bypass-workflow", "gate": "FAIL", "present": {"FLOW-006"}, "absent": set()},
-    {"name": "keyword-spoofed-control", "gate": "FAIL", "present": {"FLOW-003", "TOOL-008"}, "absent": set()},
+    {"name": "keyword-spoofed-control", "gate": "FAIL", "present": {"FLOW-003", "TOOL-008"}, "absent": set(), "max_findings": 2},
     {"name": "parameter-precision-workflow", "gate": "PASS", "present": set(), "absent": {"TOOL-003", "TOOL-017"}, "zero": True},
-    {"name": "review-only-workflow", "gate": "REVIEW", "present": {"LLM-009", "LLM-010"}, "absent": {"LLM-006"}},
-    {"name": "non-strict-schema-workflow", "gate": "FAIL", "present": {"LLM-006", "TOOL-011"}, "absent": set()},
-    {"name": "document-indirect-injection-workflow", "gate": "FAIL", "present": {"FLOW-005", "LLM-003", "FLOW-010"}, "absent": set()},
-    {"name": "risky-workflow", "gate": "FAIL", "present": {"FLOW-005", "TOOL-003", "TOOL-010", "KB-005"}, "absent": set()},
-    {"name": "tencent-inspired-workflow", "gate": "FAIL", "present": {"FLOW-009", "FLOW-010", "FLOW-011", "FLOW-012", "FLOW-013", "TOOL-016", "TOOL-017", "KB-012", "OUT-009"}, "absent": set()},
+    {"name": "text-optimization-workflow", "gate": "REVIEW", "present": {"LLM-001", "IN-002"}, "absent": {"OUT-001", "OUT-008"}, "max_findings": 2},
+    {"name": "review-only-workflow", "gate": "REVIEW", "present": {"LLM-009", "LLM-010"}, "absent": {"LLM-006"}, "max_findings": 1},
+    {"name": "non-strict-schema-workflow", "gate": "FAIL", "present": {"LLM-006", "TOOL-011"}, "absent": set(), "max_findings": 3},
+    {"name": "document-indirect-injection-workflow", "gate": "FAIL", "present": {"FLOW-005", "LLM-003", "FLOW-010"}, "absent": set(), "max_findings": 6},
+    {"name": "risky-workflow", "gate": "FAIL", "present": {"FLOW-005", "TOOL-003", "TOOL-010", "KB-005"}, "absent": set(), "max_findings": 20},
+    {"name": "tencent-inspired-workflow", "gate": "FAIL", "present": {"FLOW-009", "FLOW-010", "FLOW-011", "FLOW-012", "FLOW-013", "TOOL-016", "TOOL-017", "KB-012", "OUT-009"}, "absent": set(), "max_findings": 40},
 ]
 
 
@@ -52,11 +53,16 @@ def main() -> int:
             reviewer_model="gpt-5.6-sol",
         )
         report = json.loads((case_output / "report.json").read_text(encoding="utf-8"))["report"]
-        rule_ids = {item["rule_id"] for item in report["findings"]}
+        rule_ids = {
+            rule_id
+            for item in report["findings"]
+            for rule_id in [item["rule_id"], *item.get("related_rule_ids", [])]
+        }
         missing = sorted(case["present"] - rule_ids)
         unexpected = sorted(case["absent"] & rule_ids)
         zero_ok = not case.get("zero") or report["summary"]["finding_count"] == 0
-        passed = run["quality_gate"] == case["gate"] and not missing and not unexpected and zero_ok
+        count_ok = report["summary"]["finding_count"] <= case.get("max_findings", 10_000)
+        passed = run["quality_gate"] == case["gate"] and not missing and not unexpected and zero_ok and count_ok
         results.append({
             "case": name,
             "expected_gate": case["gate"],
@@ -68,6 +74,7 @@ def main() -> int:
             "expected_absent": sorted(case["absent"]),
             "missing_rules": missing,
             "unexpected_rules": unexpected,
+            "count_within_limit": count_ok,
             "passed": passed,
         })
     summary = {"suite": "enterprise-dify-workflow-security", "passed": all(item["passed"] for item in results), "cases": results}

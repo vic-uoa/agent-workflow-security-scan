@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-1beffcf1c6e7",
+  "producer": "quality-gate",
+  "producer_version": "0.4.0",
+  "workflow_hash": "405f5cb278c616af965dbdce79e4b5b7f2874d26dac2ad342858f7a880dd4d8a",
+  "created_at": "2026-08-12T07:51:51.323220+00:00",
+  "quality_gate": {
+    "decision": "FAIL",
+    "exit_code": 1,
+    "policy": {
+      "blocking_severities": [
+        "CRITICAL",
+        "HIGH"
+      ],
+      "blocking_statuses": [
+        "CONFIRMED"
+      ],
+      "review_statuses": [
+        "COVERAGE_GAP",
+        "OBSERVED",
+        "PROBABLE"
+      ],
+      "waivers_require_workflow_hash_approver_justification_and_expiry": true
+    },
+    "blocking_finding_ids": [
+      "FINDING-c342c5c90be4",
+      "FINDING-087ae7b3c06e",
+      "FINDING-0fa7fb59a544",
+      "FINDING-153e38f7ddf9",
+      "FINDING-dfb118a177f7",
+      "FINDING-991cfbb1fa94",
+      "FINDING-ebe8b001f9a1",
+      "FINDING-08e204ba0560",
+      "FINDING-945de85a7b0c",
+      "FINDING-dea702265759",
+      "FINDING-7f24df8e8cab",
+      "FINDING-b7bf9a442b48",
+      "FINDING-5dccf8f0a473"
+    ],
+    "review_finding_ids": [
+      "FINDING-c4cde0855742",
+      "FINDING-ce5bfbcac39c",
+      "FINDING-fc8d90f5e830",
+      "FINDING-2ff4d43c2b2e",
+      "FINDING-8fdf8b561594",
+      "FINDING-55c4ecb9530d",
+      "FINDING-640c7a7c0c1f",
+      "FINDING-018db969148c",
+      "FINDING-5a4a7003a8b8",
+      "FINDING-11309d7a66f1",
+      "FINDING-4fc3be561f9a",
+      "FINDING-dd03e9b6672c",
+      "FINDING-9e43b2cb8c71",
+      "FINDING-91101ff7dec6",
+      "FINDING-9d7a8c4fd729",
+      "FINDING-0c9b42606853",
+      "FINDING-0fab3ba4961d",
+      "FINDING-ad44783ba931",
+      "FINDING-d4a60448cde7",
+      "FINDING-407027395fcd"
+    ],
+    "blocking_count": 13,
+    "review_count": 20,
+    "waived_count": 0,
+    "waiver_audit": {
+      "applied": [],
+      "rejected": []
+    }
+  }
+}

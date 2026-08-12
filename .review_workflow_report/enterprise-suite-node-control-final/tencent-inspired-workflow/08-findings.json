@@ -1,0 +1,4056 @@
+{
+  "schema_version": "1.3.0",
+  "scan_id": "SCAN-d5825db9c655",
+  "producer": "finding-merger",
+  "producer_version": "0.5.0",
+  "workflow_hash": "b01ee8c4c8fd5f2b2451863af5da83de2a25473ec076b2c1a4ff70d2dd414997",
+  "created_at": "2026-08-12T08:26:59.131528+00:00",
+  "findings": [
+    {
+      "id": "RISK-35591c45d098",
+      "rule_id": "FLOW-009",
+      "title": "安全验证结果：网络与输出外发控制不足",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb",
+        "llm1",
+        "llm2",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-b7bf9a442b48",
+        "FACT-0cbfb4cb25d7"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/9",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“安全验证结果”在“网络与输出外发控制不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI03",
+        "AISVS-C7",
+        "ASI01"
+      ],
+      "attack_preconditions": [
+        "模型上下文可观察敏感资产",
+        "外部目标或载荷可被动态影响"
+      ],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "markdown_url_exfiltration",
+      "root_cause_id": "RISK-35591c45d098",
+      "related_rule_ids": [
+        "OUT-009"
+      ],
+      "anchor_node_id": "answer",
+      "control_domain": "egress_control",
+      "finding_instance_ids": [
+        "FINDING-b7bf9a442b48",
+        "RISK-35591c45d098"
+      ],
+      "path_variants": [
+        [
+          "answer"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "answer"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-b7bf9a442b48",
+          "rule_ids": [
+            "OUT-009"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "answer"
+          ],
+          "message": "动态 Markdown 链接或图片目标未受限，可通过客户端取链或 URL 路径编码形成隐蔽外带。",
+          "evidence_refs": [
+            "FACT-b7bf9a442b48"
+          ]
+        },
+        {
+          "finding_id": "FINDING-0cbfb4cb25d7",
+          "rule_ids": [
+            "FLOW-009"
+          ],
+          "status": "CONFIRMED",
+          "severity": "CRITICAL",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "answer"
+          ],
+          "message": "敏感资产经模型传播到外部通道；与提示注入组合后可形成完整数据外泄链。",
+          "evidence_refs": [
+            "FACT-0cbfb4cb25d7"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "markdown_url_exfiltration",
+        "web_exfiltration_chain"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-f37959ca21e1",
+      "rule_id": "TOOL-004",
+      "title": "动态代码执行：代码、命令或查询执行边界不足",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-e24a1cdc6ec9",
+        "FACT-59b8803d622d",
+        "FACT-2b10472c7144"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/8",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "责任节点“动态代码执行”在“代码、命令或查询执行边界不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI05",
+        "ASI01"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "command_injection",
+      "root_cause_id": "RISK-f37959ca21e1",
+      "related_rule_ids": [
+        "FLOW-010"
+      ],
+      "anchor_node_id": "code",
+      "control_domain": "execution_boundary",
+      "finding_instance_ids": [
+        "RISK-f37959ca21e1",
+        "FINDING-59b8803d622d",
+        "FINDING-2b10472c7144"
+      ],
+      "path_variants": [
+        [
+          "code"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "code"
+        ],
+        [
+          "web",
+          "llm1",
+          "llm2",
+          "code"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-e24a1cdc6ec9",
+          "rule_ids": [
+            "TOOL-004"
+          ],
+          "status": "CONFIRMED",
+          "severity": "CRITICAL",
+          "path": [
+            "code"
+          ],
+          "message": "动态变量可到达命令、代码或脚本执行能力。",
+          "evidence_refs": [
+            "FACT-e24a1cdc6ec9"
+          ]
+        },
+        {
+          "finding_id": "FINDING-59b8803d622d",
+          "rule_ids": [
+            "FLOW-010"
+          ],
+          "status": "CONFIRMED",
+          "severity": "CRITICAL",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "外部或检索内容可经模型输出进入代码/命令执行节点。",
+          "evidence_refs": [
+            "FACT-59b8803d622d"
+          ]
+        },
+        {
+          "finding_id": "FINDING-2b10472c7144",
+          "rule_ids": [
+            "FLOW-010"
+          ],
+          "status": "CONFIRMED",
+          "severity": "CRITICAL",
+          "path": [
+            "web",
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "外部或检索内容可经模型输出进入代码/命令执行节点。",
+          "evidence_refs": [
+            "FACT-2b10472c7144"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "command_injection",
+        "external_content_to_code_execution"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-3ad5158441e2",
+      "rule_id": "TOOL-017",
+      "title": "外部 HTTP 写入：网络与输出外发控制不足",
+      "status": "CONFIRMED",
+      "severity": "CRITICAL",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb",
+        "llm1",
+        "llm2",
+        "exfil"
+      ],
+      "evidence_refs": [
+        "FACT-20af87f21fb4",
+        "FACT-860ad7d07c74",
+        "FACT-9433c0005638"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/7",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“外部 HTTP 写入”在“网络与输出外发控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "web_exfiltration",
+      "standards": [
+        "ASI02",
+        "ASI03",
+        "ASI01"
+      ],
+      "attack_preconditions": [
+        "模型可影响网络目标",
+        "敏感资产可进入请求载荷"
+      ],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "ssrf",
+      "root_cause_id": "RISK-3ad5158441e2",
+      "related_rule_ids": [
+        "TOOL-003",
+        "FLOW-009"
+      ],
+      "anchor_node_id": "exfil",
+      "control_domain": "egress_control",
+      "finding_instance_ids": [
+        "FINDING-20af87f21fb4",
+        "RISK-3ad5158441e2",
+        "FINDING-9433c0005638"
+      ],
+      "path_variants": [
+        [
+          "exfil"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "exfil"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-20af87f21fb4",
+          "rule_ids": [
+            "TOOL-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "exfil"
+          ],
+          "message": "动态 URL/Host 缺少域名或地址 Allowlist。",
+          "evidence_refs": [
+            "FACT-20af87f21fb4"
+          ]
+        },
+        {
+          "finding_id": "FINDING-860ad7d07c74",
+          "rule_ids": [
+            "TOOL-017"
+          ],
+          "status": "CONFIRMED",
+          "severity": "CRITICAL",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "exfil"
+          ],
+          "message": "敏感载荷可进入具有动态目标的网络写工具，且未发现 DLP/出站载荷策略。",
+          "evidence_refs": [
+            "FACT-860ad7d07c74"
+          ]
+        },
+        {
+          "finding_id": "FINDING-9433c0005638",
+          "rule_ids": [
+            "FLOW-009"
+          ],
+          "status": "CONFIRMED",
+          "severity": "CRITICAL",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "exfil"
+          ],
+          "message": "敏感资产作为网络载荷，同时模型可控制外部目标，形成完整的复合外泄链。",
+          "evidence_refs": [
+            "FACT-9433c0005638"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "ssrf",
+        "web_exfiltration_chain"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-1b0949096404",
+      "rule_id": "FLOW-003",
+      "title": "外部 HTTP 写入：高影响动作授权控制不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "start",
+        "kb",
+        "exfil"
+      ],
+      "evidence_refs": [
+        "FACT-e52b6f3d0fc8",
+        "FACT-7bb959489e1c"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/7"
+      ],
+      "message": "责任节点“外部 HTTP 写入”在“高影响动作授权控制不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "source_to_high_impact_sink",
+      "root_cause_id": "RISK-1b0949096404",
+      "related_rule_ids": [],
+      "anchor_node_id": "exfil",
+      "control_domain": "action_authorization",
+      "finding_instance_ids": [
+        "RISK-1b0949096404",
+        "FINDING-7bb959489e1c"
+      ],
+      "path_variants": [
+        [
+          "start",
+          "kb",
+          "exfil"
+        ],
+        [
+          "kb",
+          "exfil"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-e52b6f3d0fc8",
+          "rule_ids": [
+            "FLOW-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "kb",
+            "exfil"
+          ],
+          "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+          "evidence_refs": [
+            "FACT-e52b6f3d0fc8"
+          ]
+        },
+        {
+          "finding_id": "FINDING-7bb959489e1c",
+          "rule_ids": [
+            "FLOW-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "exfil"
+          ],
+          "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+          "evidence_refs": [
+            "FACT-7bb959489e1c"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "source_to_high_impact_sink"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-1e931174d25a",
+      "rule_id": "FLOW-003",
+      "title": "外部网页读取：高影响动作授权控制不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "start",
+        "web"
+      ],
+      "evidence_refs": [
+        "FACT-82b543f035e7"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "source_to_high_impact_sink",
+      "root_cause_id": "RISK-1e931174d25a",
+      "related_rule_ids": [],
+      "anchor_node_id": "web",
+      "control_domain": "action_authorization",
+      "finding_instance_ids": [
+        "RISK-1e931174d25a"
+      ],
+      "path_variants": [
+        [
+          "start",
+          "web"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-82b543f035e7",
+          "rule_ids": [
+            "FLOW-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "web"
+          ],
+          "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+          "evidence_refs": [
+            "FACT-82b543f035e7"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "source_to_high_impact_sink"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-7762319f8fcc",
+      "rule_id": "FLOW-011",
+      "title": "执行 Agent：结构化数据契约不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm1",
+        "llm2"
+      ],
+      "evidence_refs": [
+        "FACT-2f7fa4ea7d74"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "上游 Agent 的自由文本被下游 Agent 信任，缺少消息 Schema、来源身份或不可信指令隔离。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "inter_agent_communication",
+      "standards": [
+        "ASI07"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "inter_agent_message_injection",
+      "root_cause_id": "RISK-7762319f8fcc",
+      "related_rule_ids": [],
+      "anchor_node_id": "llm2",
+      "control_domain": "structured_data_contract",
+      "finding_instance_ids": [
+        "RISK-7762319f8fcc"
+      ],
+      "path_variants": [
+        [
+          "llm1",
+          "llm2"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-2f7fa4ea7d74",
+          "rule_ids": [
+            "FLOW-011"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "llm1",
+            "llm2"
+          ],
+          "message": "上游 Agent 的自由文本被下游 Agent 信任，缺少消息 Schema、来源身份或不可信指令隔离。",
+          "evidence_refs": [
+            "FACT-2f7fa4ea7d74"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "inter_agent_message_injection"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-37df3bd64f0b",
+      "rule_id": "FLOW-012",
+      "title": "动态代码执行：失败处理与资源预算不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "node_ids": [
+        "web",
+        "llm1",
+        "llm2",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-220cc318c481",
+        "FACT-21295edac0d7"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/8",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“动态代码执行”在“失败处理与资源预算不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "cascading_failure",
+      "standards": [
+        "AISVS-9.1",
+        "ASI08"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "tool_timeout",
+      "root_cause_id": "RISK-37df3bd64f0b",
+      "related_rule_ids": [
+        "TOOL-013"
+      ],
+      "anchor_node_id": "code",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "FINDING-220cc318c481",
+        "RISK-37df3bd64f0b"
+      ],
+      "path_variants": [
+        [
+          "code"
+        ],
+        [
+          "web",
+          "llm1",
+          "llm2",
+          "code"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-220cc318c481",
+          "rule_ids": [
+            "TOOL-013"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "code"
+          ],
+          "message": "工具缺少可识别的超时设置。",
+          "evidence_refs": [
+            "FACT-220cc318c481"
+          ]
+        },
+        {
+          "finding_id": "FINDING-21295edac0d7",
+          "rule_ids": [
+            "FLOW-012"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "web",
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "多个副作用节点串联，但路径上未发现幂等、熔断、补偿或失败关闭控制。",
+          "evidence_refs": [
+            "FACT-21295edac0d7"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "tool_timeout",
+        "cascading_failure"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-897f560c9ff0",
+      "rule_id": "FLOW-012",
+      "title": "管理员资源更新工具：失败处理与资源预算不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "node_ids": [
+        "web",
+        "llm1",
+        "llm2",
+        "admin_tool"
+      ],
+      "evidence_refs": [
+        "FACT-9035832a63aa",
+        "FACT-3e87d9e6b774"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/6",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“管理员资源更新工具”在“失败处理与资源预算不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "cascading_failure",
+      "standards": [
+        "AISVS-9.1",
+        "ASI08"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "tool_timeout",
+      "root_cause_id": "RISK-897f560c9ff0",
+      "related_rule_ids": [
+        "TOOL-013"
+      ],
+      "anchor_node_id": "admin_tool",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "FINDING-9035832a63aa",
+        "RISK-897f560c9ff0"
+      ],
+      "path_variants": [
+        [
+          "admin_tool"
+        ],
+        [
+          "web",
+          "llm1",
+          "llm2",
+          "admin_tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-9035832a63aa",
+          "rule_ids": [
+            "TOOL-013"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "admin_tool"
+          ],
+          "message": "工具缺少可识别的超时设置。",
+          "evidence_refs": [
+            "FACT-9035832a63aa"
+          ]
+        },
+        {
+          "finding_id": "FINDING-3e87d9e6b774",
+          "rule_ids": [
+            "FLOW-012"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "web",
+            "llm1",
+            "llm2",
+            "admin_tool"
+          ],
+          "message": "多个副作用节点串联，但路径上未发现幂等、熔断、补偿或失败关闭控制。",
+          "evidence_refs": [
+            "FACT-3e87d9e6b774"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "tool_timeout",
+        "cascading_failure"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-cd9591da8b06",
+      "rule_id": "FLOW-012",
+      "title": "外部 HTTP 写入：失败处理与资源预算不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "node_ids": [
+        "web",
+        "llm1",
+        "llm2",
+        "exfil"
+      ],
+      "evidence_refs": [
+        "FACT-373095834ee0",
+        "FACT-e41aab121a54",
+        "FACT-ad5fb1532216"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/7",
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5",
+        "/workflow/graph/nodes/6"
+      ],
+      "message": "责任节点“外部 HTTP 写入”在“失败处理与资源预算不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "cascading_failure",
+      "standards": [
+        "AISVS-9.1",
+        "ASI08"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "tool_timeout",
+      "root_cause_id": "RISK-cd9591da8b06",
+      "related_rule_ids": [
+        "TOOL-013"
+      ],
+      "anchor_node_id": "exfil",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "FINDING-373095834ee0",
+        "RISK-cd9591da8b06",
+        "FINDING-ad5fb1532216"
+      ],
+      "path_variants": [
+        [
+          "exfil"
+        ],
+        [
+          "web",
+          "llm1",
+          "llm2",
+          "exfil"
+        ],
+        [
+          "admin_tool",
+          "exfil"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-373095834ee0",
+          "rule_ids": [
+            "TOOL-013"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "exfil"
+          ],
+          "message": "工具缺少可识别的超时设置。",
+          "evidence_refs": [
+            "FACT-373095834ee0"
+          ]
+        },
+        {
+          "finding_id": "FINDING-e41aab121a54",
+          "rule_ids": [
+            "FLOW-012"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "web",
+            "llm1",
+            "llm2",
+            "exfil"
+          ],
+          "message": "多个副作用节点串联，但路径上未发现幂等、熔断、补偿或失败关闭控制。",
+          "evidence_refs": [
+            "FACT-e41aab121a54"
+          ]
+        },
+        {
+          "finding_id": "FINDING-ad5fb1532216",
+          "rule_ids": [
+            "FLOW-012"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "admin_tool",
+            "exfil"
+          ],
+          "message": "多个副作用节点串联，但路径上未发现幂等、熔断、补偿或失败关闭控制。",
+          "evidence_refs": [
+            "FACT-ad5fb1532216"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "tool_timeout",
+        "cascading_failure"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-9bff6d891e05",
+      "rule_id": "FLOW-013",
+      "title": "管理员资源更新工具：Agent 目标与停止边界不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.82,
+      "node_ids": [
+        "start",
+        "llm1",
+        "llm2",
+        "admin_tool"
+      ],
+      "evidence_refs": [
+        "FACT-05cb2346b895"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5",
+        "/workflow/graph/nodes/6"
+      ],
+      "message": "自主 Agent 接收不可信上下文并可影响高危能力，但 DSL 未声明目标锁定、停止条件或紧急停止控制。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "rogue_agent",
+      "standards": [
+        "ASI10",
+        "AISVS-9.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "运行时规划行为与停止指令服从性只能在沙盒确认。"
+      ],
+      "dynamic_test": "rogue_agent_containment",
+      "root_cause_id": "RISK-9bff6d891e05",
+      "related_rule_ids": [],
+      "anchor_node_id": "admin_tool",
+      "control_domain": "agent_governance",
+      "finding_instance_ids": [
+        "RISK-9bff6d891e05"
+      ],
+      "path_variants": [
+        [
+          "start",
+          "llm1",
+          "llm2",
+          "admin_tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-05cb2346b895",
+          "rule_ids": [
+            "FLOW-013"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "llm1",
+            "llm2",
+            "admin_tool"
+          ],
+          "message": "自主 Agent 接收不可信上下文并可影响高危能力，但 DSL 未声明目标锁定、停止条件或紧急停止控制。",
+          "evidence_refs": [
+            "FACT-05cb2346b895"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "rogue_agent_containment"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-c2fba5e9f127",
+      "rule_id": "KB-002",
+      "title": "客户身份与病例知识库：知识资产治理控制不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-55c4ecb9530d",
+        "FACT-4fc3be561f9a",
+        "FACT-dd03e9b6672c"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "责任节点“客户身份与病例知识库”在“知识资产治理控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-8.1",
+        "AISVS-C8",
+        "AISVS-C7",
+        "AISVS-C12"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "若平台在 DSL 外强制租户隔离，应在内部基线中登记。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-c2fba5e9f127",
+      "related_rule_ids": [
+        "KB-003",
+        "KB-008"
+      ],
+      "anchor_node_id": "kb",
+      "control_domain": "knowledge_governance",
+      "finding_instance_ids": [
+        "RISK-c2fba5e9f127",
+        "FINDING-4fc3be561f9a",
+        "FINDING-dd03e9b6672c"
+      ],
+      "path_variants": [
+        [
+          "kb"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-55c4ecb9530d",
+          "rule_ids": [
+            "KB-002"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb"
+          ],
+          "message": "知识检索未配置可识别的租户、用户或业务元数据过滤。",
+          "evidence_refs": [
+            "FACT-55c4ecb9530d"
+          ]
+        },
+        {
+          "finding_id": "FINDING-4fc3be561f9a",
+          "rule_ids": [
+            "KB-003"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "kb"
+          ],
+          "message": "Top-K 过大或相似度阈值缺失/过低，可能扩大无关内容和投毒内容暴露面。",
+          "evidence_refs": [
+            "FACT-4fc3be561f9a"
+          ]
+        },
+        {
+          "finding_id": "FINDING-dd03e9b6672c",
+          "rule_ids": [
+            "KB-008"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "kb"
+          ],
+          "message": "DSL 未显示检索来源和引用元数据要求。",
+          "evidence_refs": [
+            "FACT-dd03e9b6672c"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-979865bc0743",
+      "rule_id": "KB-004",
+      "title": "主 Agent：模型指令与数据边界不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb",
+        "llm1"
+      ],
+      "evidence_refs": [
+        "FACT-5e789ecef80b",
+        "FACT-c05db8c65fba",
+        "FACT-dbd72c86bd37",
+        "FACT-d86aad6daa5d"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "责任节点“主 Agent”在“模型指令与数据边界不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。",
+        "将固定指令保留在 system/developer 消息中，将待处理内容放入 user 消息或明确的数据容器。",
+        "使用已确认的正常、对抗和边界样例验证任务目标不会被输入内容覆盖。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "rag_system_prompt_injection",
+      "root_cause_id": "RISK-979865bc0743",
+      "related_rule_ids": [
+        "LLM-001",
+        "LLM-002",
+        "IN-009"
+      ],
+      "anchor_node_id": "llm1",
+      "control_domain": "instruction_boundary",
+      "finding_instance_ids": [
+        "RISK-979865bc0743",
+        "FINDING-c05db8c65fba",
+        "FINDING-dbd72c86bd37",
+        "FINDING-d86aad6daa5d"
+      ],
+      "path_variants": [
+        [
+          "kb",
+          "llm1"
+        ],
+        [
+          "kb",
+          "start",
+          "web",
+          "llm1"
+        ],
+        [
+          "start",
+          "llm1"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-5e789ecef80b",
+          "rule_ids": [
+            "KB-004"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "llm1"
+          ],
+          "message": "知识检索内容被插入 LLM 高权限 Prompt。",
+          "evidence_refs": [
+            "FACT-5e789ecef80b"
+          ]
+        },
+        {
+          "finding_id": "FINDING-c05db8c65fba",
+          "rule_ids": [
+            "LLM-001",
+            "LLM-002"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "start",
+            "web",
+            "llm1"
+          ],
+          "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+          "evidence_refs": [
+            "FACT-c05db8c65fba",
+            "FACT-dbd72c86bd37"
+          ]
+        },
+        {
+          "finding_id": "FINDING-d86aad6daa5d",
+          "rule_ids": [
+            "IN-009"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "llm1"
+          ],
+          "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+          "evidence_refs": [
+            "FACT-d86aad6daa5d"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "rag_system_prompt_injection",
+        "direct_or_indirect_prompt_injection",
+        "instruction_data_boundary",
+        "direct_prompt_injection"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-2fd8eaa085bc",
+      "rule_id": "KB-006",
+      "title": "安全验证结果：敏感数据保护控制不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.78,
+      "node_ids": [
+        "kb",
+        "llm1",
+        "llm2",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-28374567e86b",
+        "FACT-78537ae3650d"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5",
+        "/workflow/graph/nodes/9"
+      ],
+      "message": "责任节点“安全验证结果”在“敏感数据保护控制不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C8",
+        "AISVS-C7",
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "sensitive_data_exfiltration",
+      "root_cause_id": "RISK-2fd8eaa085bc",
+      "related_rule_ids": [
+        "FLOW-004"
+      ],
+      "anchor_node_id": "answer",
+      "control_domain": "data_protection",
+      "finding_instance_ids": [
+        "RISK-2fd8eaa085bc",
+        "FINDING-78537ae3650d"
+      ],
+      "path_variants": [
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "answer"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-28374567e86b",
+          "rule_ids": [
+            "KB-006"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "answer"
+          ],
+          "message": "敏感内容存在到达外部边界的静态路径。",
+          "evidence_refs": [
+            "FACT-28374567e86b"
+          ]
+        },
+        {
+          "finding_id": "FINDING-78537ae3650d",
+          "rule_ids": [
+            "FLOW-004"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "answer"
+          ],
+          "message": "疑似敏感数据可达外部工具或输出边界。",
+          "evidence_refs": [
+            "FACT-78537ae3650d"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "sensitive_data_exfiltration"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-64f9e7a7749b",
+      "rule_id": "KB-006",
+      "title": "外部 HTTP 写入：敏感数据保护控制不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.78,
+      "node_ids": [
+        "kb",
+        "exfil"
+      ],
+      "evidence_refs": [
+        "FACT-8c8ffc891d29",
+        "FACT-a12a34377474",
+        "FACT-369d8d150456"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/7"
+      ],
+      "message": "责任节点“外部 HTTP 写入”在“敏感数据保护控制不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C8",
+        "AISVS-C7",
+        "ASI03"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "sensitive_data_exfiltration",
+      "root_cause_id": "RISK-64f9e7a7749b",
+      "related_rule_ids": [
+        "FLOW-004",
+        "TOOL-007"
+      ],
+      "anchor_node_id": "exfil",
+      "control_domain": "data_protection",
+      "finding_instance_ids": [
+        "RISK-64f9e7a7749b",
+        "FINDING-a12a34377474",
+        "FINDING-369d8d150456"
+      ],
+      "path_variants": [
+        [
+          "kb",
+          "exfil"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-8c8ffc891d29",
+          "rule_ids": [
+            "KB-006"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "exfil"
+          ],
+          "message": "敏感内容存在到达外部边界的静态路径。",
+          "evidence_refs": [
+            "FACT-8c8ffc891d29"
+          ]
+        },
+        {
+          "finding_id": "FINDING-a12a34377474",
+          "rule_ids": [
+            "FLOW-004",
+            "TOOL-007"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "exfil"
+          ],
+          "message": "疑似敏感数据可达外部工具或输出边界。",
+          "evidence_refs": [
+            "FACT-a12a34377474",
+            "FACT-369d8d150456"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "sensitive_data_exfiltration"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-99966d7cc527",
+      "rule_id": "KB-009",
+      "title": "客户身份与病例知识库：外部内容信任边界不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-640c7a7c0c1f"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "检索内容进入模型前缺少可识别的注入筛查或隔离控制。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-8.2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "rag_indirect_prompt_injection",
+      "root_cause_id": "RISK-99966d7cc527",
+      "related_rule_ids": [],
+      "anchor_node_id": "kb",
+      "control_domain": "untrusted_content_boundary",
+      "finding_instance_ids": [
+        "RISK-99966d7cc527"
+      ],
+      "path_variants": [
+        [
+          "kb"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-640c7a7c0c1f",
+          "rule_ids": [
+            "KB-009"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb"
+          ],
+          "message": "检索内容进入模型前缺少可识别的注入筛查或隔离控制。",
+          "evidence_refs": [
+            "FACT-640c7a7c0c1f"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "rag_indirect_prompt_injection"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-a09587b4e1de",
+      "rule_id": "KB-011",
+      "title": "shared persistent memory store：记忆身份与隔离控制不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "memory"
+      ],
+      "evidence_refs": [
+        "FACT-4fd0bff93817",
+        "FACT-9d2680d268ef",
+        "FACT-0e4b8c3226a8"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/4",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“shared persistent memory store”在“记忆身份与隔离控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。",
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "memory_poisoning",
+      "standards": [
+        "AISVS-C8",
+        "ASI06",
+        "AISVS-8.1",
+        "ASI07"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "memory_poisoning",
+      "root_cause_id": "RISK-a09587b4e1de",
+      "related_rule_ids": [
+        "IN-008",
+        "KB-012"
+      ],
+      "anchor_node_id": "memory",
+      "control_domain": "memory_identity_scope",
+      "finding_instance_ids": [
+        "FINDING-4fd0bff93817",
+        "RISK-a09587b4e1de",
+        "FINDING-0e4b8c3226a8"
+      ],
+      "path_variants": [
+        [
+          "start",
+          "llm1",
+          "memory"
+        ],
+        [
+          "memory"
+        ],
+        [
+          "start",
+          "llm1",
+          "memory",
+          "llm2"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-4fd0bff93817",
+          "rule_ids": [
+            "IN-008"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "llm1",
+            "memory"
+          ],
+          "message": "不可信内容可能未经验证写入持久化记忆。",
+          "evidence_refs": [
+            "FACT-4fd0bff93817"
+          ]
+        },
+        {
+          "finding_id": "FINDING-9d2680d268ef",
+          "rule_ids": [
+            "KB-011"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "memory"
+          ],
+          "message": "持久记忆节点未声明用户、租户或会话命名空间。",
+          "evidence_refs": [
+            "FACT-9d2680d268ef"
+          ]
+        },
+        {
+          "finding_id": "FINDING-0e4b8c3226a8",
+          "rule_ids": [
+            "KB-012"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "llm1",
+            "memory",
+            "llm2"
+          ],
+          "message": "不可信内容可写入持久记忆并被后续 Agent 读取，形成可持续指令投毒闭环。",
+          "evidence_refs": [
+            "FACT-0e4b8c3226a8"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "memory_poisoning",
+        "cross_user_memory_isolation",
+        "persistent_memory_poisoning"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-7f18c0700b19",
+      "rule_id": "LLM-002",
+      "title": "执行 Agent：模型指令与数据边界不足",
+      "status": "PROBABLE",
+      "severity": "HIGH",
+      "confidence": 0.72,
+      "node_ids": [
+        "memory",
+        "llm2"
+      ],
+      "evidence_refs": [
+        "FACT-ff152fafcb71"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+      "remediation": [
+        "将固定指令保留在 system/developer 消息中，将待处理内容放入 user 消息或明确的数据容器。",
+        "使用已确认的正常、对抗和边界样例验证任务目标不会被输入内容覆盖。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI01"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "instruction_data_boundary",
+      "root_cause_id": "RISK-7f18c0700b19",
+      "related_rule_ids": [],
+      "anchor_node_id": "llm2",
+      "control_domain": "instruction_boundary",
+      "finding_instance_ids": [
+        "FINDING-ff152fafcb71"
+      ],
+      "path_variants": [
+        [
+          "memory",
+          "llm2"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-ff152fafcb71",
+          "rule_ids": [
+            "LLM-002"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "memory",
+            "llm2"
+          ],
+          "message": "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。",
+          "evidence_refs": [
+            "FACT-ff152fafcb71"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "instruction_data_boundary"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-c776462c48ad",
+      "rule_id": "LLM-005",
+      "title": "动态代码执行：结构化数据契约不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm1",
+        "llm2",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-3cde63f04996",
+        "FACT-54881f611493",
+        "FACT-8370183c7953",
+        "FACT-e83017039b3c",
+        "FACT-e5908eb802da",
+        "FACT-4daddda1dcdd",
+        "FACT-7c0b493e125f"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/8",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“动态代码执行”在“结构化数据契约不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3",
+        "AISVS-C7",
+        "ASI07"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "free_text_tool_control",
+      "root_cause_id": "RISK-c776462c48ad",
+      "related_rule_ids": [
+        "TOOL-011",
+        "LLM-006",
+        "OUT-006"
+      ],
+      "anchor_node_id": "code",
+      "control_domain": "structured_data_contract",
+      "finding_instance_ids": [
+        "FINDING-3cde63f04996",
+        "FINDING-54881f611493",
+        "FINDING-8370183c7953",
+        "FINDING-e83017039b3c",
+        "FINDING-e5908eb802da",
+        "FINDING-4daddda1dcdd",
+        "FINDING-7c0b493e125f"
+      ],
+      "path_variants": [
+        [
+          "code"
+        ],
+        [
+          "llm1",
+          "llm2",
+          "code"
+        ],
+        [
+          "llm2",
+          "code"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-3cde63f04996",
+          "rule_ids": [
+            "TOOL-011"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "code"
+          ],
+          "message": "工具输入缺少可识别的严格 Schema。",
+          "evidence_refs": [
+            "FACT-3cde63f04996"
+          ]
+        },
+        {
+          "finding_id": "FINDING-54881f611493",
+          "rule_ids": [
+            "LLM-005",
+            "LLM-006",
+            "OUT-006"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "LLM 自由文本输出可直接影响工具参数。",
+          "evidence_refs": [
+            "FACT-54881f611493",
+            "FACT-8370183c7953",
+            "FACT-e83017039b3c"
+          ]
+        },
+        {
+          "finding_id": "FINDING-e5908eb802da",
+          "rule_ids": [
+            "LLM-005",
+            "LLM-006",
+            "OUT-006"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "llm2",
+            "code"
+          ],
+          "message": "LLM 自由文本输出可直接影响工具参数。",
+          "evidence_refs": [
+            "FACT-e5908eb802da",
+            "FACT-4daddda1dcdd",
+            "FACT-7c0b493e125f"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "free_text_tool_control"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-fe3cc19e81c7",
+      "rule_id": "LLM-005",
+      "title": "外部 HTTP 写入：结构化数据契约不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm1",
+        "llm2",
+        "exfil"
+      ],
+      "evidence_refs": [
+        "FACT-e585d17c5bc6",
+        "FACT-355ae6eb6385",
+        "FACT-a5ad265c5b7c",
+        "FACT-c6fa63ea1420",
+        "FACT-4292394bf719",
+        "FACT-4b308e5974f1",
+        "FACT-a5be077e7813"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/7",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“外部 HTTP 写入”在“结构化数据契约不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3",
+        "AISVS-C7",
+        "ASI07"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "free_text_tool_control",
+      "root_cause_id": "RISK-fe3cc19e81c7",
+      "related_rule_ids": [
+        "TOOL-011",
+        "LLM-006",
+        "OUT-006"
+      ],
+      "anchor_node_id": "exfil",
+      "control_domain": "structured_data_contract",
+      "finding_instance_ids": [
+        "FINDING-e585d17c5bc6",
+        "FINDING-355ae6eb6385",
+        "FINDING-a5ad265c5b7c",
+        "FINDING-c6fa63ea1420",
+        "FINDING-4292394bf719",
+        "FINDING-4b308e5974f1",
+        "FINDING-a5be077e7813"
+      ],
+      "path_variants": [
+        [
+          "exfil"
+        ],
+        [
+          "llm1",
+          "llm2",
+          "exfil"
+        ],
+        [
+          "llm2",
+          "exfil"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-e585d17c5bc6",
+          "rule_ids": [
+            "TOOL-011"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "exfil"
+          ],
+          "message": "工具输入缺少可识别的严格 Schema。",
+          "evidence_refs": [
+            "FACT-e585d17c5bc6"
+          ]
+        },
+        {
+          "finding_id": "FINDING-355ae6eb6385",
+          "rule_ids": [
+            "LLM-005",
+            "LLM-006",
+            "OUT-006"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "llm1",
+            "llm2",
+            "exfil"
+          ],
+          "message": "LLM 自由文本输出可直接影响工具参数。",
+          "evidence_refs": [
+            "FACT-355ae6eb6385",
+            "FACT-a5ad265c5b7c",
+            "FACT-c6fa63ea1420"
+          ]
+        },
+        {
+          "finding_id": "FINDING-4292394bf719",
+          "rule_ids": [
+            "LLM-005",
+            "LLM-006",
+            "OUT-006"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "llm2",
+            "exfil"
+          ],
+          "message": "LLM 自由文本输出可直接影响工具参数。",
+          "evidence_refs": [
+            "FACT-4292394bf719",
+            "FACT-4b308e5974f1",
+            "FACT-a5be077e7813"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "free_text_tool_control"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-58f60dc3a5aa",
+      "rule_id": "TOOL-002",
+      "title": "管理员资源更新工具：高影响动作授权控制不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "start",
+        "admin_tool"
+      ],
+      "evidence_refs": [
+        "FACT-7f6fa15c65f3",
+        "FACT-273d4a07533c",
+        "FACT-457659234e01",
+        "FACT-f4929fb63e04",
+        "FACT-517d0058f40d",
+        "FACT-aacd07f794eb"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/6",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“管理员资源更新工具”在“高影响动作授权控制不足”方面存在 6 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5",
+        "AISVS-9.2",
+        "ASI03",
+        "AISVS-9.5.3",
+        "ASI02"
+      ],
+      "attack_preconditions": [
+        "攻击者可修改对象标识",
+        "工具端未重新执行对象级授权"
+      ],
+      "counter_evidence": [],
+      "missing_context": [
+        "平台统一身份认证不等同于对象级授权；需要确认工具执行端是否重新授权。"
+      ],
+      "dynamic_test": "model_controlled_tool_argument",
+      "root_cause_id": "RISK-58f60dc3a5aa",
+      "related_rule_ids": [
+        "TOOL-008",
+        "TOOL-015",
+        "TOOL-016",
+        "FLOW-003"
+      ],
+      "anchor_node_id": "admin_tool",
+      "control_domain": "action_authorization",
+      "finding_instance_ids": [
+        "RISK-58f60dc3a5aa",
+        "FINDING-273d4a07533c",
+        "FINDING-457659234e01",
+        "FINDING-f4929fb63e04",
+        "FINDING-517d0058f40d",
+        "FINDING-aacd07f794eb"
+      ],
+      "path_variants": [
+        [
+          "start",
+          "admin_tool"
+        ],
+        [
+          "admin_tool"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "admin_tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-7f6fa15c65f3",
+          "rule_ids": [
+            "TOOL-002"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "admin_tool"
+          ],
+          "message": "高影响工具的安全敏感参数由模型或上游变量控制。",
+          "evidence_refs": [
+            "FACT-7f6fa15c65f3"
+          ]
+        },
+        {
+          "finding_id": "FINDING-273d4a07533c",
+          "rule_ids": [
+            "TOOL-008"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "admin_tool"
+          ],
+          "message": "高影响工具存在不经过审批节点的可达路径。",
+          "evidence_refs": [
+            "FACT-273d4a07533c"
+          ]
+        },
+        {
+          "finding_id": "FINDING-457659234e01",
+          "rule_ids": [
+            "TOOL-015"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "admin_tool"
+          ],
+          "message": "高影响工具未声明 subject-object-action、所有权或租户范围的确定性授权检查。",
+          "evidence_refs": [
+            "FACT-457659234e01"
+          ]
+        },
+        {
+          "finding_id": "FINDING-f4929fb63e04",
+          "rule_ids": [
+            "TOOL-016"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "admin_tool"
+          ],
+          "message": "用户输入中的身份、租户、角色或资源标识直接绑定到工具参数。",
+          "evidence_refs": [
+            "FACT-f4929fb63e04"
+          ]
+        },
+        {
+          "finding_id": "FINDING-517d0058f40d",
+          "rule_ids": [
+            "FLOW-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "admin_tool"
+          ],
+          "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+          "evidence_refs": [
+            "FACT-517d0058f40d"
+          ]
+        },
+        {
+          "finding_id": "FINDING-aacd07f794eb",
+          "rule_ids": [
+            "FLOW-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "admin_tool"
+          ],
+          "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+          "evidence_refs": [
+            "FACT-aacd07f794eb"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "model_controlled_tool_argument",
+        "high_impact_action_approval",
+        "authorization_bypass",
+        "cross_tenant_object_access",
+        "source_to_high_impact_sink"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-72beb5f3940c",
+      "rule_id": "TOOL-002",
+      "title": "动态代码执行：高影响动作授权控制不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm2",
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-2c8d768ad681",
+        "FACT-a2b9706db7dd",
+        "FACT-ffe205cb0b31",
+        "FACT-77f02bcfbb78",
+        "FACT-5327e9ed9634",
+        "FACT-371a0e0108d2"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/5",
+        "/workflow/graph/nodes/8",
+        "/workflow/graph/nodes/0",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "责任节点“动态代码执行”在“高影响动作授权控制不足”方面存在 6 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。",
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.5",
+        "AISVS-9.2",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "model_controlled_tool_argument",
+      "root_cause_id": "RISK-72beb5f3940c",
+      "related_rule_ids": [
+        "TOOL-008",
+        "FLOW-003",
+        "LLM-008"
+      ],
+      "anchor_node_id": "code",
+      "control_domain": "action_authorization",
+      "finding_instance_ids": [
+        "RISK-72beb5f3940c",
+        "FINDING-a2b9706db7dd",
+        "FINDING-ffe205cb0b31",
+        "FINDING-77f02bcfbb78",
+        "FINDING-5327e9ed9634",
+        "FINDING-371a0e0108d2"
+      ],
+      "path_variants": [
+        [
+          "llm2",
+          "code"
+        ],
+        [
+          "start",
+          "llm1",
+          "llm2",
+          "code"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "code"
+        ],
+        [
+          "llm1",
+          "llm2",
+          "code"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-2c8d768ad681",
+          "rule_ids": [
+            "TOOL-002"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "llm2",
+            "code"
+          ],
+          "message": "高影响工具的安全敏感参数由模型或上游变量控制。",
+          "evidence_refs": [
+            "FACT-2c8d768ad681"
+          ]
+        },
+        {
+          "finding_id": "FINDING-a2b9706db7dd",
+          "rule_ids": [
+            "TOOL-008"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "高影响工具存在不经过审批节点的可达路径。",
+          "evidence_refs": [
+            "FACT-a2b9706db7dd"
+          ]
+        },
+        {
+          "finding_id": "FINDING-ffe205cb0b31",
+          "rule_ids": [
+            "FLOW-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "start",
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+          "evidence_refs": [
+            "FACT-ffe205cb0b31"
+          ]
+        },
+        {
+          "finding_id": "FINDING-77f02bcfbb78",
+          "rule_ids": [
+            "FLOW-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "不可信数据存在绕开确定性校验/审批到达高危工具的路径。",
+          "evidence_refs": [
+            "FACT-77f02bcfbb78"
+          ]
+        },
+        {
+          "finding_id": "FINDING-5327e9ed9634",
+          "rule_ids": [
+            "LLM-008"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。",
+          "evidence_refs": [
+            "FACT-5327e9ed9634"
+          ]
+        },
+        {
+          "finding_id": "FINDING-371a0e0108d2",
+          "rule_ids": [
+            "LLM-008"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "llm2",
+            "code"
+          ],
+          "message": "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。",
+          "evidence_refs": [
+            "FACT-371a0e0108d2"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "model_controlled_tool_argument",
+        "high_impact_action_approval",
+        "source_to_high_impact_sink",
+        "high_impact_model_decision"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-2caaca7447f3",
+      "rule_id": "TOOL-003",
+      "title": "外部网页读取：网络与输出外发控制不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "web"
+      ],
+      "evidence_refs": [
+        "FACT-ceabf24a45ad"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "动态 URL/Host 缺少域名或地址 Allowlist。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "ssrf",
+      "root_cause_id": "RISK-2caaca7447f3",
+      "related_rule_ids": [],
+      "anchor_node_id": "web",
+      "control_domain": "egress_control",
+      "finding_instance_ids": [
+        "RISK-2caaca7447f3"
+      ],
+      "path_variants": [
+        [
+          "web"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-ceabf24a45ad",
+          "rule_ids": [
+            "TOOL-003"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "web"
+          ],
+          "message": "动态 URL/Host 缺少域名或地址 Allowlist。",
+          "evidence_refs": [
+            "FACT-ceabf24a45ad"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "ssrf"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-c8e1e8d3fa73",
+      "rule_id": "TOOL-012",
+      "title": "执行 Agent：外部内容信任边界不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "memory",
+        "llm2"
+      ],
+      "evidence_refs": [
+        "FACT-caa1117d6700"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "工具输出未经严格 Schema 验证进入 LLM 上下文。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "tool_output_prompt_injection",
+      "root_cause_id": "RISK-c8e1e8d3fa73",
+      "related_rule_ids": [],
+      "anchor_node_id": "llm2",
+      "control_domain": "untrusted_content_boundary",
+      "finding_instance_ids": [
+        "RISK-c8e1e8d3fa73"
+      ],
+      "path_variants": [
+        [
+          "memory",
+          "llm2"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-caa1117d6700",
+          "rule_ids": [
+            "TOOL-012"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "memory",
+            "llm2"
+          ],
+          "message": "工具输出未经严格 Schema 验证进入 LLM 上下文。",
+          "evidence_refs": [
+            "FACT-caa1117d6700"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "tool_output_prompt_injection"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-ec216158724a",
+      "rule_id": "TOOL-012",
+      "title": "主 Agent：外部内容信任边界不足",
+      "status": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "web",
+        "llm1"
+      ],
+      "evidence_refs": [
+        "FACT-4220ca37e1f2",
+        "FACT-5e4c852144bd",
+        "FACT-933bd4ac2531",
+        "FACT-db828845b05b",
+        "FACT-03cb64251cf0",
+        "FACT-c04a7004147f",
+        "FACT-52dea32ea1ca",
+        "FACT-324968fc9a7c",
+        "FACT-854f029a08ca",
+        "FACT-37b8f2b4a341",
+        "FACT-4fdf33318628"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/6",
+        "/workflow/graph/nodes/7",
+        "/workflow/graph/nodes/8"
+      ],
+      "message": "责任节点“主 Agent”在“外部内容信任边界不足”方面存在 5 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。",
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3",
+        "ASI01",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "tool_output_prompt_injection",
+      "root_cause_id": "RISK-ec216158724a",
+      "related_rule_ids": [
+        "FLOW-005",
+        "KB-005",
+        "LLM-003"
+      ],
+      "anchor_node_id": "llm1",
+      "control_domain": "untrusted_content_boundary",
+      "finding_instance_ids": [
+        "RISK-ec216158724a",
+        "FINDING-5e4c852144bd",
+        "FINDING-933bd4ac2531",
+        "FINDING-db828845b05b",
+        "FINDING-03cb64251cf0",
+        "FINDING-c04a7004147f",
+        "FINDING-52dea32ea1ca",
+        "FINDING-324968fc9a7c",
+        "FINDING-854f029a08ca",
+        "FINDING-37b8f2b4a341",
+        "FINDING-4fdf33318628"
+      ],
+      "path_variants": [
+        [
+          "web",
+          "llm1"
+        ],
+        [
+          "web",
+          "llm1",
+          "llm2"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "admin_tool"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "exfil"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "code"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-4220ca37e1f2",
+          "rule_ids": [
+            "TOOL-012"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "web",
+            "llm1"
+          ],
+          "message": "工具输出未经严格 Schema 验证进入 LLM 上下文。",
+          "evidence_refs": [
+            "FACT-4220ca37e1f2"
+          ]
+        },
+        {
+          "finding_id": "FINDING-5e4c852144bd",
+          "rule_ids": [
+            "TOOL-012"
+          ],
+          "status": "CONFIRMED",
+          "severity": "HIGH",
+          "path": [
+            "web",
+            "llm1",
+            "llm2"
+          ],
+          "message": "工具输出未经严格 Schema 验证进入 LLM 上下文。",
+          "evidence_refs": [
+            "FACT-5e4c852144bd"
+          ]
+        },
+        {
+          "finding_id": "FINDING-933bd4ac2531",
+          "rule_ids": [
+            "FLOW-005",
+            "KB-005",
+            "LLM-003"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "admin_tool"
+          ],
+          "message": "知识库内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。",
+          "evidence_refs": [
+            "FACT-933bd4ac2531",
+            "FACT-db828845b05b",
+            "FACT-03cb64251cf0"
+          ]
+        },
+        {
+          "finding_id": "FINDING-c04a7004147f",
+          "rule_ids": [
+            "FLOW-005",
+            "KB-005",
+            "LLM-003"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "exfil"
+          ],
+          "message": "知识库内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。",
+          "evidence_refs": [
+            "FACT-c04a7004147f",
+            "FACT-52dea32ea1ca",
+            "FACT-324968fc9a7c"
+          ]
+        },
+        {
+          "finding_id": "FINDING-854f029a08ca",
+          "rule_ids": [
+            "FLOW-005",
+            "KB-005",
+            "LLM-003"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "code"
+          ],
+          "message": "知识库内容可经 LLM 影响高危工具，形成间接 Prompt Injection 攻击链。",
+          "evidence_refs": [
+            "FACT-854f029a08ca",
+            "FACT-37b8f2b4a341",
+            "FACT-4fdf33318628"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "tool_output_prompt_injection",
+        "rag_to_tool_injection",
+        "indirect_prompt_injection",
+        "knowledge_controlled_tool"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-49c4b474ee06",
+      "rule_id": "TOOL-014",
+      "title": "shared persistent memory store：工具供应链控制不足",
+      "status": "COVERAGE_GAP",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "memory"
+      ],
+      "evidence_refs": [
+        "FACT-32ec521974a7"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI04",
+        "AISVS-C10"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "工具供应链与插件代码不在 DSL 中。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-49c4b474ee06",
+      "related_rule_ids": [],
+      "anchor_node_id": "memory",
+      "control_domain": "supply_chain",
+      "finding_instance_ids": [
+        "RISK-49c4b474ee06"
+      ],
+      "path_variants": [
+        [
+          "memory"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-32ec521974a7",
+          "rule_ids": [
+            "TOOL-014"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "HIGH",
+          "path": [
+            "memory"
+          ],
+          "message": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+          "evidence_refs": [
+            "FACT-32ec521974a7"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-5f377c38dfda",
+      "rule_id": "TOOL-014",
+      "title": "管理员资源更新工具：工具供应链控制不足",
+      "status": "COVERAGE_GAP",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "admin_tool"
+      ],
+      "evidence_refs": [
+        "FACT-4f7611f183a5"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/6"
+      ],
+      "message": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI04",
+        "AISVS-C10"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "工具供应链与插件代码不在 DSL 中。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-5f377c38dfda",
+      "related_rule_ids": [],
+      "anchor_node_id": "admin_tool",
+      "control_domain": "supply_chain",
+      "finding_instance_ids": [
+        "RISK-5f377c38dfda"
+      ],
+      "path_variants": [
+        [
+          "admin_tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-4f7611f183a5",
+          "rule_ids": [
+            "TOOL-014"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "HIGH",
+          "path": [
+            "admin_tool"
+          ],
+          "message": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+          "evidence_refs": [
+            "FACT-4f7611f183a5"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-7855a7e85415",
+      "rule_id": "TOOL-014",
+      "title": "动态代码执行：工具供应链控制不足",
+      "status": "COVERAGE_GAP",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-ad5e359aba8b"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/8"
+      ],
+      "message": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI04",
+        "AISVS-C10"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "工具供应链与插件代码不在 DSL 中。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-7855a7e85415",
+      "related_rule_ids": [],
+      "anchor_node_id": "code",
+      "control_domain": "supply_chain",
+      "finding_instance_ids": [
+        "RISK-7855a7e85415"
+      ],
+      "path_variants": [
+        [
+          "code"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-ad5e359aba8b",
+          "rule_ids": [
+            "TOOL-014"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "HIGH",
+          "path": [
+            "code"
+          ],
+          "message": "DSL 无法证明工具来源、版本完整性或定义变更审批。",
+          "evidence_refs": [
+            "FACT-ad5e359aba8b"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-7a6029a46ab6",
+      "rule_id": "IN-002",
+      "title": "用户输入：输入契约与边界控制不足",
+      "status": "CONFIRMED",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d3980431b8ae",
+        "FACT-b730525caff3",
+        "FACT-bc21b03198b8",
+        "FACT-6b253618948b"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0"
+      ],
+      "message": "责任节点“用户输入”在“输入契约与边界控制不足”方面存在 4 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-7a6029a46ab6",
+      "related_rule_ids": [],
+      "anchor_node_id": "start",
+      "control_domain": "input_contract",
+      "finding_instance_ids": [
+        "RISK-7a6029a46ab6",
+        "FINDING-b730525caff3",
+        "FINDING-bc21b03198b8",
+        "FINDING-6b253618948b"
+      ],
+      "path_variants": [
+        [
+          "start"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-d3980431b8ae",
+          "rule_ids": [
+            "IN-002"
+          ],
+          "status": "CONFIRMED",
+          "severity": "MEDIUM",
+          "path": [
+            "start"
+          ],
+          "message": "输入字段 query 缺少长度或数量上限。",
+          "evidence_refs": [
+            "FACT-d3980431b8ae"
+          ]
+        },
+        {
+          "finding_id": "FINDING-b730525caff3",
+          "rule_ids": [
+            "IN-002"
+          ],
+          "status": "CONFIRMED",
+          "severity": "MEDIUM",
+          "path": [
+            "start"
+          ],
+          "message": "输入字段 tenant_id 缺少长度或数量上限。",
+          "evidence_refs": [
+            "FACT-b730525caff3"
+          ]
+        },
+        {
+          "finding_id": "FINDING-bc21b03198b8",
+          "rule_ids": [
+            "IN-002"
+          ],
+          "status": "CONFIRMED",
+          "severity": "MEDIUM",
+          "path": [
+            "start"
+          ],
+          "message": "输入字段 resource_id 缺少长度或数量上限。",
+          "evidence_refs": [
+            "FACT-bc21b03198b8"
+          ]
+        },
+        {
+          "finding_id": "FINDING-6b253618948b",
+          "rule_ids": [
+            "IN-002"
+          ],
+          "status": "CONFIRMED",
+          "severity": "MEDIUM",
+          "path": [
+            "start"
+          ],
+          "message": "输入字段 callback_url 缺少长度或数量上限。",
+          "evidence_refs": [
+            "FACT-6b253618948b"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-03b4ed027e74",
+      "rule_id": "LLM-009",
+      "title": "主 Agent：失败处理与资源预算不足",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "llm1"
+      ],
+      "evidence_refs": [
+        "FACT-62743a962286"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "resource_budget",
+      "root_cause_id": "RISK-03b4ed027e74",
+      "related_rule_ids": [],
+      "anchor_node_id": "llm1",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-03b4ed027e74"
+      ],
+      "path_variants": [
+        [
+          "llm1"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-62743a962286",
+          "rule_ids": [
+            "LLM-009"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "llm1"
+          ],
+          "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+          "evidence_refs": [
+            "FACT-62743a962286"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "resource_budget"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-7bf206fa7394",
+      "rule_id": "LLM-009",
+      "title": "执行 Agent：失败处理与资源预算不足",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "llm2"
+      ],
+      "evidence_refs": [
+        "FACT-53d25bcbde22"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "resource_budget",
+      "root_cause_id": "RISK-7bf206fa7394",
+      "related_rule_ids": [],
+      "anchor_node_id": "llm2",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-7bf206fa7394"
+      ],
+      "path_variants": [
+        [
+          "llm2"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-53d25bcbde22",
+          "rule_ids": [
+            "LLM-009"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "llm2"
+          ],
+          "message": "LLM 节点缺少可识别的 Token、重试、超时或预算限制。",
+          "evidence_refs": [
+            "FACT-53d25bcbde22"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "resource_budget"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-a05082b6fe83",
+      "rule_id": "LLM-010",
+      "title": "执行 Agent：失败处理与资源预算不足",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm2"
+      ],
+      "evidence_refs": [
+        "FACT-03fde184ca09"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.6"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "运行时可能统一处理模型错误。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-a05082b6fe83",
+      "related_rule_ids": [],
+      "anchor_node_id": "llm2",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-a05082b6fe83"
+      ],
+      "path_variants": [
+        [
+          "llm2"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-03fde184ca09",
+          "rule_ids": [
+            "LLM-010"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "MEDIUM",
+          "path": [
+            "llm2"
+          ],
+          "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+          "evidence_refs": [
+            "FACT-03fde184ca09"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-b04143b39755",
+      "rule_id": "LLM-010",
+      "title": "主 Agent：失败处理与资源预算不足",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "llm1"
+      ],
+      "evidence_refs": [
+        "FACT-f21a24b585a1"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/3"
+      ],
+      "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+      "remediation": [
+        "将外部内容作为不可信数据隔离，并在模型输出进入行为层前执行确定性校验。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.6"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "运行时可能统一处理模型错误。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-b04143b39755",
+      "related_rule_ids": [],
+      "anchor_node_id": "llm1",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-b04143b39755"
+      ],
+      "path_variants": [
+        [
+          "llm1"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-f21a24b585a1",
+          "rule_ids": [
+            "LLM-010"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "MEDIUM",
+          "path": [
+            "llm1"
+          ],
+          "message": "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。",
+          "evidence_refs": [
+            "FACT-f21a24b585a1"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-1668512415bc",
+      "rule_id": "OUT-007",
+      "title": "安全验证结果：用户输出安全控制不足",
+      "status": "CONFIRMED",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb",
+        "llm1",
+        "llm2",
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-5a4a7003a8b8",
+        "FACT-9f6c074eef19",
+        "FACT-d53997d341bc"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/9",
+        "/workflow/graph/nodes/1",
+        "/workflow/graph/nodes/3",
+        "/workflow/graph/nodes/5"
+      ],
+      "message": "责任节点“安全验证结果”在“用户输出安全控制不足”方面存在 3 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7",
+        "ASI09"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "rich_text_injection",
+      "root_cause_id": "RISK-1668512415bc",
+      "related_rule_ids": [
+        "OUT-004",
+        "OUT-010"
+      ],
+      "anchor_node_id": "answer",
+      "control_domain": "output_safety",
+      "finding_instance_ids": [
+        "FINDING-5a4a7003a8b8",
+        "FINDING-9f6c074eef19",
+        "RISK-1668512415bc"
+      ],
+      "path_variants": [
+        [
+          "answer"
+        ],
+        [
+          "kb",
+          "llm1",
+          "llm2",
+          "answer"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-5a4a7003a8b8",
+          "rule_ids": [
+            "OUT-004"
+          ],
+          "status": "PROBABLE",
+          "severity": "HIGH",
+          "path": [
+            "answer"
+          ],
+          "message": "动态 HTML/Markdown 输出缺少可识别的上下文编码。",
+          "evidence_refs": [
+            "FACT-5a4a7003a8b8"
+          ]
+        },
+        {
+          "finding_id": "FINDING-9f6c074eef19",
+          "rule_ids": [
+            "OUT-010"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "answer"
+          ],
+          "message": "模型生成的安全验证、审批或紧急声明面向用户展示，但未绑定可验证来源。",
+          "evidence_refs": [
+            "FACT-9f6c074eef19"
+          ]
+        },
+        {
+          "finding_id": "FINDING-d53997d341bc",
+          "rule_ids": [
+            "OUT-007"
+          ],
+          "status": "CONFIRMED",
+          "severity": "MEDIUM",
+          "path": [
+            "kb",
+            "llm1",
+            "llm2",
+            "answer"
+          ],
+          "message": "知识库回答到达输出，但未发现引用元数据绑定。",
+          "evidence_refs": [
+            "FACT-d53997d341bc"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "rich_text_injection",
+        "human_agent_trust_exploit"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-8bf784043a04",
+      "rule_id": "OUT-008",
+      "title": "安全验证结果：失败处理与资源预算不足",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "answer"
+      ],
+      "evidence_refs": [
+        "FACT-0c9b42606853"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/9"
+      ],
+      "message": "输出节点未显示低置信或失败回退行为。",
+      "remediation": [
+        "在风险路径的必经位置增加确定性控制，并验证不存在旁路。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C7"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-8bf784043a04",
+      "related_rule_ids": [],
+      "anchor_node_id": "answer",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-8bf784043a04"
+      ],
+      "path_variants": [
+        [
+          "answer"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-0c9b42606853",
+          "rule_ids": [
+            "OUT-008"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "MEDIUM",
+          "path": [
+            "answer"
+          ],
+          "message": "输出节点未显示低置信或失败回退行为。",
+          "evidence_refs": [
+            "FACT-0c9b42606853"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-2ee9c5963d9d",
+      "rule_id": "TOOL-001",
+      "title": "管理员资源更新工具：失败处理与资源预算不足",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "admin_tool"
+      ],
+      "evidence_refs": [
+        "FACT-d088beb9f579",
+        "FACT-f9ef2da06e3a"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/6"
+      ],
+      "message": "责任节点“管理员资源更新工具”在“失败处理与资源预算不足”方面存在 2 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3",
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "需要在 internal-baseline.yml 登记工具能力和副作用。",
+        "tool_business_purpose",
+        "allowed_operations"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-2ee9c5963d9d",
+      "related_rule_ids": [
+        "TOOL-009"
+      ],
+      "anchor_node_id": "admin_tool",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-2ee9c5963d9d",
+        "FINDING-f9ef2da06e3a"
+      ],
+      "path_variants": [
+        [
+          "admin_tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-d088beb9f579",
+          "rule_ids": [
+            "TOOL-001"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "MEDIUM",
+          "path": [
+            "admin_tool"
+          ],
+          "message": "工具能力无法从内部基线或 DSL 描述中确定。",
+          "evidence_refs": [
+            "FACT-d088beb9f579"
+          ]
+        },
+        {
+          "finding_id": "FINDING-f9ef2da06e3a",
+          "rule_ids": [
+            "TOOL-009"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "MEDIUM",
+          "path": [
+            "admin_tool"
+          ],
+          "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+          "evidence_refs": [
+            "FACT-f9ef2da06e3a"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-f50b84e2eaf4",
+      "rule_id": "TOOL-001",
+      "title": "shared persistent memory store：失败处理与资源预算不足",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "memory"
+      ],
+      "evidence_refs": [
+        "FACT-c2386c898e53"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "工具能力无法从内部基线或 DSL 描述中确定。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "需要在 internal-baseline.yml 登记工具能力和副作用。"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-f50b84e2eaf4",
+      "related_rule_ids": [],
+      "anchor_node_id": "memory",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-f50b84e2eaf4"
+      ],
+      "path_variants": [
+        [
+          "memory"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-c2386c898e53",
+          "rule_ids": [
+            "TOOL-001"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "MEDIUM",
+          "path": [
+            "memory"
+          ],
+          "message": "工具能力无法从内部基线或 DSL 描述中确定。",
+          "evidence_refs": [
+            "FACT-c2386c898e53"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-d137ad4e6efb",
+      "rule_id": "TOOL-009",
+      "title": "动态代码执行：失败处理与资源预算不足",
+      "status": "COVERAGE_GAP",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "node_ids": [
+        "code"
+      ],
+      "evidence_refs": [
+        "FACT-1694754d95ab"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/8"
+      ],
+      "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "ASI02"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "tool_business_purpose",
+        "allowed_operations"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-d137ad4e6efb",
+      "related_rule_ids": [],
+      "anchor_node_id": "code",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-d137ad4e6efb"
+      ],
+      "path_variants": [
+        [
+          "code"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-1694754d95ab",
+          "rule_ids": [
+            "TOOL-009"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "MEDIUM",
+          "path": [
+            "code"
+          ],
+          "message": "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
+          "evidence_refs": [
+            "FACT-1694754d95ab"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-616e8270ca3e",
+      "rule_id": "TOOL-011",
+      "title": "管理员资源更新工具：结构化数据契约不足",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "admin_tool"
+      ],
+      "evidence_refs": [
+        "FACT-daa2a662dcb1"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/6"
+      ],
+      "message": "工具输入缺少可识别的严格 Schema。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-616e8270ca3e",
+      "related_rule_ids": [],
+      "anchor_node_id": "admin_tool",
+      "control_domain": "structured_data_contract",
+      "finding_instance_ids": [
+        "RISK-616e8270ca3e"
+      ],
+      "path_variants": [
+        [
+          "admin_tool"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-daa2a662dcb1",
+          "rule_ids": [
+            "TOOL-011"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "admin_tool"
+          ],
+          "message": "工具输入缺少可识别的严格 Schema。",
+          "evidence_refs": [
+            "FACT-daa2a662dcb1"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-8e7151968d67",
+      "rule_id": "TOOL-011",
+      "title": "shared persistent memory store：结构化数据契约不足",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "memory"
+      ],
+      "evidence_refs": [
+        "FACT-725e7f279e5f"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "工具输入缺少可识别的严格 Schema。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-8e7151968d67",
+      "related_rule_ids": [],
+      "anchor_node_id": "memory",
+      "control_domain": "structured_data_contract",
+      "finding_instance_ids": [
+        "RISK-8e7151968d67"
+      ],
+      "path_variants": [
+        [
+          "memory"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-725e7f279e5f",
+          "rule_ids": [
+            "TOOL-011"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "memory"
+          ],
+          "message": "工具输入缺少可识别的严格 Schema。",
+          "evidence_refs": [
+            "FACT-725e7f279e5f"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-db7b24a46b27",
+      "rule_id": "TOOL-011",
+      "title": "外部网页读取：结构化数据契约不足",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.8,
+      "node_ids": [
+        "web"
+      ],
+      "evidence_refs": [
+        "FACT-f2ea412bed87"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "工具输入缺少可识别的严格 Schema。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.3"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-db7b24a46b27",
+      "related_rule_ids": [],
+      "anchor_node_id": "web",
+      "control_domain": "structured_data_contract",
+      "finding_instance_ids": [
+        "RISK-db7b24a46b27"
+      ],
+      "path_variants": [
+        [
+          "web"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-f2ea412bed87",
+          "rule_ids": [
+            "TOOL-011"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "web"
+          ],
+          "message": "工具输入缺少可识别的严格 Schema。",
+          "evidence_refs": [
+            "FACT-f2ea412bed87"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-88d460f46978",
+      "rule_id": "TOOL-013",
+      "title": "外部网页读取：失败处理与资源预算不足",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.85,
+      "node_ids": [
+        "web"
+      ],
+      "evidence_refs": [
+        "FACT-889fdc91680f"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/2"
+      ],
+      "message": "工具缺少可识别的超时设置。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "tool_timeout",
+      "root_cause_id": "RISK-88d460f46978",
+      "related_rule_ids": [],
+      "anchor_node_id": "web",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-88d460f46978"
+      ],
+      "path_variants": [
+        [
+          "web"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-889fdc91680f",
+          "rule_ids": [
+            "TOOL-013"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "web"
+          ],
+          "message": "工具缺少可识别的超时设置。",
+          "evidence_refs": [
+            "FACT-889fdc91680f"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "tool_timeout"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-aa8c43ce14d5",
+      "rule_id": "TOOL-013",
+      "title": "shared persistent memory store：失败处理与资源预算不足",
+      "status": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.85,
+      "node_ids": [
+        "memory"
+      ],
+      "evidence_refs": [
+        "FACT-858355960425"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/4"
+      ],
+      "message": "工具缺少可识别的超时设置。",
+      "remediation": [
+        "对高危参数使用 Allowlist/Schema，并在副作用前设置不可绕过的审批或策略门。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-9.1"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [],
+      "dynamic_test": "tool_timeout",
+      "root_cause_id": "RISK-aa8c43ce14d5",
+      "related_rule_ids": [],
+      "anchor_node_id": "memory",
+      "control_domain": "resilience_budget",
+      "finding_instance_ids": [
+        "RISK-aa8c43ce14d5"
+      ],
+      "path_variants": [
+        [
+          "memory"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-858355960425",
+          "rule_ids": [
+            "TOOL-013"
+          ],
+          "status": "PROBABLE",
+          "severity": "MEDIUM",
+          "path": [
+            "memory"
+          ],
+          "message": "工具缺少可识别的超时设置。",
+          "evidence_refs": [
+            "FACT-858355960425"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "tool_timeout"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-80b96386c461",
+      "rule_id": "IN-004",
+      "title": "用户输入：输入契约与边界控制不足",
+      "status": "COVERAGE_GAP",
+      "severity": "LOW",
+      "confidence": 1.0,
+      "node_ids": [
+        "start"
+      ],
+      "evidence_refs": [
+        "FACT-d4a60448cde7"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/0"
+      ],
+      "message": "DSL 未声明输入解码和 Unicode 规范化控制。",
+      "remediation": [
+        "为输入定义严格类型、长度、枚举和额外字段策略。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C2"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "输入规范化可能由平台统一实现，DSL 无法验证。"
+      ],
+      "dynamic_test": "encoding_unicode_smuggling",
+      "root_cause_id": "RISK-80b96386c461",
+      "related_rule_ids": [],
+      "anchor_node_id": "start",
+      "control_domain": "input_contract",
+      "finding_instance_ids": [
+        "RISK-80b96386c461"
+      ],
+      "path_variants": [
+        [
+          "start"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-d4a60448cde7",
+          "rule_ids": [
+            "IN-004"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "LOW",
+          "path": [
+            "start"
+          ],
+          "message": "DSL 未声明输入解码和 Unicode 规范化控制。",
+          "evidence_refs": [
+            "FACT-d4a60448cde7"
+          ]
+        }
+      ],
+      "dynamic_tests": [
+        "encoding_unicode_smuggling"
+      ],
+      "waived": false,
+      "waiver_id": null
+    },
+    {
+      "id": "RISK-21a5bc7982ad",
+      "rule_id": "KB-010",
+      "title": "客户身份与病例知识库：知识资产治理控制不足",
+      "status": "COVERAGE_GAP",
+      "severity": "INFO",
+      "confidence": 1.0,
+      "node_ids": [
+        "kb"
+      ],
+      "evidence_refs": [
+        "FACT-407027395fcd"
+      ],
+      "dsl_locations": [
+        "/workflow/graph/nodes/1"
+      ],
+      "message": "知识库 ACL、文档来源、内容隔离、过期和撤销策略不在 DSL 中，静态扫描无法验证。",
+      "remediation": [
+        "限制数据集和元数据范围，将检索内容视为不可信数据并保留来源。"
+      ],
+      "attack_family": "general_workflow_security",
+      "standards": [
+        "AISVS-C8"
+      ],
+      "attack_preconditions": [],
+      "counter_evidence": [],
+      "missing_context": [
+        "knowledge_acl",
+        "document_provenance",
+        "retention",
+        "quarantine"
+      ],
+      "dynamic_test": null,
+      "root_cause_id": "RISK-21a5bc7982ad",
+      "related_rule_ids": [],
+      "anchor_node_id": "kb",
+      "control_domain": "knowledge_governance",
+      "finding_instance_ids": [
+        "RISK-21a5bc7982ad"
+      ],
+      "path_variants": [
+        [
+          "kb"
+        ]
+      ],
+      "instance_summaries": [
+        {
+          "finding_id": "FINDING-407027395fcd",
+          "rule_ids": [
+            "KB-010"
+          ],
+          "status": "COVERAGE_GAP",
+          "severity": "INFO",
+          "path": [
+            "kb"
+          ],
+          "message": "知识库 ACL、文档来源、内容隔离、过期和撤销策略不在 DSL 中，静态扫描无法验证。",
+          "evidence_refs": [
+            "FACT-407027395fcd"
+          ]
+        }
+      ],
+      "dynamic_tests": [],
+      "waived": false,
+      "waiver_id": null
+    }
+  ]
+}

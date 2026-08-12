@@ -1,0 +1,220 @@
+{
+  "schema_version": "1.2.0",
+  "scan_id": "SCAN-4c4a0b4aefcc",
+  "producer": "dify-parser",
+  "producer_version": "0.4.0",
+  "workflow_hash": "2e8a09f646f1236a9aa4a393c948f4eef733caeaa4254fbc35899745c2a788a2",
+  "created_at": "2026-08-12T07:53:27.522541+00:00",
+  "workflow_ir": {
+    "workflow_id": "parameter-precision",
+    "workflow_hash": "2e8a09f646f1236a9aa4a393c948f4eef733caeaa4254fbc35899745c2a788a2",
+    "nodes": [
+      {
+        "id": "start",
+        "original_type": "start",
+        "type": "INPUT",
+        "title": "start",
+        "json_pointer": "/workflow/graph/nodes/0",
+        "config": {
+          "type": "start",
+          "normalization": "NFKC",
+          "variables": [
+            {
+              "variable": "message",
+              "type": "text-input",
+              "max_length": 500
+            }
+          ]
+        },
+        "text": "start\nNFKC\nmessage\ntext-input",
+        "variable_refs": [],
+        "capabilities": [],
+        "external": false,
+        "high_impact": false
+      },
+      {
+        "id": "validate",
+        "original_type": "if-else",
+        "type": "CONDITION",
+        "title": "确定性输入验证",
+        "json_pointer": "/workflow/graph/nodes/1",
+        "config": {
+          "type": "if-else",
+          "title": "确定性输入验证",
+          "value": [
+            "start",
+            "message"
+          ],
+          "allowlist": "business-message-policy",
+          "on_failure": "block",
+          "security_control": {
+            "type": "validation",
+            "mandatory": true
+          }
+        },
+        "text": "if-else\n确定性输入验证\nstart\nmessage\nbusiness-message-policy\nblock\nvalidation",
+        "variable_refs": [
+          {
+            "producer_node_id": "start",
+            "variable_name": "message",
+            "consumer_node_id": "validate",
+            "json_pointer": "/workflow/graph/nodes/1/data/value",
+            "consumer_field": "value"
+          }
+        ],
+        "capabilities": [],
+        "external": false,
+        "high_impact": false
+      },
+      {
+        "id": "http",
+        "original_type": "http-request",
+        "type": "TOOL",
+        "title": "固定内部审计接口",
+        "json_pointer": "/workflow/graph/nodes/2",
+        "config": {
+          "type": "http-request",
+          "title": "固定内部审计接口",
+          "method": "POST",
+          "url": "https://audit.internal.example/v1/events",
+          "body": "{{#validate.result#}}",
+          "timeout": 10,
+          "payload_filter": "business-message-policy",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "body": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "body"
+            ],
+            "additionalProperties": false
+          },
+          "_scanner_registry": {
+            "matched": true,
+            "trusted_source": true,
+            "definition_version": "internal-http-v1",
+            "integrity_control": "platform_release_review"
+          }
+        },
+        "text": "http-request\n固定内部审计接口\nPOST\nhttps://audit.internal.example/v1/events\n{{#validate.result#}}\nbusiness-message-policy\nobject\nstring\nbody",
+        "variable_refs": [
+          {
+            "producer_node_id": "validate",
+            "variable_name": "result",
+            "consumer_node_id": "http",
+            "json_pointer": "/workflow/graph/nodes/2/data/body",
+            "consumer_field": "body"
+          }
+        ],
+        "capabilities": [
+          "MESSAGE_SEND",
+          "NETWORK_READ",
+          "NETWORK_WRITE"
+        ],
+        "external": true,
+        "high_impact": false
+      },
+      {
+        "id": "answer",
+        "original_type": "end",
+        "type": "OUTPUT",
+        "title": "结果",
+        "json_pointer": "/workflow/graph/nodes/3",
+        "config": {
+          "type": "end",
+          "title": "结果",
+          "outputs": {
+            "result": [
+              "http",
+              "status"
+            ]
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          },
+          "fallback": "fail_closed"
+        },
+        "text": "end\n结果\nhttp\nstatus\nobject\nstring\nresult\nfail_closed",
+        "variable_refs": [
+          {
+            "producer_node_id": "http",
+            "variable_name": "status",
+            "consumer_node_id": "answer",
+            "json_pointer": "/workflow/graph/nodes/3/data/outputs/result",
+            "consumer_field": "result"
+          }
+        ],
+        "capabilities": [
+          "USER_OUTPUT"
+        ],
+        "external": true,
+        "high_impact": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "start",
+        "target": "validate",
+        "source_handle": null,
+        "target_handle": null
+      },
+      {
+        "id": "e2",
+        "source": "validate",
+        "target": "http",
+        "source_handle": null,
+        "target_handle": null
+      },
+      {
+        "id": "e3",
+        "source": "http",
+        "target": "answer",
+        "source_handle": null,
+        "target_handle": null
+      }
+    ],
+    "variable_refs": [
+      {
+        "producer_node_id": "start",
+        "variable_name": "message",
+        "consumer_node_id": "validate",
+        "json_pointer": "/workflow/graph/nodes/1/data/value",
+        "consumer_field": "value"
+      },
+      {
+        "producer_node_id": "validate",
+        "variable_name": "result",
+        "consumer_node_id": "http",
+        "json_pointer": "/workflow/graph/nodes/2/data/body",
+        "consumer_field": "body"
+      },
+      {
+        "producer_node_id": "http",
+        "variable_name": "status",
+        "consumer_node_id": "answer",
+        "json_pointer": "/workflow/graph/nodes/3/data/outputs/result",
+        "consumer_field": "result"
+      }
+    ],
+    "coverage_gaps": [],
+    "raw_metadata": {
+      "source_file": "parameter-precision-workflow.yml",
+      "node_count": 4,
+      "edge_count": 3,
+      "secret_locations": "<REDACTED_SECRET>"
+    }
+  }
+}
