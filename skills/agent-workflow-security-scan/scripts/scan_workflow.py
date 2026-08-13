@@ -25,9 +25,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--rules", type=Path, default=SCRIPT_DIR.parent / "rules" / "core-rules.yml")
     scan.add_argument("--waivers", type=Path, help="Optional audited YAML/JSON waiver file")
     scan.add_argument("--output", required=True, type=Path)
-    scan.add_argument("--llm", choices=("disabled", "auto", "enabled"), default="auto")
-    scan.add_argument("--analyst-model", default="gpt-5.6-terra")
-    scan.add_argument("--reviewer-model", default="gpt-5.6-sol")
+    scan.add_argument("--llm", choices=("disabled", "enabled"), default="disabled", help="Optional non-authoritative advisor for extra inert tests and wording; never changes findings or the gate")
+    scan.add_argument("--advisory-model", default="gpt-5.6-terra")
     return parser
 
 
@@ -44,8 +43,7 @@ def main() -> int:
             rules_path=args.rules,
             waivers_path=args.waivers if args.waivers and args.waivers.exists() else None,
             llm_mode=args.llm,
-            analyst_model=args.analyst_model,
-            reviewer_model=args.reviewer_model,
+            advisory_model=args.advisory_model,
             scan_mode=args.mode,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))

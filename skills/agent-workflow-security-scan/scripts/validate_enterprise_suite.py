@@ -21,8 +21,10 @@ CASES = [
     {"name": "approval-bypass-workflow", "gate": "FAIL", "present": {"FLOW-006"}, "absent": set()},
     {"name": "keyword-spoofed-control", "gate": "FAIL", "present": {"FLOW-003", "TOOL-008"}, "absent": set(), "max_findings": 2},
     {"name": "parameter-precision-workflow", "gate": "PASS", "present": set(), "absent": {"TOOL-003", "TOOL-017"}, "zero": True},
-    {"name": "text-optimization-workflow", "gate": "REVIEW", "present": {"LLM-001", "IN-002"}, "absent": {"OUT-001", "OUT-008"}, "max_findings": 2},
-    {"name": "review-only-workflow", "gate": "REVIEW", "present": {"LLM-009", "LLM-010"}, "absent": {"LLM-006"}, "max_findings": 1},
+    {"name": "text-optimization-workflow", "gate": "REVIEW", "present": {"LLM-001"}, "absent": {"IN-002", "OUT-001", "OUT-008"}, "max_findings": 1},
+    {"name": "review-only-workflow", "gate": "PASS", "present": set(), "absent": {"LLM-006", "LLM-009", "LLM-010"}, "zero": True},
+    {"name": "safe-code-transform-workflow", "gate": "PASS", "present": set(), "absent": {"FLOW-003", "FLOW-010", "TOOL-002", "TOOL-004", "TOOL-008"}, "zero": True},
+    {"name": "simple-rag-readonly-workflow", "gate": "PASS", "present": set(), "absent": {"KB-001", "KB-002", "KB-003", "KB-008", "KB-009", "KB-010"}, "zero": True},
     {"name": "non-strict-schema-workflow", "gate": "FAIL", "present": {"LLM-006", "TOOL-011"}, "absent": set(), "max_findings": 3},
     {"name": "document-indirect-injection-workflow", "gate": "FAIL", "present": {"FLOW-005", "LLM-003", "FLOW-010"}, "absent": set(), "max_findings": 6},
     {"name": "risky-workflow", "gate": "FAIL", "present": {"FLOW-005", "TOOL-003", "TOOL-010", "KB-005"}, "absent": set(), "max_findings": 20},
@@ -49,8 +51,6 @@ def main() -> int:
             output_dir=case_output,
             rules_path=rules,
             llm_mode="disabled",
-            analyst_model="gpt-5.6-terra",
-            reviewer_model="gpt-5.6-sol",
         )
         report = json.loads((case_output / "report.json").read_text(encoding="utf-8"))["report"]
         rule_ids = {

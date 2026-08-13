@@ -18,9 +18,15 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from agent_workflow_scan.engine import execute_rules  # noqa: E402
-from agent_workflow_scan.llm import OpenAIResponsesClient, SemanticPipeline, redact_for_model  # noqa: E402
+from agent_workflow_scan.llm import ModelAdvisor, OpenAIResponsesClient, redact_for_model  # noqa: E402
 from agent_workflow_scan.parser import parse_dify_dsl  # noqa: E402
-from agent_workflow_scan.pipeline import apply_baseline, load_baseline, run_scan  # noqa: E402
+from agent_workflow_scan.pipeline import (  # noqa: E402
+    apply_baseline,
+    evaluate_quality_gate,
+    load_baseline,
+    run_scan,
+    verify_deterministic_findings,
+)
 
 
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -90,6 +96,14 @@ class ParserTests(unittest.TestCase):
 
 
 class RuleTests(unittest.TestCase):
+    def test_node_rule_matrix_covers_every_catalog_rule_once(self) -> None:
+        catalog = yaml.safe_load(RULES.read_text(encoding="utf-8"))
+        expected = {item["id"] for item in catalog["rules"]}
+        matrix_text = (ROOT / "references" / "node-rule-matrix.md").read_text(encoding="utf-8")
+        rows = re.findall(r"^\| ((?:FLOW|IN|LLM|TOOL|OUT|KB)-\d{3}) \|", matrix_text, re.MULTILINE)
+        self.assertEqual(expected, set(rows))
+        self.assertEqual(len(expected), len(rows))
+
     def test_every_catalog_rule_has_an_engine_evaluator_reference(self) -> None:
         catalog = yaml.safe_load(RULES.read_text(encoding="utf-8"))
         rule_ids = {item["id"] for item in catalog["rules"]}
@@ -119,15 +133,31 @@ class RuleTests(unittest.TestCase):
         prompt_findings = [finding for finding in findings if finding.root_cause_id and "LLM-001" in {finding.rule_id, *finding.related_rule_ids}]
         self.assertEqual(1, len(prompt_findings))
         self.assertEqual("OBSERVED", prompt_findings[0].status)
-        self.assertEqual("MEDIUM", prompt_findings[0].severity)
+        self.assertEqual("LOW", prompt_findings[0].severity)
         self.assertTrue({"IN-007", "IN-009", "LLM-002"}.issubset(set(prompt_findings[0].related_rule_ids)))
         self.assertFalse({"OUT-001", "OUT-008"} & all_rule_ids(findings))
-        self.assertIn("IN-002", all_rule_ids(findings))
+        self.assertNotIn("IN-002", all_rule_ids(findings))
+
+    def test_fixed_sandboxed_code_treats_variables_as_data_not_commands(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "safe-code-transform-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        code = next(node for node in ir.nodes if node.id == "code")
+        self.assertIn("SANDBOXED_CODE", code.capabilities)
+        self.assertNotIn("CODE_EXECUTION", code.capabilities)
+        self.assertFalse({"FLOW-003", "FLOW-010", "TOOL-002", "TOOL-004", "TOOL-008"} & all_rule_ids(findings))
+
+    def test_static_single_dataset_rag_is_not_treated_as_cross_tenant_or_poisoned(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "simple-rag-readonly-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        self.assertFalse({"KB-001", "KB-002", "KB-003", "KB-008", "KB-009", "KB-010"} & all_rule_ids(findings))
 
     def test_tencent_inspired_static_precursors_are_detected(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "tencent-inspired-workflow.yml")
         apply_baseline(ir, load_baseline(BASELINE))
         _, findings, candidates = execute_rules(ir, RULES)
+        web_reader = next(node for node in ir.nodes if node.id == "web")
+        self.assertIn("NETWORK_READ", web_reader.capabilities)
+        self.assertNotIn("NETWORK_WRITE", web_reader.capabilities)
         rule_ids = all_rule_ids(findings)
         expected = {
             "IN-009", "FLOW-009", "FLOW-010", "FLOW-011", "FLOW-012", "FLOW-013",
@@ -247,8 +277,6 @@ class PipelineTests(unittest.TestCase):
                     output_dir=Path(directory),
                     rules_path=RULES,
                     llm_mode="disabled",
-                    analyst_model="gpt-5.6-terra",
-                    reviewer_model="gpt-5.6-sol",
                     scan_mode="assessment",
                 )
 
@@ -261,8 +289,6 @@ class PipelineTests(unittest.TestCase):
                 output_dir=Path(directory),
                 rules_path=RULES,
                 llm_mode="disabled",
-                analyst_model="gpt-5.6-terra",
-                reviewer_model="gpt-5.6-sol",
                 scan_mode="assessment",
             )
             self.assertEqual("REVIEW", result["quality_gate"])
@@ -278,23 +304,79 @@ class PipelineTests(unittest.TestCase):
                 verification["coverage_accounting"]["raw_match_count"],
                 verification["coverage_accounting"]["root_finding_count"],
             )
+            manifest = json.loads((Path(directory) / "00-scan-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual([
+                "1-resolve-explicit-dsl-or-ask-if-ambiguous-and-bind-internal-hash",
+                "2-confirm-seed-inputs-and-oracles",
+                "3-deterministic-static-analysis",
+                "4-generate-unexecuted-input-cluster",
+                "5-correlate-report-and-attack-surface",
+            ], manifest["pipeline_order"])
 
-    def test_unexecuted_generated_cases_are_excluded_from_llm_adjudication(self) -> None:
+    def test_assessment_rejects_seed_confirmation_for_a_different_dsl(self) -> None:
+        with TemporaryDirectory() as directory:
+            samples_path = Path(directory) / "mismatched-samples.json"
+            payload = json.loads((FIXTURES / "assessment-samples.json").read_text(encoding="utf-8"))
+            payload["confirmed_dsl_sha256"] = "0" * 64
+            samples_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                run_scan(
+                    dsl_path=FIXTURES / "text-optimization-workflow.yml",
+                    samples_path=samples_path,
+                    baseline_path=BASELINE,
+                    output_dir=Path(directory) / "output",
+                    rules_path=RULES,
+                    llm_mode="disabled",
+                    scan_mode="assessment",
+                )
+
+    def test_deterministic_verifier_preserves_findings_and_rule_coverage(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "text-optimization-workflow.yml")
-        _, findings, candidates = execute_rules(ir, RULES)
-        captured: dict[str, object] = {}
+        facts, findings, candidates = execute_rules(ir, RULES)
+        original = [(finding.id, finding.status, finding.severity, finding.confidence) for finding in findings]
+        verification = verify_deterministic_findings(ir, findings, facts, candidates)
+        self.assertTrue(verification["valid"])
+        self.assertTrue(verification["coverage_accounting"]["lossless_root_cause_aggregation"])
+        self.assertEqual(original, [(finding.id, finding.status, finding.severity, finding.confidence) for finding in findings])
 
+    def test_model_pipeline_has_no_finding_adjudication_or_review_methods(self) -> None:
+        pipeline = ModelAdvisor(False, "test-advisor", "SCAN-test")
+        self.assertFalse(hasattr(pipeline, "adjudicate"))
+        self.assertFalse(hasattr(pipeline, "review"))
+
+    def test_optional_model_advisor_cannot_change_findings_or_quality_gate(self) -> None:
         def fake_call(_client, **kwargs):
-            captured.update(kwargs["payload"])
-            return {"adjudications": []}
+            if kwargs["role"] == "test-cluster":
+                return {"cases": []}
+            if kwargs["role"] == "report-explanation":
+                return {"executive_summary": "Non-authoritative wording.", "priority_actions": []}
+            raise AssertionError(f"unexpected model role: {kwargs['role']}")
 
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "synthetic-test-key"}), patch.object(
-            OpenAIResponsesClient, "call_json", fake_call,
-        ):
-            pipeline = SemanticPipeline(True, "test-analyst", "test-reviewer", "SCAN-test")
-            pipeline.adjudicate(ir, candidates, findings, {"cases": [{"case_id": "unexecuted"}]})
-        self.assertNotIn("test_cases", captured)
-        self.assertNotIn("cases", captured)
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            common = {
+                "dsl_path": FIXTURES / "text-optimization-workflow.yml",
+                "samples_path": FIXTURES / "assessment-samples.json",
+                "baseline_path": BASELINE,
+                "rules_path": RULES,
+                "scan_mode": "assessment",
+            }
+            disabled = run_scan(output_dir=root / "disabled", llm_mode="disabled", **common)
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "synthetic-test-key"}), patch.object(
+                OpenAIResponsesClient, "call_json", fake_call,
+            ):
+                enabled = run_scan(
+                    output_dir=root / "enabled",
+                    llm_mode="enabled",
+                    advisory_model="test-advisor",
+                    **common,
+                )
+            disabled_findings = json.loads((root / "disabled" / "08-findings.json").read_text(encoding="utf-8"))["findings"]
+            enabled_findings = json.loads((root / "enabled" / "08-findings.json").read_text(encoding="utf-8"))["findings"]
+            self.assertEqual(disabled_findings, enabled_findings)
+            self.assertEqual(disabled["quality_gate"], enabled["quality_gate"])
+            advisory = json.loads((root / "enabled" / "06-model-advisory.json").read_text(encoding="utf-8"))["model_advisory"]
+            self.assertEqual("none_over_findings_severity_or_gate", advisory["authority"])
 
     def test_offline_scan_writes_all_artifacts(self) -> None:
         with TemporaryDirectory() as directory:
@@ -306,15 +388,13 @@ class PipelineTests(unittest.TestCase):
                 output_dir=output,
                 rules_path=RULES,
                 llm_mode="disabled",
-                analyst_model="gpt-5.6-terra",
-                reviewer_model="gpt-5.6-sol",
             )
             self.assertGreater(result["finding_count"], 0)
             for filename in (
                 "00-scan-manifest.json", "01-workflow-ir.json", "02-security-facts.json",
                 "03-semantic-inventory.json", "04-rule-candidates.json", "05-test-cluster.json",
-                "06-llm-adjudication.json", "07-verification.json", "08-findings.json",
-                "09-attack-surface.json", "10-dynamic-test-plan.json", "report.json", "report.md",
+                "06-model-advisory.json", "07-verification.json", "08-findings.json",
+                "09-attack-surface.json", "attack-surface.md", "10-dynamic-test-plan.json", "report.json", "report.md",
                 "11-quality-gate.json", "12-artifact-index.json",
             ):
                 self.assertTrue((output / filename).exists(), filename)
@@ -323,13 +403,22 @@ class PipelineTests(unittest.TestCase):
             for filename in (
                 "00-scan-manifest.json", "01-workflow-ir.json", "02-security-facts.json",
                 "03-semantic-inventory.json", "04-rule-candidates.json", "05-test-cluster.json",
-                "06-llm-adjudication.json", "07-verification.json", "08-findings.json",
+                "06-model-advisory.json", "07-verification.json", "08-findings.json",
                 "09-attack-surface.json", "10-dynamic-test-plan.json", "report.json",
                 "11-quality-gate.json", "12-artifact-index.json",
             ):
                 payload = json.loads((output / filename).read_text(encoding="utf-8"))
                 self.assertFalse(list(artifact_validator.iter_errors(payload)), filename)
             findings = json.loads((output / "08-findings.json").read_text(encoding="utf-8"))["findings"]
+            report_markdown = (output / "report.md").read_text(encoding="utf-8")
+            attack_surface_markdown = (output / "attack-surface.md").read_text(encoding="utf-8")
+            self.assertIn("| 风险项 | 责任节点 | 控制域 | 等级 / 状态 |", report_markdown)
+            self.assertIn("本次模式：`仅确定性扫描`", report_markdown)
+            self.assertIn("本次模式：`仅确定性扫描`", report_markdown)
+            self.assertNotIn("分析员", report_markdown)
+            self.assertNotIn("独立复核员", report_markdown)
+            self.assertIn("| 节点 | 类型 | 信任级别 | 证据位置 |", attack_surface_markdown)
+            self.assertIn("| 等级 | 状态 | 入口 → 目标 | 完整路径 |", attack_surface_markdown)
             ir_text = (output / "01-workflow-ir.json").read_text(encoding="utf-8")
             self.assertNotIn("ScannerSecret123", ir_text)
             self.assertNotIn("scanner-test-token-123456", ir_text)
@@ -348,8 +437,6 @@ class PipelineTests(unittest.TestCase):
                 output_dir=root / "failed",
                 rules_path=RULES,
                 llm_mode="disabled",
-                analyst_model="gpt-5.6-terra",
-                reviewer_model="gpt-5.6-sol",
             )
             self.assertEqual("FAIL", failed["quality_gate"])
             workflow_hash = json.loads((root / "failed" / "00-scan-manifest.json").read_text(encoding="utf-8"))["workflow_hash"]
@@ -369,8 +456,6 @@ class PipelineTests(unittest.TestCase):
                 rules_path=RULES,
                 waivers_path=invalid_waiver,
                 llm_mode="disabled",
-                analyst_model="gpt-5.6-terra",
-                reviewer_model="gpt-5.6-sol",
             )
             self.assertEqual("FAIL", rejected["quality_gate"])
             rejected_gate = json.loads((root / "rejected-waiver" / "11-quality-gate.json").read_text(encoding="utf-8"))
@@ -395,14 +480,12 @@ class PipelineTests(unittest.TestCase):
                 rules_path=RULES,
                 waivers_path=waiver,
                 llm_mode="disabled",
-                analyst_model="gpt-5.6-terra",
-                reviewer_model="gpt-5.6-sol",
             )
             self.assertEqual("PASS", passed["quality_gate"])
             payload = json.loads((root / "waived" / "08-findings.json").read_text(encoding="utf-8"))
             self.assertTrue(payload["findings"][0]["waived"])
 
-    def test_review_gate_for_non_blocking_runtime_gaps(self) -> None:
+    def test_bounded_text_only_workflow_does_not_require_runtime_security_gaps(self) -> None:
         with TemporaryDirectory() as directory:
             result = run_scan(
                 dsl_path=FIXTURES / "review-only-workflow.yml",
@@ -411,13 +494,11 @@ class PipelineTests(unittest.TestCase):
                 output_dir=Path(directory),
                 rules_path=RULES,
                 llm_mode="disabled",
-                analyst_model="gpt-5.6-terra",
-                reviewer_model="gpt-5.6-sol",
             )
-            self.assertEqual("REVIEW", result["quality_gate"])
+            self.assertEqual("PASS", result["quality_gate"])
             gate = json.loads((Path(directory) / "11-quality-gate.json").read_text(encoding="utf-8"))["quality_gate"]
             self.assertEqual(0, gate["blocking_count"])
-            self.assertGreater(gate["review_count"], 0)
+            self.assertEqual(0, gate["review_count"])
 
     def test_rule_waiver_cannot_hide_other_rules_in_aggregated_item(self) -> None:
         with TemporaryDirectory() as directory:
@@ -429,8 +510,6 @@ class PipelineTests(unittest.TestCase):
                 output_dir=root / "initial",
                 rules_path=RULES,
                 llm_mode="disabled",
-                analyst_model="gpt-5.6-terra",
-                reviewer_model="gpt-5.6-sol",
             )
             workflow_hash = json.loads((root / "initial" / "00-scan-manifest.json").read_text(encoding="utf-8"))["workflow_hash"]
             waiver = root / "ambiguous-waiver.json"
@@ -450,8 +529,6 @@ class PipelineTests(unittest.TestCase):
                 rules_path=RULES,
                 waivers_path=waiver,
                 llm_mode="disabled",
-                analyst_model="gpt-5.6-terra",
-                reviewer_model="gpt-5.6-sol",
             )
             self.assertEqual("FAIL", initial["quality_gate"])
             self.assertEqual("FAIL", result["quality_gate"])

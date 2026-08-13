@@ -1,0 +1,28 @@
+app: {name: simple-rag-readonly}
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          normalization: NFKC
+          variables:
+            - {variable: query, type: text-input, max_length: 1000}
+      - id: kb
+        data:
+          type: knowledge-retrieval
+          title: 产品公开帮助知识库
+          dataset_ids: [public-help]
+          query_variable_selector: [start, query]
+          multiple_retrieval_config:
+            top_k: 5
+            score_threshold: 0.3
+      - id: end
+        data:
+          type: end
+          outputs:
+            result: [kb, result]
+          fallback: fail_closed
+    edges:
+      - {id: e1, source: start, target: kb}
+      - {id: e2, source: kb, target: end}

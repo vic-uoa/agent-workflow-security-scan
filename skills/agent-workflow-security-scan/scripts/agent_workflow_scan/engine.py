@@ -212,6 +212,27 @@ def _has_registry_integrity(node: Node) -> bool:
     )
 
 
+def _is_effectful_tool(node: Node) -> bool:
+    """Return true when a tool can change state or execute outside pure data flow."""
+    return node.type in {NodeType.TOOL.value, NodeType.CODE.value} and bool(
+        node.high_impact
+        or set(node.capabilities) & {
+            "NETWORK_WRITE", "MESSAGE_SEND", "FILE_WRITE", "DATABASE_WRITE",
+            "RESOURCE_DELETE", "PERMISSION_CHANGE", "CODE_EXECUTION",
+        }
+    )
+
+
+def _is_high_consequence_tool(node: Node) -> bool:
+    """Irreversible/privileged actions need an explicit deterministic action gate."""
+    return node.type in {NodeType.TOOL.value, NodeType.CODE.value} and bool(
+        node.high_impact
+        or set(node.capabilities) & {
+            "RESOURCE_DELETE", "PERMISSION_CHANGE", "CODE_EXECUTION",
+        }
+    )
+
+
 def _approval_action_ids(node: Node) -> tuple[set[str], set[str]]:
     actions = node.config.get("actions") or node.config.get("user_actions") or node.config.get("buttons") or []
     approved: set[str] = set()
@@ -628,7 +649,7 @@ class SecurityEngine:
             if family == "prompt_boundary":
                 downstream_tools = [
                     node for node in self.ir.nodes
-                    if node.type in {NodeType.TOOL.value, NodeType.CODE.value}
+                    if _is_effectful_tool(node)
                     and self.graph.path(sink, node.id)
                 ]
                 sensitive_context = any(
@@ -638,7 +659,9 @@ class SecurityEngine:
                     primary.severity = "HIGH" if any(node.high_impact for node in downstream_tools) else "MEDIUM"
                     primary.status = "PROBABLE"
                 else:
-                    primary.severity = "MEDIUM"
+                    # In a text-only workflow this is an instruction-integrity
+                    # observation, not a high-impact security defect.
+                    primary.severity = "LOW"
                     primary.status = "OBSERVED"
                 primary.confidence = min(primary.confidence, 0.9)
                 primary.title = "不可信输入进入高权限 Prompt"
@@ -678,31 +701,60 @@ class SecurityEngine:
     def _input_rules(self, node: Node) -> None:
         variables = _input_variables(node)
         if not variables:
-            self._emit("IN-001", [node.id], "输入节点没有可识别的字段 Schema。", status=Status.COVERAGE_GAP, confidence=0.9)
+            # Chat workflows may use a platform-provided sys.query without custom
+            # Start variables.  Absence of custom fields is therefore not a flaw.
             return
+        downstream_effects = any(
+            _is_effectful_tool(item) and self.graph.path(node.id, item.id)
+            for item in self.ir.nodes
+        )
+        downstream_loops = any(
+            item.type == NodeType.LOOP.value and self.graph.path(node.id, item.id)
+            for item in self.ir.nodes
+        )
         for variable in variables:
             name = str(variable.get("variable") or variable.get("name") or variable.get("label") or "unnamed")
             value_type = str(variable.get("type") or variable.get("value_type") or "").lower()
             if not value_type:
                 self._emit("IN-001", [node.id], f"输入字段 {name} 未声明类型。", status=Status.CONFIRMED)
-            if value_type in {"text-input", "paragraph", "string", "text", "array", "list", "file", "file-list", "files"}:
+            if value_type in {"array", "list", "file", "file-list", "files"} or (
+                value_type in {"text-input", "paragraph", "string", "text"}
+                and (downstream_effects or downstream_loops)
+            ):
                 limits = [variable.get(key) for key in ("max_length", "maxLength", "max_items", "maxItems", "size_limit", "max_files") if key in variable]
                 if not limits or all(value in (None, "", 0, False) for value in limits):
-                    self._emit("IN-002", [node.id], f"输入字段 {name} 缺少长度或数量上限。", status=Status.CONFIRMED)
+                    self._emit(
+                        "IN-002", [node.id],
+                        f"输入字段 {name} 可进入循环或副作用路径，但缺少长度/数量上限。",
+                        status=Status.PROBABLE, confidence=0.86,
+                        dynamic_test="resource_budget",
+                    )
             if "file" in value_type:
                 has_file_controls = any(key in variable for key in ("allowed_file_types", "allowed_extensions", "mime_types", "size_limit"))
                 if not has_file_controls:
                     self._emit("IN-003", [node.id], f"文件字段 {name} 缺少类型或大小限制。", status=Status.CONFIRMED, dynamic_test="malicious_file_upload")
             if value_type in {"object", "json", "map"} and variable.get("additionalProperties", True) is not False:
                 self._emit("IN-005", [node.id], f"对象字段 {name} 未禁止额外属性。", status=Status.CONFIRMED)
-            if _has_words(name + " " + str(variable.get("label", "")), SENSITIVE_WORDS):
+            if _has_words(name + " " + str(variable.get("label", "")), SENSITIVE_WORDS) and any(
+                item.external and self.graph.path(node.id, item.id)
+                for item in self.ir.nodes
+            ):
                 self._emit(
                     "IN-006", [node.id], f"输入字段 {name} 可能包含敏感信息，需要验证下游传播和脱敏。",
                     status=Status.PROBABLE, confidence=0.75, dynamic_test="sensitive_input_propagation",
                 )
-        if not _key_matches(node.config, ("normalization", "unicode_normalization", "canonicalization")):
+        canonicalization_sensitive = any(
+            item.type in {NodeType.TOOL.value, NodeType.CODE.value}
+            and any(
+                ref.producer_node_id == node.id
+                and _has_words(ref.consumer_field, (*DANGEROUS_ARG_WORDS, *IDENTITY_RESOURCE_WORDS))
+                for ref in item.variable_refs
+            )
+            for item in self.ir.nodes
+        )
+        if canonicalization_sensitive and not _key_matches(node.config, ("normalization", "unicode_normalization", "canonicalization")):
             self._emit(
-                "IN-004", [node.id], "DSL 未声明输入解码和 Unicode 规范化控制。",
+                "IN-004", [node.id], "输入可进入 URL、路径、查询或身份标识字段，但 DSL 未声明规范化控制。",
                 status=Status.COVERAGE_GAP, confidence=1.0,
                 missing_context=["输入规范化可能由平台统一实现，DSL 无法验证。"],
                 dynamic_test="encoding_unicode_smuggling",
@@ -731,11 +783,18 @@ class SecurityEngine:
                 status=Status.PROBABLE, confidence=0.9,
                 dynamic_test="system_prompt_and_credential_leakage",
             )
-        if not _has_limits(node):
+        downstream_effects = [
+            item for item in self.ir.nodes
+            if _is_effectful_tool(item) and self.graph.path(node.id, item.id)
+        ]
+        autonomous = node.original_type.lower() == "agent" or _key_matches(
+            node.config, ("agent_parameters", "agent_strategy", "planning_strategy")
+        )
+        if (autonomous or downstream_effects) and not _has_limits(node):
             self._emit("LLM-009", [node.id], "LLM 节点缺少可识别的 Token、重试、超时或预算限制。", status=Status.PROBABLE, confidence=0.8, dynamic_test="resource_budget")
         if _has_words(node.text, ("authorize", "permission", "approve", "是否允许", "审批", "授权")):
             self._emit("LLM-007", [node.id], "Prompt 显示模型可能承担授权或审批决策。", status=Status.PROBABLE, confidence=0.72, remediation=["将授权决策移至应用逻辑或策略引擎，模型只能提供辅助意见。"])
-        if not _key_matches(node.config, ("fallback", "error_strategy", "fail_closed", "on_error")):
+        if downstream_effects and not _key_matches(node.config, ("fallback", "error_strategy", "fail_closed", "on_error")):
             self._emit("LLM-010", [node.id], "DSL 未显示模型失败、拒答或解析失败后的安全回退策略。", status=Status.COVERAGE_GAP, confidence=1.0, missing_context=["运行时可能统一处理模型错误。"])
 
     def _tool_rules(self, node: Node) -> None:
@@ -753,24 +812,44 @@ class SecurityEngine:
             if self.graph.nodes.get(ref.producer_node_id)
             and self.graph.nodes[ref.producer_node_id].type != NodeType.HUMAN.value
         ]
-        if node.high_impact and (unsafe_dangerous_refs or (node.type == NodeType.CODE.value and node.variable_refs)):
-            refs = unsafe_dangerous_refs or node.variable_refs
+        if _is_high_consequence_tool(node) and unsafe_dangerous_refs:
+            refs = unsafe_dangerous_refs
             self._emit("TOOL-002", [*sorted({ref.producer_node_id for ref in refs}), node.id], "高影响工具的安全敏感参数由模型或上游变量控制。", status=Status.CONFIRMED, dynamic_test="model_controlled_tool_argument")
         if url_refs and not _key_matches(node.config, ("allowlist", "allowed_hosts", "allowed_domains", "network_policy")):
             self._emit("TOOL-003", [node.id], "动态 URL/Host 缺少域名或地址 Allowlist。", status=Status.CONFIRMED, dynamic_test="ssrf")
-        if exec_refs or (node.type == NodeType.CODE.value and node.variable_refs):
+        code_body = "\n".join(str(node.config.get(key) or "") for key in ("code", "script", "source"))
+        templated_dangerous_code = (
+            node.type == NodeType.CODE.value
+            and "CODE_EXECUTION" in node.capabilities
+            and contains_template(code_body)
+        )
+        if exec_refs or templated_dangerous_code:
             self._emit("TOOL-004", [node.id], "动态变量可到达命令、代码或脚本执行能力。", status=Status.CONFIRMED, severity=Severity.CRITICAL, dynamic_test="command_injection")
         if query_refs and any(word in text for word in ("sql", "database", "query")) and not _key_matches(node.config, ("parameters", "parameterized", "prepared_statement")):
             self._emit("TOOL-005", [node.id], "动态变量可能拼接进入 SQL/查询。", status=Status.PROBABLE, confidence=0.85, dynamic_test="sql_injection")
         if path_refs and not _key_matches(node.config, ("base_directory", "allowed_paths", "path_allowlist")):
             self._emit("TOOL-006", [node.id], "动态文件路径缺少固定根目录或路径 Allowlist。", status=Status.PROBABLE, confidence=0.85, dynamic_test="path_traversal")
-        if node.high_impact:
-            approvals = {item.id for item in self.ir.nodes if _is_approval(item)}
-            untrusted = [item for item in self.ir.nodes if item.type in {NodeType.INPUT.value, NodeType.KNOWLEDGE.value, NodeType.CONTENT.value}]
-            path = self.graph.any_path(untrusted, [node], excluded=approvals)
+        if _is_high_consequence_tool(node):
+            deterministic_controls = {
+                item.id for item in self.ir.nodes if _is_approval(item) or _is_validation(item)
+            }
+            untrusted = [
+                item for item in self.ir.nodes
+                if item.type in {
+                    NodeType.INPUT.value, NodeType.KNOWLEDGE.value,
+                    NodeType.CONTENT.value, NodeType.LLM.value,
+                }
+            ]
+            path = self.graph.any_path(untrusted, [node], excluded=deterministic_controls)
             if path:
-                self._emit("TOOL-008", path, "高影响工具存在不经过审批节点的可达路径。", status=Status.CONFIRMED, dynamic_test="high_impact_action_approval")
-        if node.high_impact and not _key_matches(node.config, ("purpose", "business_purpose", "allowed_operations", "capability_scope")):
+                self._emit(
+                    "TOOL-008", path,
+                    "高后果操作存在绕开人工确认或确定性授权/策略门的可达路径。",
+                    status=Status.CONFIRMED,
+                    dynamic_test="high_impact_action_gate",
+                    remediation=["在副作用前设置不可绕过的确定性授权/策略门；仅在业务语义要求用户同意时使用人工确认。"],
+                )
+        if _is_high_consequence_tool(node) and not _key_matches(node.config, ("purpose", "business_purpose", "allowed_operations", "capability_scope")):
             self._emit(
                 "TOOL-009", [node.id],
                 "高影响工具未声明业务目的或允许操作范围，无法验证最小能力原则。",
@@ -779,17 +858,36 @@ class SecurityEngine:
             )
         if contains_secret(node.text):
             self._emit("TOOL-010", [node.id], "工具配置中存在疑似明文凭证。", status=Status.CONFIRMED, severity=Severity.CRITICAL)
-        if not _has_schema(node):
+        model_or_untrusted_refs = [
+            ref for ref in node.variable_refs
+            if self.graph.nodes.get(ref.producer_node_id)
+            and self.graph.nodes[ref.producer_node_id].type in {
+                NodeType.LLM.value, NodeType.INPUT.value,
+                NodeType.KNOWLEDGE.value, NodeType.CONTENT.value,
+            }
+        ]
+        if model_or_untrusted_refs and _is_effectful_tool(node) and not _has_schema(node):
             self._emit("TOOL-011", [node.id], "工具输入缺少可识别的严格 Schema。", status=Status.PROBABLE, confidence=0.8)
-        if not _has_timeout(node):
-            self._emit("TOOL-013", [node.id], "工具缺少可识别的超时设置。", status=Status.PROBABLE, confidence=0.85, dynamic_test="tool_timeout")
-        if not _has_registry_integrity(node) and not _key_matches(node.config, ("trusted_source", "integrity", "signature", "version", "checksum")):
+        timeout_relevant = _is_effectful_tool(node) or "UNKNOWN_TOOL_CAPABILITY" in node.capabilities
+        if timeout_relevant and not _has_timeout(node) and not _has_registry_integrity(node):
+            self._emit(
+                "TOOL-013", [node.id], "长耗时或副作用工具缺少可识别的超时设置。",
+                status=Status.COVERAGE_GAP, severity=Severity.LOW, confidence=1.0,
+                missing_context=["平台级默认超时若已强制，应在工具基线登记。"],
+                dynamic_test="tool_timeout",
+            )
+        supply_chain_relevant = (
+            "UNKNOWN_TOOL_CAPABILITY" in node.capabilities
+            or node.original_type.lower() == "agent"
+            or _key_matches(node.config, ("provider_name", "plugin_id", "marketplace_id"))
+        )
+        if supply_chain_relevant and not _has_registry_integrity(node) and not _key_matches(node.config, ("trusted_source", "integrity", "signature", "version", "checksum")):
             self._emit("TOOL-014", [node.id], "DSL 无法证明工具来源、版本完整性或定义变更审批。", status=Status.COVERAGE_GAP, confidence=1.0, missing_context=["工具供应链与插件代码不在 DSL 中。"])
         authz_relevant = _has_words(
             f"{node.title}\n{node.text}\n{' '.join(node.capabilities)}",
             ("admin", "permission", "role", "tenant", "user", "resource", "account", "update", "delete", "grant", "payment", "transfer", "send", "管理员", "权限", "租户", "用户", "资源"),
         )
-        if node.high_impact and authz_relevant and not _key_matches(node.config, AUTHZ_CONTROL_KEYS):
+        if _is_high_consequence_tool(node) and authz_relevant and not _key_matches(node.config, AUTHZ_CONTROL_KEYS):
             self._emit(
                 "TOOL-015", [node.id],
                 "高影响工具未声明 subject-object-action、所有权或租户范围的确定性授权检查。",
@@ -850,30 +948,59 @@ class SecurityEngine:
             and _key_matches(self.graph.nodes[upstream_id].config, ("fallback", "error_strategy", "default_value", "on_error", "fail_closed"))
             for upstream_id in upstream_ids
         )
-        if not upstream_has_fallback and not _key_matches(node.config, ("fallback", "uncertainty", "confidence", "on_error")):
+        high_trust_output = _has_words(node.text, TRUST_CLAIM_WORDS) or _key_matches(
+            node.config, ("requires_verified_result", "decision_output", "machine_consumed")
+        )
+        if high_trust_output and not upstream_has_fallback and not _key_matches(node.config, ("fallback", "uncertainty", "confidence", "on_error")):
             self._emit("OUT-008", [node.id], "输出节点未显示低置信或失败回退行为。", status=Status.COVERAGE_GAP, confidence=1.0)
 
     def _knowledge_rules(self, node: Node) -> None:
         dataset_values = _key_values(node.config, ("dataset_ids", "dataset_id", "knowledge_id"))
-        if not dataset_values or any(value in (None, "", [], {}) for value in dataset_values):
-            self._emit("KB-001", [node.id], "知识检索数据集范围未固定或无法识别。", status=Status.PROBABLE, confidence=0.85)
-        if not _key_matches(node.config, FILTER_KEYS):
+        dynamic_dataset_scope = any(contains_template(value) for value in dataset_values if isinstance(value, (dict, list, str)))
+        wildcard_scope = any(value == "*" or value == ["*"] for value in dataset_values)
+        if dynamic_dataset_scope or wildcard_scope:
+            self._emit("KB-001", [node.id], "知识检索数据集范围由动态输入或通配符控制。", status=Status.CONFIRMED, confidence=0.95)
+        multi_dataset = any(isinstance(value, list) and len(value) > 1 for value in dataset_values)
+        business_partition_relevant = multi_dataset and _has_words(
+            f"{node.title}\n{node.text}", (*SENSITIVE_WORDS, *IDENTITY_RESOURCE_WORDS)
+        )
+        if (dynamic_dataset_scope or business_partition_relevant) and not _key_matches(node.config, FILTER_KEYS):
             self._emit("KB-002", [node.id], "知识检索未配置可识别的租户、用户或业务元数据过滤。", status=Status.PROBABLE, confidence=0.85, missing_context=["若平台在 DSL 外强制租户隔离，应在内部基线中登记。"])
         top_k_values = _key_values(node.config, ("top_k",))
         score_values = _key_values(node.config, ("score_threshold",))
-        risky_top_k = any(isinstance(value, (int, float)) and value > 10 for value in top_k_values)
-        risky_threshold = not score_values or any(isinstance(value, (int, float)) and value < 0.2 for value in score_values)
-        if risky_top_k or risky_threshold:
-            self._emit("KB-003", [node.id], "Top-K 过大或相似度阈值缺失/过低，可能扩大无关内容和投毒内容暴露面。", status=Status.PROBABLE, confidence=0.82)
-        if not _key_matches(node.config, ("source", "document_metadata", "citation", "metadata")):
-            self._emit("KB-008", [node.id], "DSL 未显示检索来源和引用元数据要求。", status=Status.PROBABLE, confidence=0.8)
-        if not _key_matches(node.config, ("prompt_injection_filter", "content_screening", "quarantine", "trusted_content")):
-            self._emit("KB-009", [node.id], "检索内容进入模型前缺少可识别的注入筛查或隔离控制。", status=Status.PROBABLE, confidence=0.85, dynamic_test="rag_indirect_prompt_injection")
-        self._emit(
-            "KB-010", [node.id], "知识库 ACL、文档来源、内容隔离、过期和撤销策略不在 DSL 中，静态扫描无法验证。",
-            status=Status.COVERAGE_GAP, severity=Severity.INFO, confidence=1.0,
-            missing_context=["knowledge_acl", "document_provenance", "retention", "quarantine"],
+        risky_top_k = any(isinstance(value, (int, float)) and value > 20 for value in top_k_values)
+        risky_threshold = any(isinstance(value, (int, float)) and value < 0.1 for value in score_values)
+        downstream_effect = any(
+            _is_effectful_tool(item) and self.graph.path(node.id, item.id)
+            for item in self.ir.nodes
         )
+        if (risky_top_k or risky_threshold) and (_is_sensitive(node) or downstream_effect):
+            self._emit("KB-003", [node.id], "Top-K 过大或相似度阈值缺失/过低，可能扩大无关内容和投毒内容暴露面。", status=Status.PROBABLE, confidence=0.82)
+        downstream_high_trust_output = any(
+            item.type == NodeType.OUTPUT.value
+            and self.graph.path(node.id, item.id)
+            and (_has_words(item.text, TRUST_CLAIM_WORDS) or _key_matches(item.config, ("requires_citations", "verified_answer")))
+            for item in self.ir.nodes
+        )
+        if downstream_high_trust_output and not _key_matches(node.config, ("source", "document_metadata", "citation", "metadata")):
+            self._emit("KB-008", [node.id], "DSL 未显示检索来源和引用元数据要求。", status=Status.PROBABLE, confidence=0.8)
+        downstream_effect_without_gate = False
+        controls = {item.id for item in self.ir.nodes if _is_validation(item) or _is_approval(item)}
+        for llm in [item for item in self.ir.nodes if item.type == NodeType.LLM.value]:
+            first = self.graph.path(node.id, llm.id, data_preferred=True)
+            if not first:
+                continue
+            if any(self.graph.path(llm.id, sink.id, excluded=controls) for sink in self.ir.nodes if _is_effectful_tool(sink)):
+                downstream_effect_without_gate = True
+                break
+        if downstream_effect_without_gate and not _key_matches(node.config, ("prompt_injection_filter", "content_screening", "quarantine", "trusted_content")):
+            self._emit("KB-009", [node.id], "检索内容进入模型前缺少可识别的注入筛查或隔离控制。", status=Status.PROBABLE, confidence=0.85, dynamic_test="rag_indirect_prompt_injection")
+        if _key_matches(node.config, ("require_governance_assurance", "regulated_knowledge", "external_knowledge")):
+            self._emit(
+                "KB-010", [node.id], "该知识资产声明需要治理保证，但 ACL、来源、隔离、过期和撤销策略不在 DSL 中。",
+                status=Status.COVERAGE_GAP, severity=Severity.INFO, confidence=1.0,
+                missing_context=["knowledge_acl", "document_provenance", "retention", "quarantine"],
+            )
 
     def _loop_rules(self, node: Node) -> None:
         if not _has_limits(node):
@@ -887,7 +1014,10 @@ class SecurityEngine:
         tools = [node for node in nodes if node.type in {NodeType.TOOL.value, NodeType.CODE.value}]
         llms = [node for node in nodes if node.type == NodeType.LLM.value]
         outputs = [node for node in nodes if node.type == NodeType.OUTPUT.value]
-        dangerous_tools = [node for node in tools if node.high_impact or node.external or "CODE_EXECUTION" in node.capabilities]
+        # External read-only tools are content sources, not dangerous sinks.  A
+        # prompt-injection chain becomes a security finding only when it can reach
+        # a state-changing or executable capability.
+        dangerous_tools = [node for node in tools if _is_effectful_tool(node)]
         controls = {node.id for node in nodes if _is_validation(node) or _is_approval(node)}
 
         for approval in [node for node in nodes if _is_approval(node)]:
@@ -1053,7 +1183,7 @@ class SecurityEngine:
             node for node in [*knowledge, *content_sources, *tools]
             if node.type in {NodeType.KNOWLEDGE.value, NodeType.CONTENT.value} or node.external or "NETWORK_READ" in node.capabilities
         ]
-        code_sinks = [node for node in tools if node.type == NodeType.CODE.value or "CODE_EXECUTION" in node.capabilities]
+        code_sinks = [node for node in tools if "CODE_EXECUTION" in node.capabilities]
         for source in external_content:
             for llm in llms:
                 first = self.graph.path(source.id, llm.id, data_preferred=True)
@@ -1083,7 +1213,7 @@ class SecurityEngine:
                         dynamic_test="inter_agent_message_injection",
                     )
 
-        side_effect_tools = [node for node in tools if node.high_impact or "NETWORK_WRITE" in node.capabilities]
+        side_effect_tools = [node for node in tools if _is_effectful_tool(node)]
         for first_tool in side_effect_tools:
             for second_tool in side_effect_tools:
                 if first_tool.id == second_tool.id:
@@ -1123,7 +1253,11 @@ class SecurityEngine:
         for tool in tools:
             for llm in llms:
                 path = self.graph.path(tool.id, llm.id, data_preferred=True)
-                if path and not _has_schema(tool):
+                untrusted_tool_output = bool(
+                    tool.external
+                    or set(tool.capabilities) & {"NETWORK_READ", "UNKNOWN_TOOL_CAPABILITY"}
+                )
+                if path and untrusted_tool_output and not _has_schema(tool):
                     self._emit("TOOL-012", path, "工具输出未经严格 Schema 验证进入 LLM 上下文。", status=Status.CONFIRMED, dynamic_test="tool_output_prompt_injection")
 
         for llm in llms:
@@ -1134,7 +1268,7 @@ class SecurityEngine:
                         self._emit("LLM-005", path, "LLM 自由文本输出可直接影响工具参数。", status=Status.CONFIRMED, dynamic_test="free_text_tool_control")
                         self._emit("LLM-006", path, "下游工具依赖 LLM 输出，但节点未声明严格结构化输出。", status=Status.CONFIRMED)
                         self._emit("OUT-006", path, "未经严格结构验证的模型输出进入下游执行节点。", status=Status.CONFIRMED, dynamic_test="free_text_tool_control")
-                    if tool.high_impact:
+                    if _is_high_consequence_tool(tool):
                         has_deterministic_gate = any(item in controls for item in path[1:-1])
                         if not has_deterministic_gate:
                             self._emit("LLM-008", path, "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。", status=Status.PROBABLE, confidence=0.88, dynamic_test="high_impact_model_decision")
@@ -1142,7 +1276,10 @@ class SecurityEngine:
         for output in outputs:
             for kb in knowledge:
                 path = self.graph.path(kb.id, output.id, data_preferred=True)
-                if path and not _key_matches(output.config, ("citation", "sources", "references")):
+                citation_required = _key_matches(output.config, ("requires_citations", "verified_answer")) or _has_words(
+                    output.text, TRUST_CLAIM_WORDS
+                )
+                if path and citation_required and not _key_matches(output.config, ("citation", "sources", "references")):
                     self._emit("OUT-007", path, "知识库回答到达输出，但未发现引用元数据绑定。", status=Status.CONFIRMED)
 
         for node in nodes:

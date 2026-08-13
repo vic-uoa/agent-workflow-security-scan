@@ -13,7 +13,7 @@ risk_policy:
 quality_gate:
   blocking_severities: [CRITICAL, HIGH]
   blocking_statuses: [CONFIRMED]
-  review_statuses: [OBSERVED, PROBABLE, COVERAGE_GAP]
+  review_statuses: [OBSERVED, PROBABLE, CANDIDATE, COVERAGE_GAP]
 
 sensitive_data_patterns:
   - password
@@ -31,9 +31,10 @@ tool_registry:
   - match: http-request
     match_field: original_type
     match_type: exact
-    capabilities: [NETWORK_READ, NETWORK_WRITE]
+    # Parser derives NETWORK_WRITE from the actual HTTP method.  The generic
+    # registry entry must not turn GET/HEAD/OPTIONS into state-changing calls.
+    capabilities: [NETWORK_READ]
     external: true
-    high_impact: false
     trusted_source: true
     definition_version: internal-http-v1
     integrity_control: platform_release_review

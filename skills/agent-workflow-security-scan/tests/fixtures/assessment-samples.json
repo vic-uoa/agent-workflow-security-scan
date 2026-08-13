@@ -1,5 +1,6 @@
 {
   "confirmed_by_user": true,
+  "confirmed_dsl_sha256": "5f6bfdd6d6a8a6c22eac9d79218c6028b6f7ae7d4e10184a4b1e4bda22356beb",
   "samples": [
     {
       "sample_id": "normal-001",

@@ -20,8 +20,10 @@ Use this scanner as a pre-release static architecture and data-flow gate for com
 - `PROBABLE` requires a proven structural path plus a clearly listed semantic/runtime precondition.
 - `COVERAGE_GAP` identifies evidence that the DSL cannot supply.
 - Keywords may classify a capability candidate but cannot establish an approval, validation or authorization control.
-- A model may add context or downgrade a candidate; it cannot create deterministic facts or promote a finding to `CONFIRMED`.
+- An optional model advisor may add inert test suggestions or non-authoritative wording only; it cannot change any Finding field or the quality gate.
 - A generated input is a test hypothesis, not execution evidence. Do not use it to establish applicability, exploitability or mitigation.
+- Bind the user's DSL selection and seed confirmation with `confirmed_dsl_sha256`; assessment must stop if the selected file changes afterward.
+- Complete deterministic applicability, path and control evaluation before generating the input cluster. Do not use model voting to change a status.
 - False-positive reduction must be lossless at rule-coverage level: retain raw matches, merge only aliases sharing the same root family and source/sink, and fail if a matched rule ID disappears from primary/related mappings.
 
 ## Internal DSL control annotations
@@ -46,7 +48,7 @@ input_schema:
   additionalProperties: false
 ```
 
-For high-impact tools, declare an execution-side authorization policy such as `authorization_policy`, `ownership_check`, `subject_binding`, `resource_binding`, `tenant_enforced`, `rbac` or `abac`. Authentication headers alone do not satisfy object-level authorization.
+For high-consequence tools, declare an execution-side authorization policy such as `authorization_policy`, `ownership_check`, `subject_binding`, `resource_binding`, `tenant_enforced`, `rbac` or `abac`. Authentication headers alone do not satisfy object-level authorization. Human confirmation is one possible gate for consent-sensitive actions, not a universal requirement for every write operation.
 
 For Human Input nodes, retain action IDs in edge `sourceHandle` values. The scanner verifies that reject, cancel and unknown actions cannot reach high-impact tools.
 
@@ -71,11 +73,13 @@ A waiver must include `waiver_id`, `workflow_hash`, `approver`, `justification` 
 | Fixture | Expected result | Security property |
 |---|---|---|
 | `safe-workflow.yml` | PASS / 0 findings | Baseline false-positive check |
-| `approval-protected-workflow.yml` | PASS / 0 findings | Human approval dominates destructive action |
+| `approval-protected-workflow.yml` | PASS / 0 findings | A mandatory human gate protects a consent-sensitive destructive action |
 | `approval-bypass-workflow.yml` | FAIL / FLOW-006 | Reject branch reaches destructive action |
 | `keyword-spoofed-control.yml` | FAIL / FLOW-003 + TOOL-008 | Security words do not create a control |
 | `parameter-precision-workflow.yml` | PASS / no TOOL-003 or TOOL-017 | Dynamic body is not misclassified as dynamic URL |
-| `review-only-workflow.yml` | REVIEW / LLM-009 + LLM-010 | Non-blocking runtime resilience gaps require human review |
+| `review-only-workflow.yml` | PASS / 0 findings | Bounded text-only LLM does not inherit side-effect resilience rules |
+| `safe-code-transform-workflow.yml` | PASS / 0 findings | Fixed sandbox code receives variables as data, not executable source |
+| `simple-rag-readonly-workflow.yml` | PASS / 0 findings | Static single-dataset read-only RAG avoids cross-tenant/governance false positives |
 | `non-strict-schema-workflow.yml` | FAIL / LLM-006 + TOOL-011 | Schema presence without closed properties is insufficient |
 | `document-indirect-injection-workflow.yml` | FAIL / FLOW-005 + FLOW-010 | Uploaded document text is an untrusted content source |
 | `tencent-inspired-workflow.yml` | FAIL | Composite injection, exfiltration, memory, agent and code-execution paths |

@@ -19,6 +19,15 @@ Rules are not keyword findings. A rule may use keywords only to classify a candi
 - a registered tool capability and parameter controllability;
 - a schema-constrained semantic assertion with evidence references.
 
+Security findings use a four-part applicability gate: relevant capability, reachable data/control path, missing matching deterministic control, and plausible business impact. A missing hardening option without those conditions is either omitted or recorded as a coverage limitation, not promoted to a vulnerability.
+
+In particular:
+
+- an external read-only tool is a content source, not automatically a dangerous sink;
+- fixed sandbox code receiving variables as function data is not command injection;
+- a high-consequence action needs a mandatory action gate, but that gate may be deterministic authorization, object-level policy, parameter constraints, or business-required human confirmation;
+- ordinary text LLM, static single-dataset RAG, and human-readable output do not inherit controls meant for autonomous, privileged, regulated, or machine-consumed paths.
+
 Every rule has an ID, base severity, detectability class, standard mappings, evidence, remediation, and optional dynamic test type. The executable metadata is in `rules/core-rules.yml`; evaluators are in `scripts/agent_workflow_scan/engine.py`.
 
 ## Evidence states
@@ -48,6 +57,7 @@ Do not collapse unlike controls merely because they share a node. Authorization,
 Primary mappings include OWASP AISVS C2/C7/C8/C9/C10/C12, OWASP Agentic Top 10, OWASP LLMSVS, MITRE ATLAS, and NIST AI 100-2.
 
 Tencent AI-Infra-Guard 的对照、静态化映射和归属信息见 [upstream-research.md](upstream-research.md)。
+逐规则适用条件、攻击簇和排除条件见 [node-rule-matrix.md](node-rule-matrix.md)。
 
 ## Runtime boundaries
 

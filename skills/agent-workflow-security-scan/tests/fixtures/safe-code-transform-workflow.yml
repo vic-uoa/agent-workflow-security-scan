@@ -1,0 +1,31 @@
+app: {name: safe-code-transform}
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          normalization: NFKC
+          variables:
+            - {variable: text, type: text-input, max_length: 2000}
+      - id: code
+        data:
+          type: code
+          title: 固定文本转换
+          variables:
+            text: [start, text]
+          code: |
+            def main(text: str) -> dict:
+                return {"result": text.strip().lower()}
+          outputs:
+            result: {type: string}
+          timeout: 5
+      - id: end
+        data:
+          type: end
+          outputs:
+            result: [code, result]
+          fallback: fail_closed
+    edges:
+      - {id: e1, source: start, target: code}
+      - {id: e2, source: code, target: end}

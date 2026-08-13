@@ -7,7 +7,19 @@ rule_defaults:
   dynamic_test_template: null
   references:
     - https://github.com/Tencent/AI-Infra-Guard/tree/main/agent-scan
+    - https://github.com/ethz-spylab/agentdojo
+    - https://github.com/invariantlabs-ai/invariant
+    - https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
   provenance: "Rule semantics independently adapted for static Dify DSL analysis; no upstream prompt text is embedded."
+calibration_policy:
+  risk_key: responsible_node_plus_control_domain
+  require_capability_and_path_for_security_finding: true
+  read_only_external_tool_is_not_high_impact_sink: true
+  fixed_sandbox_code_inputs_are_data_not_commands: true
+  human_approval_is_not_universally_required: true
+  accepted_action_gates: [human_confirmation, deterministic_authorization, policy_engine, object_level_authorization, parameter_allowlist]
+  runtime_unknown_is_coverage_not_confirmed_vulnerability: true
+  missing_hardening_is_reported_only_when_impact_context_applies: true
 control_domains:
   structure_coverage: [FLOW-001, FLOW-002]
   input_contract: [IN-001, IN-002, IN-003, IN-004, IN-005, IN-006]
@@ -40,7 +52,7 @@ rules:
   - {id: FLOW-013, title: "自主 Agent 缺少目标锁定和紧急停止边界", severity: HIGH, detectability: H, standards: [ASI10, AISVS-9.1], attack_family: rogue_agent}
 
   - {id: IN-001, title: "输入字段缺少明确类型", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
-  - {id: IN-002, title: "输入缺少长度或数量限制", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
+  - {id: IN-002, title: "进入循环或副作用路径的输入缺少上限", severity: MEDIUM, detectability: S, standards: [AISVS-C2], applies_to: [file_or_collection_input, text_reaching_loop_or_side_effect], exclusion_facts: [bounded_single_step_text_workflow]}
   - {id: IN-003, title: "文件上传约束不足", severity: HIGH, detectability: S, standards: [AISVS-C2]}
   - {id: IN-004, title: "未声明输入规范化", severity: LOW, detectability: M, standards: [AISVS-C2], root_cause_family: input_canonicalization, requires_dynamic_validation: true}
   - {id: IN-005, title: "对象输入允许未知字段", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
@@ -57,8 +69,8 @@ rules:
   - {id: LLM-006, title: "下游依赖结构化数据但无输出 Schema", severity: HIGH, detectability: S, standards: [AISVS-C7]}
   - {id: LLM-007, title: "模型承担授权决策", severity: HIGH, detectability: H, standards: [AISVS-9.5.3, ASI03]}
   - {id: LLM-008, title: "高影响决策无确定性复核", severity: HIGH, detectability: S, standards: [AISVS-9.2]}
-  - {id: LLM-009, title: "模型资源预算不完整", severity: MEDIUM, detectability: S, standards: [AISVS-9.1]}
-  - {id: LLM-010, title: "模型失败回退路径不安全", severity: MEDIUM, detectability: H, standards: [AISVS-9.6]}
+  - {id: LLM-009, title: "自主或副作用路径的模型资源预算不完整", severity: MEDIUM, detectability: S, standards: [AISVS-9.1], applies_to: [autonomous_agent, llm_reaching_side_effect], exclusion_facts: [single_step_text_only_llm]}
+  - {id: LLM-010, title: "副作用路径的模型失败回退不明确", severity: MEDIUM, detectability: H, standards: [AISVS-9.6], applies_to: [llm_reaching_side_effect], exclusion_facts: [human_readable_text_only_output]}
   - {id: LLM-011, title: "系统指令敏感内容存在泄露面", severity: HIGH, detectability: H, standards: [ASI03], attack_family: data_leakage}
 
   - {id: TOOL-001, title: "工具能力无法确定", severity: MEDIUM, detectability: H, standards: [AISVS-9.3]}
@@ -68,13 +80,13 @@ rules:
   - {id: TOOL-005, title: "SQL 或查询注入风险", severity: HIGH, detectability: S, standards: [ASI02]}
   - {id: TOOL-006, title: "动态文件路径缺少目录约束", severity: HIGH, detectability: S, standards: [ASI02]}
   - {id: TOOL-007, title: "敏感数据通过工具外传", severity: HIGH, detectability: H, standards: [ASI03]}
-  - {id: TOOL-008, title: "高影响操作缺少必经审批", severity: HIGH, detectability: S, standards: [AISVS-9.2]}
+  - {id: TOOL-008, title: "高后果操作缺少必经授权或策略门", severity: HIGH, detectability: S, standards: [AISVS-9.2], applies_to: [irreversible_privileged_or_dynamic_code_action], exclusion_facts: [mandatory_deterministic_policy_gate, object_level_authorization, business_required_human_confirmation]}
   - {id: TOOL-009, title: "工具能力超出业务目的", severity: MEDIUM, detectability: H, standards: [ASI02]}
   - {id: TOOL-010, title: "工具凭证处理不安全", severity: CRITICAL, detectability: S, standards: [AISVS-9.5.4, ASI03]}
   - {id: TOOL-011, title: "工具输入缺少严格 Schema", severity: MEDIUM, detectability: S, standards: [AISVS-9.3]}
   - {id: TOOL-012, title: "工具输出未经验证进入模型", severity: HIGH, detectability: S, standards: [AISVS-9.3]}
-  - {id: TOOL-013, title: "工具缺少超时或调用限制", severity: MEDIUM, detectability: S, standards: [AISVS-9.1]}
-  - {id: TOOL-014, title: "工具供应链或描述投毒风险", severity: HIGH, detectability: M, standards: [ASI04, AISVS-C10]}
+  - {id: TOOL-013, title: "长耗时或副作用工具的超时保证不可见", severity: LOW, detectability: M, standards: [AISVS-9.1], applies_to: [effectful_or_unknown_unregistered_tool], exclusion_facts: [trusted_registry_runtime_timeout]}
+  - {id: TOOL-014, title: "第三方或未知工具供应链不可验证", severity: HIGH, detectability: M, standards: [ASI04, AISVS-C10], applies_to: [third_party_plugin, unknown_tool_capability], exclusion_facts: [trusted_versioned_integrity_registry]}
   - {id: TOOL-015, title: "高影响工具缺少对象级授权约束", severity: HIGH, detectability: H, standards: [ASI03, AISVS-9.5.3], attack_family: authorization_bypass}
   - {id: TOOL-016, title: "用户可控身份或资源标识直达工具", severity: HIGH, detectability: S, standards: [ASI03], attack_family: authorization_bypass}
   - {id: TOOL-017, title: "敏感载荷与动态网络目标形成外带通道", severity: CRITICAL, detectability: S, standards: [ASI03], attack_family: web_exfiltration}
@@ -85,20 +97,20 @@ rules:
   - {id: OUT-004, title: "富文本输出缺少上下文编码", severity: HIGH, detectability: S, standards: [AISVS-C7]}
   - {id: OUT-005, title: "模型生成危险链接或协议", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
   - {id: OUT-006, title: "未验证输出进入下游执行者", severity: HIGH, detectability: S, standards: [AISVS-C7, ASI07]}
-  - {id: OUT-007, title: "RAG 引用不可追踪", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
+  - {id: OUT-007, title: "高信任 RAG 输出引用不可追踪", severity: MEDIUM, detectability: S, standards: [AISVS-C7], applies_to: [regulated_or_verified_rag_output], exclusion_facts: [ordinary_unregulated_knowledge_answer]}
   - {id: OUT-008, title: "低置信或失败输出无回退", severity: MEDIUM, detectability: H, standards: [AISVS-C7], applies_to: [end_to_end_failure_path], exclusion_facts: [upstream_default_or_fail_closed_strategy]}
   - {id: OUT-009, title: "动态 Markdown 链接或图片可形成隐蔽外带", severity: HIGH, detectability: S, standards: [ASI03, AISVS-C7], attack_family: web_exfiltration}
   - {id: OUT-010, title: "面向人的高信任声明缺少来源证明", severity: MEDIUM, detectability: H, standards: [ASI09], attack_family: human_agent_trust_exploit}
 
-  - {id: KB-001, title: "知识检索数据集范围未限定", severity: HIGH, detectability: S, standards: [AISVS-8.1]}
-  - {id: KB-002, title: "缺少租户或业务元数据过滤", severity: HIGH, detectability: S, standards: [AISVS-8.1]}
-  - {id: KB-003, title: "检索 Top-K 或阈值扩大暴露面", severity: MEDIUM, detectability: S, standards: [AISVS-C8]}
+  - {id: KB-001, title: "知识数据集范围可被动态改写", severity: HIGH, detectability: S, standards: [AISVS-8.1], applies_to: [dynamic_or_wildcard_dataset_scope], exclusion_facts: [static_dataset_ids, empty_dataset_configuration_error]}
+  - {id: KB-002, title: "动态或多业务知识范围缺少分区过滤", severity: HIGH, detectability: S, standards: [AISVS-8.1], applies_to: [dynamic_dataset_scope, sensitive_multi_dataset_scope], exclusion_facts: [static_single_dataset]}
+  - {id: KB-003, title: "敏感或副作用 RAG 的检索范围过宽", severity: MEDIUM, detectability: S, standards: [AISVS-C8], applies_to: [sensitive_knowledge, retrieval_reaching_side_effect], exclusion_facts: [ordinary_public_read_only_rag]}
   - {id: KB-004, title: "知识内容进入高权限 Prompt", severity: HIGH, detectability: S, standards: [ASI01]}
   - {id: KB-005, title: "知识内容经模型控制工具", severity: HIGH, detectability: S, standards: [ASI01, ASI02]}
   - {id: KB-006, title: "知识敏感内容可达外部边界", severity: HIGH, detectability: H, standards: [AISVS-C8]}
   - {id: KB-007, title: "未验证内容写入可信记忆", severity: HIGH, detectability: H, standards: [AISVS-8.2.3]}
-  - {id: KB-008, title: "知识来源元数据不可追踪", severity: MEDIUM, detectability: S, standards: [AISVS-C7, AISVS-C12]}
-  - {id: KB-009, title: "知识内容缺少注入隔离", severity: HIGH, detectability: H, standards: [AISVS-8.2]}
-  - {id: KB-010, title: "知识库运行控制不在 DSL 中", severity: INFO, detectability: M, standards: [AISVS-C8]}
+  - {id: KB-008, title: "高信任知识决策缺少来源元数据", severity: MEDIUM, detectability: S, standards: [AISVS-C7, AISVS-C12], applies_to: [regulated_or_verified_output], exclusion_facts: [ordinary_knowledge_answer]}
+  - {id: KB-009, title: "知识到副作用路径缺少注入隔离", severity: HIGH, detectability: H, standards: [AISVS-8.2], applies_to: [knowledge_to_llm_to_side_effect], exclusion_facts: [read_only_rag, mandatory_action_gate]}
+  - {id: KB-010, title: "声明需治理的知识库运行控制不可见", severity: INFO, detectability: M, standards: [AISVS-C8], applies_to: [regulated_or_external_knowledge_declared], exclusion_facts: [ordinary_static_knowledge_base]}
   - {id: KB-011, title: "持久记忆缺少用户或租户命名空间", severity: HIGH, detectability: S, standards: [ASI06, AISVS-8.1], attack_family: memory_poisoning}
   - {id: KB-012, title: "不可信写入可被后续 Agent 读取", severity: HIGH, detectability: S, standards: [ASI06, ASI07], attack_family: memory_poisoning}

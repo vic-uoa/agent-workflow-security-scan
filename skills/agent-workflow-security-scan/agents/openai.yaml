@@ -1,4 +1,4 @@
 interface:
   display_name: "Agent Workflow Security Gate"
   short_description: "Enterprise Dify DSL security gate"
-  default_prompt: "Use $agent-workflow-security-scan to confirm one DSL and seed inputs, then report risks by responsible node and control domain with rules and paths retained as evidence."
+  default_prompt: "Use $agent-workflow-security-scan on the explicitly named workflow YAML; ask for the target only if ambiguous, confirm representative seed inputs, run deterministic static analysis, generate an input cluster, and present a clear report plus human-readable attack surface by responsible node and control domain."

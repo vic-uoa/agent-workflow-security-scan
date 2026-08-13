@@ -1,6 +1,7 @@
 {
   "workflow_id": "demo-static-employee-assistant",
   "confirmed_by_user": true,
+  "confirmed_dsl_sha256": "e0e391afd949f381ae5fe436969e8a6cfa40011a51d95d9d9c3b0d3b26c048e2",
   "samples": [
     {
       "sample_id": "seed-normal-001",

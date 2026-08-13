@@ -109,11 +109,20 @@ EXTERNAL_WORDS = {
     "http", "webhook", "email", "mail", "slack", "feishu", "wechat",
     "telegram", "request", "upload", "publish", "browser", "api",
 }
-HIGH_IMPACT_WORDS = {
-    "delete", "remove", "drop", "write", "update", "create", "send",
-    "publish", "execute", "shell", "command", "payment", "transfer",
-    "permission", "admin", "deploy", "terminate",
+# These terms are intentionally narrower than generic CRUD verbs.  Words such as
+# "create", "update" and "write" occur frequently in descriptions and prompts;
+# treating any occurrence as a privileged side effect caused severe over-reporting.
+HIGH_IMPACT_ACTION_WORDS = {
+    "delete", "remove", "drop", "terminate", "destroy", "purge",
+    "payment", "transfer", "refund", "withdraw", "charge",
+    "permission", "grant", "revoke", "role", "admin",
+    "deploy", "publish", "send-email", "send email", "broadcast",
+    "删除", "销毁", "转账", "付款", "退款", "授权", "提权", "管理员", "发布", "群发",
 }
+DANGEROUS_CODE_PATTERNS = (
+    r"\b(?:eval|exec)\s*\(", r"\bsubprocess\b", r"\bos\.system\s*\(",
+    r"\bpopen\s*\(", r"shell\s*=\s*true", r"\b(?:socket|requests|urllib)\b",
+)
 
 
 def _json_pointer(parts: list[Any]) -> str:
@@ -196,14 +205,40 @@ def _map_type(raw_type: str) -> NodeType:
 
 
 def _classify_capabilities(node_type: NodeType, original_type: str, config: dict[str, Any]) -> tuple[list[str], bool, bool]:
-    text = f"{original_type}\n{flatten_text(config)}".lower()
+    identity_values = [original_type]
+    for key in (
+        "title", "name", "tool_name", "provider_name", "operation", "action",
+        "api_name", "endpoint_name", "resource_type",
+    ):
+        value = config.get(key)
+        if isinstance(value, (str, int, float)):
+            identity_values.append(str(value))
+    identity_text = "\n".join(identity_values).lower()
     capabilities: set[str] = set()
-    external = any(word in text for word in EXTERNAL_WORDS)
-    high_impact = any(word in text for word in HIGH_IMPACT_WORDS)
+    explicit_high_impact = config.get("high_impact") is True or str(config.get("risk_level", "")).lower() in {
+        "high", "critical",
+    }
+    external = node_type == NodeType.TOOL and (
+        original_type.lower().replace("_", "-") in {"http-request", "api"}
+        or any(word in identity_text for word in EXTERNAL_WORDS)
+        or any(key in config for key in ("url", "endpoint", "base_url"))
+    )
+    high_impact = explicit_high_impact or any(word in identity_text for word in HIGH_IMPACT_ACTION_WORDS)
+    if node_type == NodeType.TOOL and str(config.get("method") or "").upper() == "DELETE":
+        high_impact = True
 
     if node_type == NodeType.CODE:
-        capabilities.add("CODE_EXECUTION")
-        high_impact = True
+        # A Dify Code node normally executes fixed workflow code in the platform
+        # sandbox.  Supplying data arguments to that function is not by itself
+        # command injection.  Escalate only when dangerous interpreters, process
+        # launchers or network primitives are actually present.
+        capabilities.add("SANDBOXED_CODE")
+        code_text = "\n".join(
+            str(config.get(key) or "") for key in ("code", "script", "source")
+        ).lower()
+        if contains_template(code_text) or any(re.search(pattern, code_text) for pattern in DANGEROUS_CODE_PATTERNS):
+            capabilities.add("CODE_EXECUTION")
+            high_impact = True
     if node_type == NodeType.KNOWLEDGE:
         capabilities.add("DATABASE_READ")
     if node_type == NodeType.OUTPUT:
@@ -218,21 +253,21 @@ def _classify_capabilities(node_type: NodeType, original_type: str, config: dict
             method = str(config.get("method") or "").upper()
             if method and method not in {"GET", "HEAD", "OPTIONS"}:
                 capabilities.add("NETWORK_WRITE")
-            elif any(word in text for word in ("send", "upload", "publish", "webhook", "callback")):
+            elif any(word in identity_text for word in ("send", "upload", "publish", "webhook", "callback")):
                 capabilities.add("NETWORK_WRITE")
-        if any(word in text for word in ("file", "path", "directory")):
+        if any(word in identity_text for word in ("file", "path", "directory")):
             capabilities.add("FILE_WRITE" if high_impact else "FILE_READ")
-        if any(word in text for word in ("sql", "database", "query")):
+        if any(word in identity_text for word in ("sql", "database", "query")):
             capabilities.add("DATABASE_WRITE" if high_impact else "DATABASE_READ")
-        if any(word in text for word in ("email", "mail", "message", "slack", "send")):
+        if any(word in identity_text for word in ("email", "mail", "message", "slack", "send")):
             capabilities.add("MESSAGE_SEND")
-        if any(word in text for word in ("shell", "command", "exec", "script")):
+        if any(word in identity_text for word in ("shell", "command", "exec", "script")):
             capabilities.add("CODE_EXECUTION")
             high_impact = True
-        if any(word in text for word in ("delete", "remove", "drop", "terminate")):
+        if any(word in identity_text for word in ("delete", "remove", "drop", "terminate", "destroy", "purge")):
             capabilities.add("RESOURCE_DELETE")
             high_impact = True
-        if any(word in text for word in ("permission", "role", "admin", "grant")):
+        if any(word in identity_text for word in ("permission", "role", "admin", "grant", "revoke")):
             capabilities.add("PERMISSION_CHANGE")
             high_impact = True
         if not capabilities:

@@ -5,17 +5,28 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 import json
-import os
 import re
 
 import yaml
 
 from . import __version__
 from .engine import execute_rules
-from .llm import SemanticPipeline, deterministic_test_cluster, redact_for_model, validate_references
+from .llm import (
+    ModelAdvisor,
+    deterministic_semantic_inventory,
+    deterministic_test_cluster,
+    redact_for_model,
+    validate_references,
+)
 from .models import SCHEMA_VERSION, Finding, WorkflowIR, file_sha256, stable_id, to_jsonable, utc_now, write_artifact
 from .parser import parse_dify_dsl
-from .report import build_attack_surface, build_dynamic_plan, build_report_json, render_markdown
+from .report import (
+    build_attack_surface,
+    build_dynamic_plan,
+    build_report_json,
+    render_attack_surface_markdown,
+    render_markdown,
+)
 
 
 def load_samples(path: Path | None) -> dict[str, Any]:
@@ -29,9 +40,18 @@ def load_samples(path: Path | None) -> dict[str, Any]:
     return payload
 
 
-def validate_seed_samples(samples: dict[str, Any]) -> None:
+def validate_seed_samples(samples: dict[str, Any], workflow_hash: str) -> None:
     if samples.get("confirmed_by_user") is not True:
         raise ValueError("seed samples must set confirmed_by_user=true after user review")
+    confirmed_hash = str(samples.get("confirmed_dsl_sha256") or "").strip().lower()
+    if not confirmed_hash:
+        raise ValueError(
+            "assessment requires confirmed_dsl_sha256 from the DSL selection checkpoint"
+        )
+    if confirmed_hash != workflow_hash.lower():
+        raise ValueError(
+            "confirmed_dsl_sha256 does not match the DSL being scanned; reconfirm the DSL and seed inputs"
+        )
     cases = [item for item in samples.get("samples", []) if isinstance(item, dict)]
     if not cases:
         raise ValueError("assessment requires at least one user-confirmed seed sample")
@@ -178,7 +198,7 @@ def evaluate_quality_gate(findings: list[Finding], baseline: dict[str, Any], wai
     policy = baseline.get("quality_gate", {}) if isinstance(baseline.get("quality_gate", {}), dict) else {}
     blocking_severities = {str(item) for item in policy.get("blocking_severities", ["CRITICAL", "HIGH"])}
     blocking_statuses = {str(item) for item in policy.get("blocking_statuses", ["CONFIRMED"])}
-    review_statuses = {str(item) for item in policy.get("review_statuses", ["OBSERVED", "PROBABLE", "COVERAGE_GAP"])}
+    review_statuses = {str(item) for item in policy.get("review_statuses", ["OBSERVED", "PROBABLE", "CANDIDATE", "COVERAGE_GAP"])}
     blockers = [
         finding for finding in findings
         if not finding.waived and finding.severity in blocking_severities and finding.status in blocking_statuses
@@ -207,8 +227,8 @@ def write_artifact_index(output_dir: Path, scan_id: str, workflow_hash: str) -> 
     expected = {
         "00-scan-manifest.json", "01-workflow-ir.json", "02-security-facts.json",
         "03-semantic-inventory.json", "04-rule-candidates.json", "05-test-cluster.json",
-        "06-llm-adjudication.json", "07-verification.json", "08-findings.json",
-        "09-attack-surface.json", "10-dynamic-test-plan.json", "11-quality-gate.json",
+        "06-model-advisory.json", "07-verification.json", "08-findings.json",
+        "09-attack-surface.json", "attack-surface.md", "10-dynamic-test-plan.json", "11-quality-gate.json",
         "report.json", "report.md",
     }
     entries = []
@@ -291,86 +311,42 @@ def artifact(payload: dict[str, Any], scan_id: str, producer: str, workflow_hash
     }
 
 
-def _verify_and_merge(
+def verify_deterministic_findings(
     ir: WorkflowIR,
     findings: list[Finding],
     facts: list[Any],
     candidates: dict[str, Any],
-    adjudication: dict[str, Any],
-    review: dict[str, Any],
-) -> tuple[list[Finding], dict[str, Any]]:
+) -> dict[str, Any]:
     allowed_nodes = {node.id for node in ir.nodes}
     allowed_facts = {fact.id for fact in facts}
-    allowed_rules = {finding.rule_id for finding in findings}
-    allowed_findings = {finding.id for finding in findings}
-    allowed_candidates = {item["candidate_id"] for item in candidates.get("candidates", [])}
-    allowed = allowed_nodes | allowed_facts | allowed_rules | allowed_findings | allowed_candidates
-    invalid_adjudication_refs = validate_references(adjudication, allowed)
-    invalid_review_refs = validate_references(review, allowed)
-
-    result = deepcopy(findings)
-    by_id = {finding.id: finding for finding in result}
-    candidate_to_finding = {item["candidate_id"]: item["finding_id"] for item in candidates.get("candidates", [])}
-    applied_adjudications: list[dict[str, Any]] = []
-    if not invalid_adjudication_refs:
-        for item in adjudication.get("adjudications", []):
-            if not isinstance(item, dict):
-                continue
-            finding = by_id.get(candidate_to_finding.get(str(item.get("candidate_id")), ""))
-            if finding is None:
-                continue
-            if finding.status != "CONFIRMED":
-                if item.get("applicable") is False:
-                    finding.status = "CANDIDATE"
-                    finding.confidence = min(finding.confidence, float(item.get("confidence", 0.5)))
-                recommended = item.get("recommended_status")
-                if recommended in {"OBSERVED", "CANDIDATE", "COVERAGE_GAP", "MITIGATED"}:
-                    finding.status = str(recommended)
-            finding.attack_preconditions = list(dict.fromkeys([*finding.attack_preconditions, *item.get("attack_preconditions", [])]))
-            finding.missing_context = list(dict.fromkeys([*finding.missing_context, *item.get("missing_context", [])]))
-            finding.counter_evidence = list(dict.fromkeys([*finding.counter_evidence, *item.get("counter_evidence_refs", [])]))
-            applied_adjudications.append({"candidate_id": item.get("candidate_id"), "finding_id": finding.id})
-
-    applied_reviews: list[dict[str, Any]] = []
-    if not invalid_review_refs:
-        for item in review.get("reviews", []):
-            if not isinstance(item, dict):
-                continue
-            finding = by_id.get(str(item.get("finding_id")))
-            if finding is None:
-                continue
-            decision = item.get("decision")
-            if finding.status != "CONFIRMED":
-                if decision in {"DOWNGRADE", "REJECT"}:
-                    finding.status = "CANDIDATE"
-                    finding.confidence = min(finding.confidence, 0.6)
-                elif decision == "NEEDS_CONTEXT":
-                    finding.status = "COVERAGE_GAP"
-                    finding.confidence = min(finding.confidence, 0.7)
-            applied_reviews.append({"finding_id": finding.id, "decision": decision})
-
+    invalid_finding_refs = []
+    for finding in findings:
+        invalid_finding_refs.extend(
+            f"{finding.id}:node:{node_id}" for node_id in finding.node_ids if node_id not in allowed_nodes
+        )
+        invalid_finding_refs.extend(
+            f"{finding.id}:fact:{fact_id}" for fact_id in finding.evidence_refs if fact_id not in allowed_facts
+        )
     verification = {
-        "valid": not invalid_adjudication_refs and not invalid_review_refs,
-        "invalid_adjudication_refs": invalid_adjudication_refs,
-        "invalid_review_refs": invalid_review_refs,
-        "applied_adjudications": applied_adjudications,
-        "applied_reviews": applied_reviews,
+        "valid": not invalid_finding_refs,
+        "invalid_finding_refs": sorted(set(invalid_finding_refs)),
         "policy": {
-            "llm_can_modify_confirmed": False,
-            "llm_can_promote_to_confirmed": False,
+            "finding_status_and_severity_are_deterministic": True,
+            "model_advisory_can_modify_findings": False,
+            "model_advisory_can_modify_quality_gate": False,
             "llm_generated_tests_are_finding_evidence": False,
             "root_cause_aggregation_may_drop_rule_coverage": False,
-            "unknown_references_rejected": True,
+            "unknown_deterministic_references_rejected": True,
         },
     }
     raw_rule_ids = {str(item) for item in candidates.get("raw_rule_ids", [])}
-    final_rule_ids = {rule_id for finding in result for rule_id in (finding.rule_id, *finding.related_rule_ids)}
+    final_rule_ids = {rule_id for finding in findings for rule_id in (finding.rule_id, *finding.related_rule_ids)}
     lost_rule_ids = sorted(raw_rule_ids - final_rule_ids)
     verification["coverage_accounting"] = {
         "catalog_rule_count": candidates.get("rule_count", 0),
         "raw_match_count": candidates.get("raw_match_count", len(candidates.get("candidates", []))),
-        "root_finding_count": len(result),
-        "node_control_risk_item_count": len(result),
+        "root_finding_count": len(findings),
+        "node_control_risk_item_count": len(findings),
         "raw_rule_ids": sorted(raw_rule_ids),
         "final_primary_or_related_rule_ids": sorted(final_rule_ids),
         "lost_rule_ids": lost_rule_ids,
@@ -378,7 +354,9 @@ def _verify_and_merge(
     }
     if lost_rule_ids:
         raise ValueError(f"root-cause aggregation lost rule coverage: {lost_rule_ids}")
-    return result, verification
+    if invalid_finding_refs:
+        raise ValueError(f"deterministic findings contain unknown references: {invalid_finding_refs}")
+    return verification
 
 
 def run_scan(
@@ -389,13 +367,14 @@ def run_scan(
     output_dir: Path,
     rules_path: Path,
     llm_mode: str,
-    analyst_model: str,
-    reviewer_model: str,
+    advisory_model: str = "gpt-5.6-terra",
     waivers_path: Path | None = None,
     scan_mode: str = "structure-only",
 ) -> dict[str, Any]:
     if scan_mode not in {"structure-only", "assessment"}:
         raise ValueError("scan_mode must be structure-only or assessment")
+    if llm_mode not in {"disabled", "enabled"}:
+        raise ValueError("llm_mode must be disabled or enabled")
     if scan_mode == "assessment" and samples_path is None:
         raise ValueError("assessment mode requires --samples with user-confirmed seed inputs and expected behavior")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -405,9 +384,9 @@ def run_scan(
     apply_baseline(ir, baseline)
     samples = load_samples(samples_path)
     if scan_mode == "assessment":
-        validate_seed_samples(samples)
+        validate_seed_samples(samples, ir.workflow_hash)
     scan_id = stable_id("SCAN", ir.workflow_hash, utc_now())
-    llm_enabled = llm_mode == "enabled" or (llm_mode == "auto" and bool(os.environ.get("OPENAI_API_KEY")))
+    llm_enabled = llm_mode == "enabled"
 
     manifest = artifact({
         "dsl_file": dsl_path.name,
@@ -421,14 +400,21 @@ def run_scan(
         "llm_requested": llm_mode,
         "llm_enabled": llm_enabled,
         "scan_mode": scan_mode,
-        "analyst_model": analyst_model,
-        "reviewer_model": reviewer_model,
+        "advisory_model": advisory_model if llm_enabled else None,
+        "model_authority": "non_authoritative_test_and_wording_advisor",
         "scope": {
             "platform_detection": False,
             "runtime_iam": False,
             "container_security": False,
             "workflow_execution": False,
         },
+        "pipeline_order": [
+            "1-resolve-explicit-dsl-or-ask-if-ambiguous-and-bind-internal-hash",
+            "2-confirm-seed-inputs-and-oracles",
+            "3-deterministic-static-analysis",
+            "4-generate-unexecuted-input-cluster",
+            "5-correlate-report-and-attack-surface",
+        ],
     }, scan_id, "scanner", ir.workflow_hash)
     write_artifact(output_dir / "00-scan-manifest.json", manifest)
     write_artifact(
@@ -439,43 +425,70 @@ def run_scan(
     facts, initial_findings, candidates = execute_rules(ir, rules_path)
     write_artifact(output_dir / "02-security-facts.json", artifact({"facts": [to_jsonable(fact) for fact in facts]}, scan_id, "rule-engine", ir.workflow_hash))
 
-    semantic_pipeline = SemanticPipeline(llm_enabled, analyst_model, reviewer_model, scan_id)
-    semantic = semantic_pipeline.semantic_inventory(ir)
-    write_artifact(output_dir / "03-semantic-inventory.json", artifact({"semantic_inventory": semantic}, scan_id, semantic.get("producer", "semantic-pipeline"), ir.workflow_hash))
+    advisory_pipeline = ModelAdvisor(llm_enabled, advisory_model, scan_id)
+    semantic = deterministic_semantic_inventory(ir)
+    write_artifact(output_dir / "03-semantic-inventory.json", artifact({"semantic_inventory": semantic}, scan_id, "deterministic-semantic-inventory", ir.workflow_hash))
 
     write_artifact(output_dir / "04-rule-candidates.json", artifact(candidates, scan_id, "rule-engine", ir.workflow_hash))
 
-    base_tests = deterministic_test_cluster(samples, initial_findings, ir)
-    tests = semantic_pipeline.enrich_tests(ir, samples, initial_findings, base_tests)
-    tests, cluster_verification = verify_test_cluster(tests, samples, initial_findings, ir)
+    # Stage 3 is fully deterministic. Optional model output never receives
+    # authority over Finding status, severity, aggregation, or the quality gate.
+    final_findings = initial_findings
+    verification = verify_deterministic_findings(ir, final_findings, facts, candidates)
+    model_advisory = {
+        "enabled": llm_enabled,
+        "model": advisory_model if llm_enabled else None,
+        "authority": "none_over_findings_severity_or_gate",
+        "allowed_uses": ["additional_inert_test_proposals", "non_authoritative_report_wording"],
+    }
+    write_artifact(
+        output_dir / "06-model-advisory.json",
+        artifact({"model_advisory": model_advisory}, scan_id, "model-advisory-boundary", ir.workflow_hash),
+    )
+
+    # Stage 4 derives the input cluster from the deterministic static result.
+    # Optional model proposals are validated and remain NOT_EXECUTED.
+    base_tests = deterministic_test_cluster(samples, final_findings, ir)
+    tests = advisory_pipeline.enrich_tests(ir, samples, final_findings, base_tests)
+    tests, cluster_verification = verify_test_cluster(tests, samples, final_findings, ir)
     write_artifact(output_dir / "05-test-cluster.json", artifact({"test_cluster": tests}, scan_id, tests.get("producer", "test-designer"), ir.workflow_hash))
 
-    adjudication = semantic_pipeline.adjudicate(ir, candidates, initial_findings, tests)
-    write_artifact(output_dir / "06-llm-adjudication.json", artifact({"adjudication": adjudication}, scan_id, adjudication.get("producer", "risk-adjudicator"), ir.workflow_hash))
-
-    review = semantic_pipeline.review(initial_findings, adjudication)
-    final_findings, verification = _verify_and_merge(ir, initial_findings, facts, candidates, adjudication, review)
     verification["test_cluster"] = cluster_verification
     waiver_audit = apply_waivers(final_findings, waivers, ir.workflow_hash)
     quality_gate = evaluate_quality_gate(final_findings, baseline, waiver_audit)
     if scan_mode == "structure-only" and quality_gate["decision"] == "PASS" and any(
-        finding.status in {"OBSERVED", "PROBABLE", "COVERAGE_GAP"} for finding in final_findings
+        finding.status in {"OBSERVED", "PROBABLE", "CANDIDATE", "COVERAGE_GAP"} for finding in final_findings
     ):
         quality_gate["decision"] = "REVIEW"
         quality_gate["exit_code"] = 0
-    verification["review"] = review
-    verification["llm_errors"] = semantic_pipeline.errors
+    verification["model_advisory"] = model_advisory
+    explanation = advisory_pipeline.explain_report(final_findings)
+    invalid_explanation_refs = validate_references(explanation, {finding.id for finding in final_findings})
+    if invalid_explanation_refs:
+        explanation = {
+            "executive_summary": "",
+            "priority_actions": [],
+            "producer": "deterministic-fallback-invalid-model-references",
+        }
+    verification["report_explanation"] = {
+        "producer": explanation.get("producer"),
+        "invalid_references": invalid_explanation_refs,
+        "authoritative_for_finding_status_or_counts": False,
+    }
+    verification["llm_errors"] = advisory_pipeline.errors
     write_artifact(output_dir / "07-verification.json", artifact({"verification": verification}, scan_id, "evidence-verifier", ir.workflow_hash))
     write_artifact(output_dir / "08-findings.json", artifact({"findings": [to_jsonable(finding) for finding in final_findings]}, scan_id, "finding-merger", ir.workflow_hash))
 
     attack_surface = build_attack_surface(ir, semantic, final_findings, tests)
     write_artifact(output_dir / "09-attack-surface.json", artifact({"attack_surface": attack_surface}, scan_id, "attack-surface-builder", ir.workflow_hash))
+    (output_dir / "attack-surface.md").write_text(
+        render_attack_surface_markdown(ir, attack_surface), encoding="utf-8"
+    )
 
     dynamic_plan = build_dynamic_plan(ir, attack_surface, tests)
     write_artifact(output_dir / "10-dynamic-test-plan.json", artifact({"dynamic_test_plan": dynamic_plan}, scan_id, "dynamic-plan-builder", ir.workflow_hash))
     write_artifact(output_dir / "11-quality-gate.json", artifact({"quality_gate": quality_gate}, scan_id, "quality-gate", ir.workflow_hash))
 
-    explanation = semantic_pipeline.explain_report(final_findings)
     report = build_report_json(ir, final_findings, semantic, tests, attack_surface, explanation, verification, quality_gate)
     report_payload = artifact({"report": report}, scan_id, "report-builder", ir.workflow_hash)
     write_artifact(output_dir / "report.json", report_payload)
@@ -493,7 +506,7 @@ def run_scan(
             for finding in final_findings
         ),
         "llm_enabled": llm_enabled,
-        "llm_errors": semantic_pipeline.errors,
+        "llm_errors": advisory_pipeline.errors,
         "verification_valid": verification["valid"],
         "quality_gate": quality_gate["decision"],
         "exit_code": quality_gate["exit_code"],
