@@ -18,15 +18,24 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from agent_workflow_scan.engine import execute_rules  # noqa: E402
-from agent_workflow_scan.llm import ModelAdvisor, OpenAIResponsesClient, redact_for_model  # noqa: E402
+from agent_workflow_scan.llm import (  # noqa: E402
+    ModelAdvisor,
+    OpenAIResponsesClient,
+    deterministic_semantic_inventory,
+    deterministic_test_cluster,
+    redact_for_model,
+)
+from agent_workflow_scan.models import Finding  # noqa: E402
 from agent_workflow_scan.parser import parse_dify_dsl  # noqa: E402
 from agent_workflow_scan.pipeline import (  # noqa: E402
     apply_baseline,
     evaluate_quality_gate,
     load_baseline,
     run_scan,
+    validate_seed_samples,
     verify_deterministic_findings,
 )
+from agent_workflow_scan.report import build_attack_surface  # noqa: E402
 
 
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -222,6 +231,21 @@ class RuleTests(unittest.TestCase):
         self.assertIn("LLM-003", rule_ids)
         self.assertIn("FLOW-010", rule_ids)
 
+    def test_output_contract_severity_depends_on_machine_consumption(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "output-contract-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        output = next(item for item in findings if item.rule_id == "OUT-001")
+        self.assertEqual("CONFIRMED", output.status)
+        self.assertEqual("LOW", output.severity)
+        self.assertTrue(output.missing_context)
+
+        end = next(node for node in ir.nodes if node.id == "end")
+        end.config["machine_consumed"] = True
+        _, machine_findings, _ = execute_rules(ir, RULES)
+        machine_output = next(item for item in machine_findings if item.rule_id == "OUT-001")
+        self.assertEqual("MEDIUM", machine_output.severity)
+        self.assertEqual([], machine_output.missing_context)
+
     def test_node_control_aggregation_merges_paths_but_keeps_distinct_controls(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "tencent-inspired-workflow.yml")
         apply_baseline(ir, load_baseline(BASELINE))
@@ -255,8 +279,6 @@ class RuleTests(unittest.TestCase):
 
 class PipelineTests(unittest.TestCase):
     def test_user_seed_derives_positive_negative_boundary_and_metamorphic_cluster(self) -> None:
-        from agent_workflow_scan.llm import deterministic_test_cluster
-
         cluster = deterministic_test_cluster({"samples": [
             {"sample_id": "seed-1", "input": {"query": "ok"}, "expected_business_intent": "answer normally"},
         ]}, [])
@@ -266,6 +288,121 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(all(case["seed_sample_ids"] == ["seed-1"] for case in cluster["cases"]))
         self.assertTrue(all(case["execution_status"] == "NOT_EXECUTED" for case in cluster["cases"]))
         self.assertEqual("user", next(case for case in cluster["cases"] if case["case_type"] == "positive")["oracle_source"])
+
+    def test_field_aware_mutations_change_text_and_never_duplicate_seed(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "branch-routing-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        seed = {"content": "正常缺陷描述", "bugType": "01"}
+        cluster = deterministic_test_cluster({"samples": [{
+            "sample_id": "seed-route",
+            "input": seed,
+            "expected_business_intent": "按缺陷类型质检",
+        }]}, findings, ir)
+        positive = next(case for case in cluster["cases"] if case["case_type"] == "positive")
+        derived = [case for case in cluster["cases"] if case["case_type"] != "positive"]
+        self.assertTrue(derived)
+        self.assertTrue(all(case["input"] != positive["input"] for case in derived))
+        self.assertEqual(0, cluster["generation_audit"]["exact_duplicate_input_count"])
+        self.assertEqual(0, cluster["generation_audit"]["unchanged_derived_case_count"])
+        metamorphic = next(case for case in derived if case["case_type"] == "metamorphic")
+        self.assertNotEqual(seed["content"], metamorphic["input"]["content"])
+        self.assertEqual("01", metamorphic["input"]["bugType"])
+
+    def test_array_object_mutation_targets_text_not_id_and_respects_max_length(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "array-input-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        cluster = deterministic_test_cluster({"samples": [{
+            "sample_id": "array-seed",
+            "input": {"content": [{"id": 7, "text": "查询响应较慢"}], "bugType": "01"},
+            "expected_business_intent": "缺陷质检",
+        }]}, findings, ir)
+        targeted = [case for case in cluster["cases"] if case.get("route_variants")]
+        self.assertTrue(targeted)
+        for case in targeted:
+            self.assertEqual(7, case["input"]["content"][0]["id"])
+            self.assertLessEqual(len(case["input"]["content"][0]["text"]), 48)
+            self.assertIn(["content", 0, "text"], case["mutated_paths"])
+            self.assertTrue(case["input_validation"]["valid_against_declared_schema"])
+
+    def test_route_aware_cases_cover_direct_branches_with_full_graph_paths(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "branch-routing-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        cluster = deterministic_test_cluster({"samples": [{
+            "sample_id": "seed-route",
+            "input": {"content": "正常缺陷描述", "bugType": "01"},
+            "expected_business_intent": "按缺陷类型质检",
+        }]}, findings, ir)
+        targeted = [case for case in cluster["cases"] if case.get("route_variants")]
+        security_cases = [case for case in targeted if "llm-security" in case["target_nodes"]]
+        generic_cases = [case for case in targeted if "llm-generic" in case["target_nodes"]]
+        self.assertTrue(security_cases)
+        self.assertTrue(generic_cases)
+        self.assertTrue(all(case["input"]["bugType"] == "03" for case in security_cases))
+        self.assertTrue(all(case["input"]["bugType"] not in {"01", "03"} for case in generic_cases))
+        self.assertTrue(all(case["route_status"] == "SATISFIABLE" for case in targeted))
+        self.assertTrue(all("route" in case["target_path"] for case in targeted))
+        edge_pairs = {(edge.source, edge.target) for edge in ir.edges}
+        self.assertTrue(all(
+            all(pair in edge_pairs for pair in zip(case["target_path"], case["target_path"][1:]))
+            for case in targeted
+        ))
+
+    def test_attack_surface_uses_exact_finding_target_case_mapping(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "branch-routing-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        cluster = deterministic_test_cluster({"samples": [{
+            "sample_id": "seed-route",
+            "input": {"content": "正常缺陷描述", "bugType": "01"},
+            "expected_business_intent": "按缺陷类型质检",
+        }]}, findings, ir)
+        surface = build_attack_surface(ir, deterministic_semantic_inventory(ir), findings, cluster)
+        cases = {case["case_id"]: case for case in cluster["cases"]}
+        self.assertTrue(surface["attack_paths"])
+        for path in surface["attack_paths"]:
+            for case_id in path["test_case_ids"]:
+                case = cases[case_id]
+                self.assertIn(path["finding_id"], case["finding_ids"])
+                self.assertIn(path["target_node"], case["target_nodes"])
+        self.assertEqual([], surface["test_coverage"]["executed_finding_ids"])
+        self.assertEqual([], surface["test_coverage"]["passed_finding_ids"])
+
+    def test_structured_contract_finding_gets_a_machine_readable_test(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "branch-routing-workflow.yml")
+        finding = Finding(
+            id="RISK-output-contract", rule_id="OUT-001", title="输出契约", status="CONFIRMED",
+            severity="MEDIUM", confidence=1.0, node_ids=["end"], evidence_refs=[],
+            dsl_locations=["/workflow/graph/nodes/5"], message="输出缺少严格契约", remediation=[],
+            anchor_node_id="end", control_domain="structured_data_contract",
+        )
+        cluster = deterministic_test_cluster({"samples": [{
+            "sample_id": "seed-route",
+            "input": {"content": "正常缺陷描述", "bugType": "01"},
+            "expected_business_intent": "按缺陷类型质检",
+        }]}, [finding], ir)
+        case = next(
+            item for item in cluster["cases"]
+            if "structured_output_contract" in item["attack_techniques"]
+        )
+        self.assertTrue(case["oracle"]["must_parse_as_json"])
+        self.assertTrue(case["oracle"]["must_validate_declared_schema"])
+        self.assertEqual("end", case["oracle"]["must_reach_target"])
+
+    def test_seed_validation_enforces_declared_max_length(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "branch-routing-workflow.yml")
+        start = next(node for node in ir.nodes if node.id == "start")
+        content_spec = next(item for item in start.config["variables"] if item["variable"] == "content")
+        content_spec["max_length"] = 3
+        samples = {
+            "confirmed_by_user": True,
+            "confirmed_dsl_sha256": ir.workflow_hash,
+            "samples": [{
+                "sample_id": "too-long",
+                "input": {"content": "超过长度", "bugType": "01"},
+                "expected_business_intent": "质检",
+            }],
+        }
+        with self.assertRaisesRegex(ValueError, "max_length_3_exceeded"):
+            validate_seed_samples(samples, ir)
 
     def test_assessment_mode_requires_confirmed_complete_samples(self) -> None:
         with TemporaryDirectory() as directory:
@@ -297,6 +434,9 @@ class PipelineTests(unittest.TestCase):
             self.assertTrue({"positive", "negative", "boundary"}.issubset({case["case_type"] for case in cluster["cases"]}))
             self.assertTrue(cluster["generation_audit"]["lineage_verified"])
             self.assertFalse(cluster["generation_audit"]["execution_evidence_present"])
+            self.assertEqual(0, cluster["generation_audit"]["exact_duplicate_input_count"])
+            self.assertEqual(0, cluster["generation_audit"]["unchanged_derived_case_count"])
+            self.assertEqual(0, cluster["generation_audit"]["executed_case_count"])
             verification = json.loads((Path(directory) / "07-verification.json").read_text(encoding="utf-8"))["verification"]
             self.assertTrue(verification["coverage_accounting"]["lossless_root_cause_aggregation"])
             self.assertEqual([], verification["coverage_accounting"]["lost_rule_ids"])

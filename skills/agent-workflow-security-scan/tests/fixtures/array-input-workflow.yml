@@ -1,0 +1,44 @@
+app:
+  name: array-input-workflow
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          title: 缺陷输入
+          variables:
+            - variable: content
+              label: 缺陷列表
+              type: array[object]
+              required: true
+              children:
+                - variable: id
+                  type: number
+                  required: true
+                - variable: text
+                  type: paragraph
+                  required: true
+                  max_length: 48
+            - variable: bugType
+              type: paragraph
+              required: true
+      - id: llm
+        data:
+          type: llm
+          title: 缺陷质检
+          prompt_template:
+            - role: system
+              text: "质检以下缺陷：{{#start.content#}}"
+      - id: end
+        data:
+          type: end
+          title: 输出
+          outputs:
+            - variable: result
+              value_type: string
+              value_selector: [llm, text]
+    edges:
+      - {id: e1, source: start, target: llm}
+      - {id: e2, source: llm, target: end}

@@ -1,0 +1,75 @@
+app:
+  name: branch-routing-workflow
+  mode: workflow
+  version: 0.5.0
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          title: 用户输入
+          variables:
+            - variable: content
+              label: 缺陷描述
+              type: paragraph
+              required: true
+              max_length: 120
+            - variable: bugType
+              label: 缺陷类型
+              type: paragraph
+              required: true
+      - id: route
+        data:
+          type: if-else
+          title: 缺陷类型分支
+          cases:
+            - case_id: performance
+              logical_operator: and
+              conditions:
+                - variable_selector: [start, bugType]
+                  comparison_operator: is
+                  value: "01"
+            - case_id: security
+              logical_operator: and
+              conditions:
+                - variable_selector: [start, bugType]
+                  comparison_operator: is
+                  value: "03"
+      - id: llm-performance
+        data:
+          type: llm
+          title: 性能质检
+          prompt_template:
+            - role: system
+              text: "检查性能缺陷：{{#start.content#}}"
+      - id: llm-security
+        data:
+          type: llm
+          title: 安全质检
+          prompt_template:
+            - role: system
+              text: "检查安全缺陷：{{#start.content#}}"
+      - id: llm-generic
+        data:
+          type: llm
+          title: 通用质检
+          prompt_template:
+            - role: system
+              text: "检查其他缺陷：{{#start.content#}}"
+      - id: end
+        data:
+          type: end
+          title: 输出
+          outputs:
+            - variable: result
+              value_type: string
+              value_selector: [llm-performance, text]
+    edges:
+      - {id: e1, source: start, target: route}
+      - {id: e2, source: route, sourceHandle: performance, target: llm-performance}
+      - {id: e3, source: route, sourceHandle: security, target: llm-security}
+      - {id: e4, source: route, sourceHandle: false, target: llm-generic}
+      - {id: e5, source: llm-performance, target: end}
+      - {id: e6, source: llm-security, target: end}
+      - {id: e7, source: llm-generic, target: end}

@@ -16,6 +16,7 @@ from .llm import (
     deterministic_semantic_inventory,
     deterministic_test_cluster,
     redact_for_model,
+    validate_input_against_ir,
     validate_references,
 )
 from .models import SCHEMA_VERSION, Finding, WorkflowIR, file_sha256, stable_id, to_jsonable, utc_now, write_artifact
@@ -40,7 +41,7 @@ def load_samples(path: Path | None) -> dict[str, Any]:
     return payload
 
 
-def validate_seed_samples(samples: dict[str, Any], workflow_hash: str) -> None:
+def validate_seed_samples(samples: dict[str, Any], ir: WorkflowIR) -> None:
     if samples.get("confirmed_by_user") is not True:
         raise ValueError("seed samples must set confirmed_by_user=true after user review")
     confirmed_hash = str(samples.get("confirmed_dsl_sha256") or "").strip().lower()
@@ -48,7 +49,7 @@ def validate_seed_samples(samples: dict[str, Any], workflow_hash: str) -> None:
         raise ValueError(
             "assessment requires confirmed_dsl_sha256 from the DSL selection checkpoint"
         )
-    if confirmed_hash != workflow_hash.lower():
+    if confirmed_hash != ir.workflow_hash.lower():
         raise ValueError(
             "confirmed_dsl_sha256 does not match the DSL being scanned; reconfirm the DSL and seed inputs"
         )
@@ -58,6 +59,12 @@ def validate_seed_samples(samples: dict[str, Any], workflow_hash: str) -> None:
     for index, item in enumerate(cases):
         if not isinstance(item.get("input"), dict) or not item["input"]:
             raise ValueError(f"seed sample {index + 1} requires a non-empty input object")
+        input_errors = validate_input_against_ir(item["input"], ir)
+        if input_errors:
+            raise ValueError(
+                f"seed sample {index + 1} does not satisfy the DSL input contract: "
+                + ", ".join(input_errors)
+            )
         has_oracle = any(item.get(field) for field in (
             "expected_business_intent", "expected_output_properties",
             "expected_security_invariants", "expected_security_invariant",
@@ -79,6 +86,11 @@ def verify_test_cluster(
     allowed_findings = {finding.id for finding in findings}
     allowed_rules = {rule_id for finding in findings for rule_id in (finding.rule_id, *finding.related_rule_ids)}
     allowed_nodes = {node.id for node in ir.nodes}
+    seed_inputs = {
+        str(item.get("sample_id") or f"SEED-{index + 1:03d}"): item.get("input", {})
+        for index, item in enumerate(samples.get("samples", [])) if isinstance(item, dict)
+    }
+    edge_pairs = {(edge.source, edge.target) for edge in ir.edges}
     accepted: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
     for case in cluster.get("cases", []):
@@ -90,6 +102,15 @@ def verify_test_cluster(
             reasons.append("input_not_object")
         if case.get("execution_status") != "NOT_EXECUTED":
             reasons.append("invalid_execution_status")
+        target_path = [str(item) for item in case.get("target_path", [])]
+        if target_path and any(pair not in edge_pairs for pair in zip(target_path, target_path[1:])):
+            reasons.append("target_path_is_not_a_control_flow_path")
+        if target_path and case.get("target_nodes") and target_path[-1] not in {
+            str(item) for item in case.get("target_nodes", [])
+        }:
+            reasons.append("target_path_does_not_end_at_target_node")
+        if case.get("route_status") not in {"SATISFIABLE", "PARTIAL", "UNREACHABLE", "NOT_EVALUATED", None}:
+            reasons.append("invalid_route_status")
         for field, allowed in (
             ("seed_sample_ids", allowed_seeds), ("finding_ids", allowed_findings),
             ("rule_ids", allowed_rules), ("target_nodes", allowed_nodes), ("target_path", allowed_nodes),
@@ -102,8 +123,46 @@ def verify_test_cluster(
             if case.get("oracle_source") != "model_proposal":
                 raise ValueError(f"deterministic test case failed verification: {reasons}")
             continue
+        if case.get("case_type") != "positive":
+            unchanged_from_seed = any(
+                json.dumps(case.get("input"), ensure_ascii=False, sort_keys=True)
+                == json.dumps(seed_inputs.get(seed_id), ensure_ascii=False, sort_keys=True)
+                for seed_id in case.get("seed_sample_ids", []) if seed_id in seed_inputs
+            )
+            if unchanged_from_seed:
+                reasons.append("derived_input_is_identical_to_seed")
+        declared_input_errors = validate_input_against_ir(case.get("input", {}), ir)
+        if case.get("generation_source") == "rule_targeted" and declared_input_errors:
+            reasons.append("rule_targeted_input_violates_dsl_contract:" + ",".join(declared_input_errors))
+        if not isinstance(case.get("oracle"), dict) or not case.get("oracle"):
+            reasons.append("missing_machine_readable_oracle")
+        if reasons:
+            rejected.append({"case_id": str(case.get("case_id") or "<missing>"), "reasons": reasons})
+            if case.get("oracle_source") != "model_proposal":
+                raise ValueError(f"deterministic test case failed verification: {reasons}")
+            continue
         accepted.append(case)
 
+    deduplicated: list[dict[str, Any]] = []
+    seen_inputs: dict[str, dict[str, Any]] = {}
+    for case in accepted:
+        canonical = json.dumps(case.get("input", {}), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        previous = seen_inputs.get(canonical)
+        if previous is None:
+            seen_inputs[canonical] = case
+            deduplicated.append(case)
+            continue
+        if case.get("oracle_source") == "model_proposal":
+            rejected.append({
+                "case_id": str(case.get("case_id") or "<missing>"),
+                "reasons": [f"exact_duplicate_input_of:{previous.get('case_id')}"],
+            })
+            continue
+        raise ValueError(
+            f"deterministic test cases have identical concrete inputs: "
+            f"{previous.get('case_id')} and {case.get('case_id')}"
+        )
+    accepted = deduplicated
     case_types = {str(case.get("case_type")) for case in accepted}
     if allowed_seeds:
         missing_types = {"positive", "negative", "boundary"} - case_types
@@ -117,6 +176,22 @@ def verify_test_cluster(
     audit["required_case_types_present"] = not allowed_seeds or not ({"positive", "negative", "boundary"} - case_types)
     audit["lineage_verified"] = True
     audit["execution_evidence_present"] = False
+    canonical_inputs = [
+        json.dumps(case.get("input", {}), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        for case in accepted
+    ]
+    audit["unique_input_count"] = len(set(canonical_inputs))
+    audit["exact_duplicate_input_count"] = len(canonical_inputs) - len(set(canonical_inputs))
+    audit["unchanged_derived_case_count"] = 0
+    audit["route_satisfiable_case_count"] = sum(
+        case.get("route_status") == "SATISFIABLE" for case in accepted
+    )
+    audit["route_partial_case_count"] = sum(case.get("route_status") == "PARTIAL" for case in accepted)
+    audit["route_unreachable_case_count"] = sum(
+        case.get("route_status") == "UNREACHABLE" for case in accepted
+    )
+    audit["planned_case_count"] = len(accepted)
+    audit["executed_case_count"] = 0
     return verified, audit
 
 
@@ -384,7 +459,7 @@ def run_scan(
     apply_baseline(ir, baseline)
     samples = load_samples(samples_path)
     if scan_mode == "assessment":
-        validate_seed_samples(samples, ir.workflow_hash)
+        validate_seed_samples(samples, ir)
     scan_id = stable_id("SCAN", ir.workflow_hash, utc_now())
     llm_enabled = llm_mode == "enabled"
 

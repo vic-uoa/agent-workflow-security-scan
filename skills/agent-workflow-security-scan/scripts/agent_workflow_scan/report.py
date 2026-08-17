@@ -33,23 +33,49 @@ def build_attack_surface(
                 "evidence": [node.json_pointer],
             })
 
-    case_by_rule: dict[str, list[str]] = {}
     case_by_finding: dict[str, list[str]] = {}
+    cases_by_id: dict[str, dict[str, Any]] = {}
     for case in test_cluster.get("cases", []):
         if not isinstance(case, dict):
             continue
-        for rule_id in case.get("rule_ids", []):
-            case_by_rule.setdefault(str(rule_id), []).append(str(case.get("case_id")))
+        cases_by_id[str(case.get("case_id"))] = case
         for finding_id in case.get("finding_ids", []):
             case_by_finding.setdefault(str(finding_id), []).append(str(case.get("case_id")))
 
     paths = []
     for finding in findings:
-        related_cases = [
-            *case_by_finding.get(finding.id, []),
-            *(case_id for rule_id in (finding.rule_id, *finding.related_rule_ids) for case_id in case_by_rule.get(rule_id, [])),
+        related_cases = []
+        route_variants: list[dict[str, Any]] = []
+        for case_id in case_by_finding.get(finding.id, []):
+            case = cases_by_id.get(case_id, {})
+            target_nodes = {str(item) for item in case.get("target_nodes", [])}
+            if finding.anchor_node_id and finding.anchor_node_id not in target_nodes:
+                continue
+            matching_variants = [
+                item for item in case.get("route_variants", [])
+                if isinstance(item, dict)
+                and str(item.get("finding_id")) == finding.id
+                and (not finding.anchor_node_id or str(item.get("target_node")) == finding.anchor_node_id)
+            ]
+            if case.get("route_variants") and not matching_variants:
+                continue
+            related_cases.append(case_id)
+            route_variants.extend(matching_variants or [{
+                "finding_id": finding.id,
+                "target_node": finding.anchor_node_id,
+                "target_path": case.get("target_path", []),
+                "route_status": case.get("route_status", "NOT_EVALUATED"),
+                "route_constraints": case.get("route_constraints", []),
+                "missing_route_context": case.get("missing_route_context", []),
+            }])
+        variant_paths = [
+            item.get("target_path", []) for item in route_variants
+            if isinstance(item.get("target_path"), list) and item.get("target_path")
         ]
-        for path_index, path in enumerate(finding.path_variants or [finding.node_ids]):
+        path_options = list({
+            tuple(path): path for path in (variant_paths or finding.path_variants or [finding.node_ids])
+        }.values())
+        for path_index, path in enumerate(path_options):
             if len(path) < 2 and finding.severity not in {"HIGH", "CRITICAL"}:
                 continue
             instance = next(
@@ -67,9 +93,29 @@ def build_attack_surface(
                 "path": path,
                 "status": instance.get("status", finding.status),
                 "severity": instance.get("severity", finding.severity),
-                "attack_preconditions": finding.attack_preconditions,
-                "missing_runtime_context": finding.missing_context,
+                "attack_preconditions": list(dict.fromkeys([
+                    *finding.attack_preconditions,
+                    *(
+                        f"{item.get('variable')} {item.get('operator')} {item.get('value')!r}"
+                        for variant in route_variants if variant.get("target_path") == path
+                        for item in variant.get("route_constraints", [])
+                    ),
+                ])),
+                "missing_runtime_context": list(dict.fromkeys([
+                    *finding.missing_context,
+                    *(
+                        message
+                        for variant in route_variants if variant.get("target_path") == path
+                        for message in variant.get("missing_route_context", [])
+                    ),
+                ])),
                 "test_case_ids": list(dict.fromkeys(related_cases)),
+                "planned_test_coverage": bool(related_cases),
+                "route_satisfiable": any(
+                    variant.get("target_path") == path and variant.get("route_status") == "SATISFIABLE"
+                    for variant in route_variants
+                ),
+                "execution_status": "NOT_EXECUTED",
                 "description": instance.get("message", finding.message),
             })
 
@@ -115,9 +161,15 @@ def build_attack_surface(
         risk_chains.append(bucket)
     risk_chains.sort(key=lambda item: (-severity_rank.get(item["severity"], -1), item["risk_chain_id"]))
 
-    covered_findings = sorted({
+    planned_findings = sorted({
         finding_id for case in test_cluster.get("cases", []) if isinstance(case, dict)
         for finding_id in case.get("finding_ids", [])
+    })
+    reachable_findings = sorted({
+        str(variant.get("finding_id"))
+        for case in test_cluster.get("cases", []) if isinstance(case, dict)
+        for variant in case.get("route_variants", []) if isinstance(variant, dict)
+        if variant.get("route_status") == "SATISFIABLE" and variant.get("finding_id")
     })
     return {
         "entrypoints": entrypoints,
@@ -128,13 +180,18 @@ def build_attack_surface(
         "risk_chains": risk_chains,
         "semantic_attack_hypotheses": semantic.get("attack_hypotheses", []),
         "test_coverage": {
-            "covered_finding_ids": covered_findings,
-            "uncovered_finding_ids": sorted(
+            "covered_finding_ids": planned_findings,
+            "coverage_term_notice": "covered_finding_ids is planned static coverage, not executed validation",
+            "planned_finding_ids": planned_findings,
+            "route_satisfiable_finding_ids": reachable_findings,
+            "executed_finding_ids": [],
+            "passed_finding_ids": [],
+            "unplanned_finding_ids": sorted(
                 finding.id for finding in findings
-                if finding.status != "COVERAGE_GAP" and finding.id not in covered_findings
+                if finding.status != "COVERAGE_GAP" and finding.id not in planned_findings
             ),
             "execution_evidence_present": False,
-            "note": "输入簇与静态根因已关联，但所有用例均未执行，不能改变 Finding 的证据状态。",
+            "note": "计划覆盖、路径可达覆盖和执行覆盖分开统计；所有用例均未执行，不能改变 Finding 的证据状态。",
         },
         "missing_runtime_context": sorted({
             item for finding in findings for item in finding.missing_context
@@ -239,6 +296,14 @@ def build_report_json(
             )),
             "seed_sample_ids": tests.get("generation_audit", {}).get("seed_sample_ids", []),
             "lineage_verified": tests.get("generation_audit", {}).get("lineage_verified", False),
+            "unique_input_count": tests.get("generation_audit", {}).get("unique_input_count", 0),
+            "exact_duplicate_input_count": tests.get("generation_audit", {}).get("exact_duplicate_input_count", 0),
+            "unchanged_derived_case_count": tests.get("generation_audit", {}).get("unchanged_derived_case_count", 0),
+            "route_satisfiable_case_count": tests.get("generation_audit", {}).get("route_satisfiable_case_count", 0),
+            "route_partial_case_count": tests.get("generation_audit", {}).get("route_partial_case_count", 0),
+            "route_unreachable_case_count": tests.get("generation_audit", {}).get("route_unreachable_case_count", 0),
+            "planned_case_count": tests.get("generation_audit", {}).get("planned_case_count", len(tests.get("cases", []))),
+            "executed_case_count": tests.get("generation_audit", {}).get("executed_case_count", 0),
             "execution_evidence_present": False,
         },
         "priority_actions": explanation.get("priority_actions", []),
@@ -312,9 +377,15 @@ def render_markdown(report: dict[str, Any]) -> str:
         "|---|---|",
         f"| 用户确认的正常样例 | {len(cluster.get('seed_sample_ids', []))} |",
         f"| 派生用例总数 | {cluster.get('case_count', 0)} |",
+        f"| 实际不同输入 | {cluster.get('unique_input_count', 0)} |",
+        f"| 完全重复输入 | {cluster.get('exact_duplicate_input_count', 0)} |",
+        f"| 未发生变化的派生用例 | {cluster.get('unchanged_derived_case_count', 0)} |",
         f"| 用例类型 | {_table_cell(_format_counts(cluster.get('case_type_counts', {})))} |",
+        f"| 路径可满足 | {cluster.get('route_satisfiable_case_count', 0)} |",
+        f"| 路径部分可解 | {cluster.get('route_partial_case_count', 0)} |",
+        f"| 路径不可达 | {cluster.get('route_unreachable_case_count', 0)} |",
         f"| 血缘校验 | `{'通过' if cluster.get('lineage_verified') else '未通过或无样例'}` |",
-        "| 实际执行 | `未执行`；输入簇只用于覆盖攻击面和生成沙盒计划，不能确认或排除 Finding |",
+        f"| 实际执行 | {cluster.get('executed_case_count', 0)}；输入簇只用于规划攻击面和生成沙盒计划，不能确认或排除 Finding |",
         "",
         "## 模型参与边界",
         "",
@@ -485,9 +556,11 @@ def render_attack_surface_markdown(ir: WorkflowIR, attack_surface: dict[str, Any
         "",
         "## 测试覆盖边界",
         "",
-        f"- 已关联风险项：{', '.join(coverage.get('covered_finding_ids', [])) or '无'}",
-        f"- 未关联风险项：{', '.join(coverage.get('uncovered_finding_ids', [])) or '无'}",
-        "- 执行证据：无。关联用例不代表漏洞已经得到动态确认。",
+        f"- 已规划用例的风险项：{', '.join(coverage.get('planned_finding_ids', [])) or '无'}",
+        f"- 已证明路径可满足的风险项：{', '.join(coverage.get('route_satisfiable_finding_ids', [])) or '无'}",
+        f"- 已执行风险项：{', '.join(coverage.get('executed_finding_ids', [])) or '无'}",
+        f"- 未规划风险项：{', '.join(coverage.get('unplanned_finding_ids', [])) or '无'}",
+        "- 执行证据：无。计划覆盖或路径可达不代表漏洞已经得到动态确认。",
         "",
     ])
     return "\n".join(lines)

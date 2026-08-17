@@ -917,7 +917,20 @@ class SecurityEngine:
             node.config, ("requires_structured_output", "json_output", "parse_output")
         )
         if dynamic and structured_contract and not _has_schema(node):
-            self._emit("OUT-001", [node.id], "动态输出缺少结构化 Schema。", status=Status.CONFIRMED)
+            machine_or_high_trust_consumer = _key_matches(
+                node.config,
+                ("machine_consumed", "api_contract", "decision_output", "requires_verified_result", "automation_output"),
+            )
+            self._emit(
+                "OUT-001", [node.id],
+                "动态结构化输出缺少严格 Schema；仅人工展示时主要影响可靠性，进入自动化或高信任下游时风险升级。",
+                status=Status.CONFIRMED,
+                severity=Severity.MEDIUM if machine_or_high_trust_consumer else Severity.LOW,
+                confidence=1.0,
+                missing_context=[] if machine_or_high_trust_consumer else [
+                    "DSL 未声明该输出是否由 API、自动决策或高权限下游直接消费。"
+                ],
+            )
         if dynamic and _has_words(node.text, ("html", "markdown", "md")) and not _key_matches(node.config, ("escape", "sanitize", "encoding")):
             self._emit("OUT-004", [node.id], "动态 HTML/Markdown 输出缺少可识别的上下文编码。", status=Status.PROBABLE, confidence=0.82, dynamic_test="rich_text_injection")
         if dynamic and _has_words(node.text, ("http://", "https://", "url", "link", "链接")) and not _key_matches(node.config, ("allowed_protocols", "url_allowlist")):

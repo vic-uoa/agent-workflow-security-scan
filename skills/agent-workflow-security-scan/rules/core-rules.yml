@@ -91,7 +91,7 @@ rules:
   - {id: TOOL-016, title: "用户可控身份或资源标识直达工具", severity: HIGH, detectability: S, standards: [ASI03], attack_family: authorization_bypass}
   - {id: TOOL-017, title: "敏感载荷与动态网络目标形成外带通道", severity: CRITICAL, detectability: S, standards: [ASI03], attack_family: web_exfiltration}
 
-  - {id: OUT-001, title: "结构化输出缺少 Schema", severity: MEDIUM, detectability: S, standards: [AISVS-C7], applies_to: [machine_consumed_structured_output], exclusion_facts: [human_readable_free_text_output]}
+  - {id: OUT-001, title: "结构化输出契约不足", severity: LOW, detectability: S, standards: [AISVS-C7], applies_to: [structured_output, machine_consumed_structured_output], exclusion_facts: [human_readable_free_text_output], escalation: "MEDIUM when DSL declares machine/API/decision consumption"}
   - {id: OUT-002, title: "敏感信息可达外部输出", severity: HIGH, detectability: H, standards: [AISVS-C7]}
   - {id: OUT-003, title: "系统 Prompt 或内部信息泄露", severity: HIGH, detectability: S, standards: [ASI03]}
   - {id: OUT-004, title: "富文本输出缺少上下文编码", severity: HIGH, detectability: S, standards: [AISVS-C7]}

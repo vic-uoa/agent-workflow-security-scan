@@ -15,7 +15,7 @@
 | `02-security-facts.json` | Immutable deterministic evidence |
 | `03-semantic-inventory.json` | Deterministically derived purpose, assets, boundaries and invariants |
 | `04-rule-candidates.json` | Root candidates plus every pre-aggregation raw rule match |
-| `05-test-cluster.json` | Seed-derived positive, negative, boundary, metamorphic and rule-targeted cases with lineage |
+| `05-test-cluster.json` | Seed-derived positive, negative, boundary, metamorphic and rule-targeted cases with field mutation, route status, deterministic oracle and lineage |
 | `06-model-advisory.json` | Whether the optional non-authoritative model advisor was enabled and its allowed uses |
 | `07-verification.json` | Deterministic reference, aggregation, input-cluster and model-boundary validation |
 | `08-findings.json` | Authoritative node/control-domain risk items with rule and path evidence instances |
@@ -35,6 +35,8 @@ Every JSON artifact includes `schema_version`, `scan_id`, `producer`, `producer_
 - The deterministic cluster builder owns the user-seed copy, minimum positive/negative/boundary coverage and lineage.
 - The optional model advisor may add inert test proposals and non-authoritative wording only.
 - Unexecuted test cases cannot alter Finding status, severity or the quality gate.
+- Planned coverage means a case exists; route-satisfiable coverage means its graph path and statically solvable predicates are satisfied; executed coverage requires sandbox evidence. Never collapse these metrics.
+- A test-to-path mapping requires an exact Finding ID, target node and matching route variant. A shared rule ID is not sufficient.
 - Assessment seed files use `confirmed_by_user: true` for the user's seed/oracle confirmation and `confirmed_dsl_sha256` as scanner-managed integrity metadata. Users do not confirm the hash; a mismatch still stops the scan before rule execution.
 - Finding applicability, status, confidence, severity and the quality gate are determined without model voting.
 - The verifier rejects unknown deterministic node, rule, fact or Finding references and invalid model-proposed test references.

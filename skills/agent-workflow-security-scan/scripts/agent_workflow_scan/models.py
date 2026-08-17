@@ -9,7 +9,7 @@ from typing import Any
 import json
 
 
-SCHEMA_VERSION = "1.3.0"
+SCHEMA_VERSION = "1.4.0"
 
 
 class NodeType(str, Enum):

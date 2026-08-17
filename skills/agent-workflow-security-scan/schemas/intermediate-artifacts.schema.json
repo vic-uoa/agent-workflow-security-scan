@@ -80,7 +80,14 @@
         "expected_security_invariants": {"type": "array", "items": {"type": "string"}},
         "forbidden_effects": {"type": "array", "items": {"type": "string"}},
         "dynamic_level": {"enum": ["L0", "L1", "L2", "L3"]},
-        "execution_status": {"enum": ["NOT_EXECUTED"]}
+        "execution_status": {"enum": ["NOT_EXECUTED"]},
+        "route_status": {"enum": ["SATISFIABLE", "PARTIAL", "UNREACHABLE", "NOT_EVALUATED"]},
+        "route_constraints": {"type": "array", "items": {"type": "object"}},
+        "missing_route_context": {"type": "array", "items": {"type": "string"}},
+        "route_variants": {"type": "array", "items": {"type": "object"}},
+        "mutated_paths": {"type": "array", "items": {"type": "array"}},
+        "input_validation": {"type": "object"},
+        "oracle": {"type": "object"}
       }
     },
     "attackPath": {
