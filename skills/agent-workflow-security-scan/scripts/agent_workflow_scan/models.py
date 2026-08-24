@@ -9,7 +9,7 @@ from typing import Any
 import json
 
 
-SCHEMA_VERSION = "1.4.0"
+SCHEMA_VERSION = "1.5.0"
 
 
 class NodeType(str, Enum):
@@ -20,11 +20,13 @@ class NodeType(str, Enum):
     KNOWLEDGE = "KNOWLEDGE"
     CONDITION = "CONDITION"
     LOOP = "LOOP"
+    ITERATION = "ITERATION"
     CODE = "CODE"
     TEMPLATE = "TEMPLATE"
     AGGREGATOR = "AGGREGATOR"
     HUMAN = "HUMAN"
     CONTENT = "CONTENT"
+    STRUCTURAL = "STRUCTURAL"
     UNKNOWN = "UNKNOWN"
 
 

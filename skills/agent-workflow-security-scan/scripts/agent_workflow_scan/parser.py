@@ -11,6 +11,14 @@ from jsonschema import Draft202012Validator
 from yaml.events import AliasEvent
 
 from .models import Edge, Node, NodeType, VariableRef, WorkflowIR, file_sha256, stable_id
+from .dify_contract import (
+    CURRENT_DIFY_APP_DSL_VERSION,
+    VIRTUAL_SOURCE_NAMESPACES,
+    VIRTUAL_SOURCE_NODE_TYPES,
+    normalize_dsl_version,
+    normalize_node_type,
+    semantic_consumer_field,
+)
 
 
 MAX_DSL_BYTES = 5 * 1024 * 1024
@@ -62,47 +70,6 @@ class BoundedSafeLoader(yaml.SafeLoader):
             return super().compose_node(parent, index)
         finally:
             self._compose_depth -= 1
-
-
-NODE_TYPE_MAP = {
-    "start": NodeType.INPUT,
-    "input": NodeType.INPUT,
-    "llm": NodeType.LLM,
-    "agent": NodeType.LLM,
-    "tool": NodeType.TOOL,
-    "http-request": NodeType.TOOL,
-    "http_request": NodeType.TOOL,
-    "api": NodeType.TOOL,
-    "end": NodeType.OUTPUT,
-    "answer": NodeType.OUTPUT,
-    "output": NodeType.OUTPUT,
-    "knowledge-retrieval": NodeType.KNOWLEDGE,
-    "knowledge_retrieval": NodeType.KNOWLEDGE,
-    "retrieval": NodeType.KNOWLEDGE,
-    "if-else": NodeType.CONDITION,
-    "question-classifier": NodeType.CONDITION,
-    "condition": NodeType.CONDITION,
-    "iteration": NodeType.LOOP,
-    "loop": NodeType.LOOP,
-    "code": NodeType.CODE,
-    "template-transform": NodeType.TEMPLATE,
-    "template": NodeType.TEMPLATE,
-    "variable-aggregator": NodeType.AGGREGATOR,
-    "parameter-extractor": NodeType.AGGREGATOR,
-    "document-extractor": NodeType.CONTENT,
-    "document_extractor": NodeType.CONTENT,
-    "file-reader": NodeType.CONTENT,
-    "variable-assigner": NodeType.AGGREGATOR,
-    "variable_assigner": NodeType.AGGREGATOR,
-    "list-operator": NodeType.AGGREGATOR,
-    "list_operator": NodeType.AGGREGATOR,
-    "trigger-webhook": NodeType.INPUT,
-    "trigger_webhook": NodeType.INPUT,
-    "trigger-schedule": NodeType.INPUT,
-    "trigger_schedule": NodeType.INPUT,
-    "human-input": NodeType.HUMAN,
-    "human_input": NodeType.HUMAN,
-}
 
 
 EXTERNAL_WORDS = {
@@ -200,8 +167,7 @@ def _validate_internal_schema(document: dict[str, Any]) -> None:
 
 
 def _map_type(raw_type: str) -> NodeType:
-    normalized = raw_type.strip().lower().replace(" ", "-")
-    return NODE_TYPE_MAP.get(normalized, NodeType.UNKNOWN)
+    return normalize_node_type(raw_type)
 
 
 def _classify_capabilities(node_type: NodeType, original_type: str, config: dict[str, Any]) -> tuple[list[str], bool, bool]:
@@ -275,21 +241,21 @@ def _classify_capabilities(node_type: NodeType, original_type: str, config: dict
     return sorted(capabilities), external, high_impact
 
 
-def _selector_from_list(value: list[Any], known_node_ids: set[str]) -> tuple[str, str] | None:
+def _selector_from_list(value: list[Any], known_sources: set[str]) -> tuple[str, str] | None:
     if len(value) < 2 or not isinstance(value[0], str):
         return None
-    if value[0] not in known_node_ids:
+    if value[0] not in known_sources:
         return None
     remainder = ".".join(str(part) for part in value[1:])
     return value[0], remainder
 
 
-def _template_refs(text: str, known_node_ids: set[str]) -> list[tuple[str, str]]:
+def _template_refs(text: str, known_sources: set[str]) -> list[tuple[str, str]]:
     results: list[tuple[str, str]] = []
     patterns = [r"\{\{#([^#.}]+)\.([^#}]+)#\}\}", r"\{\{\s*([^}.\s]+)\.([^}\s]+)\s*\}\}"]
     for pattern in patterns:
         for producer, variable in re.findall(pattern, text):
-            if producer in known_node_ids:
+            if producer in known_sources:
                 results.append((producer, variable))
     return results
 
@@ -298,6 +264,7 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
     document = _load_document(path)
     _validate_internal_schema(document)
     workflow, graph = _extract_graph(document)
+    workflow_features = workflow.get("features") if isinstance(workflow.get("features"), dict) else {}
     raw_nodes = graph.get("nodes", [])
     raw_edges = graph.get("edges", [])
     if not isinstance(raw_nodes, list) or not isinstance(raw_edges, list):
@@ -308,6 +275,7 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
     known_node_ids = {
         str(item.get("id")) for item in raw_nodes if isinstance(item, dict) and item.get("id") is not None
     }
+    known_sources = known_node_ids | VIRTUAL_SOURCE_NAMESPACES
     nodes: list[Node] = []
     variable_refs: list[VariableRef] = []
     coverage_gaps: list[dict[str, Any]] = []
@@ -323,12 +291,12 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
         pointer = f"/workflow/graph/nodes/{index}"
         refs: list[VariableRef] = []
         for relative_path, value in walk(config):
-            consumer_field = str(relative_path[-1]).lower() if relative_path else ""
-            selector = _selector_from_list(value, known_node_ids) if isinstance(value, list) else None
+            consumer_field = semantic_consumer_field(config, relative_path)
+            selector = _selector_from_list(value, known_sources) if isinstance(value, list) else None
             if selector:
                 refs.append(VariableRef(selector[0], selector[1], node_id, _json_pointer(["workflow", "graph", "nodes", index, "data", *relative_path]), consumer_field))
             if isinstance(value, str):
-                for producer, variable in _template_refs(value, known_node_ids):
+                for producer, variable in _template_refs(value, known_sources):
                     refs.append(VariableRef(producer, variable, node_id, _json_pointer(["workflow", "graph", "nodes", index, "data", *relative_path]), consumer_field))
         deduped: dict[tuple[str, str, str], VariableRef] = {}
         for ref in refs:
@@ -360,6 +328,44 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
                 "original_type": raw_type,
             })
 
+    virtual_producers = sorted({
+        ref.producer_node_id for ref in variable_refs
+        if ref.producer_node_id in VIRTUAL_SOURCE_NAMESPACES and ref.producer_node_id not in known_node_ids
+    })
+    for namespace in virtual_producers:
+        virtual_type = VIRTUAL_SOURCE_NODE_TYPES[namespace]
+        virtual_variables: list[dict[str, Any]] = []
+        referenced_names = {
+            ref.variable_name.split(".", 1)[0]
+            for ref in variable_refs if ref.producer_node_id == namespace
+        }
+        if namespace == "sys" and "files" in referenced_names:
+            upload = workflow_features.get("file_upload")
+            if isinstance(upload, dict) and upload.get("enabled") is True:
+                number_limit = upload.get("number_limits")
+                virtual_variables.append({
+                    "variable": "files",
+                    "type": "file-list",
+                    "required": False,
+                    "max_length": number_limit,
+                    "allowed_file_types": upload.get("allowed_file_types"),
+                    "allowed_file_extensions": upload.get("allowed_file_extensions"),
+                    "allowed_file_upload_methods": upload.get("allowed_file_upload_methods"),
+                })
+        nodes.append(Node(
+            id=namespace,
+            original_type=f"virtual-{namespace}",
+            type=virtual_type.value,
+            title=f"Dify {namespace} variables",
+            json_pointer=f"/workflow/virtual_sources/{namespace}",
+            config={"type": f"virtual-{namespace}", "virtual": True, "variables": virtual_variables},
+            text="",
+            variable_refs=[],
+            capabilities=[],
+            external=False,
+            high_impact=False,
+        ))
+
     edges: list[Edge] = []
     for index, raw_edge in enumerate(raw_edges):
         if not isinstance(raw_edge, dict):
@@ -381,6 +387,22 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
     workflow_id = str(
         document.get("app", {}).get("name") if isinstance(document.get("app"), dict) else ""
     ) or str(workflow.get("id") or path.stem)
+    dsl_version = normalize_dsl_version(document.get("version"))
+    if document.get("kind") == "app":
+        if dsl_version is None:
+            coverage_gaps.append({
+                "pointer": "/version",
+                "reason": "missing_or_invalid_dify_dsl_version",
+                "supported_contract": CURRENT_DIFY_APP_DSL_VERSION,
+            })
+        elif tuple(map(int, dsl_version.split("."))) > tuple(map(int, CURRENT_DIFY_APP_DSL_VERSION.split("."))):
+            coverage_gaps.append({
+                "pointer": "/version",
+                "reason": "future_dify_dsl_version",
+                "imported_version": dsl_version,
+                "supported_contract": CURRENT_DIFY_APP_DSL_VERSION,
+            })
+    app = document.get("app") if isinstance(document.get("app"), dict) else {}
     ir = WorkflowIR(
         workflow_id=workflow_id,
         workflow_hash=file_sha256(path),
@@ -390,7 +412,14 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
         coverage_gaps=coverage_gaps,
         raw_metadata={
             "source_file": path.name,
-            "node_count": len(nodes),
+            "dsl_kind": document.get("kind"),
+            "dsl_version": dsl_version,
+            "dify_contract_version": CURRENT_DIFY_APP_DSL_VERSION,
+            "app_mode": app.get("mode"),
+            "workflow_features": workflow_features,
+            "node_count": len(raw_nodes),
+            "ir_node_count": len(nodes),
+            "virtual_source_count": len(virtual_producers),
             "edge_count": len(edges),
             "secret_locations": secret_locations(document),
         },

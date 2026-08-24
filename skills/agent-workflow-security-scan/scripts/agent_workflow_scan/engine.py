@@ -11,6 +11,17 @@ from jsonschema import Draft202012Validator
 
 from .models import Fact, Finding, Node, NodeType, Severity, Status, WorkflowIR, stable_id
 from .parser import contains_secret, contains_template, flatten_text, walk
+from .dify_contract import (
+    file_contract_issues,
+    has_dify_tool_parameter_contract,
+    has_explicit_timeout,
+    has_positive_limit,
+    input_limit_values,
+    input_object_schema,
+    is_strict_object_schema,
+    knowledge_filter_state,
+    prompt_instruction_text,
+)
 
 
 APPROVAL_WORDS = ("approval", "approve", "human", "人工", "审批", "确认后", "review")
@@ -53,9 +64,10 @@ DANGEROUS_ARG_WORDS = (
 SCHEMA_KEYS = (
     "schema", "json_schema", "input_schema", "output_schema", "structured_output", "response_format",
 )
-TIMEOUT_KEYS = ("timeout", "connect_timeout", "read_timeout", "max_execution_time")
-LIMIT_KEYS = ("max_tokens", "max_iterations", "max_retries", "retry", "timeout", "limit")
-FILTER_KEYS = ("metadata_filtering_conditions", "metadata_filter", "filters", "scope")
+LIMIT_KEYS = (
+    "max_tokens", "max_iterations", "maximum_iterations", "max_iteration",
+    "max_retries", "retry", "timeout", "limit", "loop_count",
+)
 MEMORY_WRITE_WORDS = ("memory", "remember", "persist", "store", "write memory", "记忆", "持久化")
 MEMORY_SCOPE_KEYS = ("namespace", "tenant_id", "user_id", "session_id", "scope_key", "partition_key")
 AUTHZ_CONTROL_KEYS = (
@@ -122,20 +134,15 @@ def _schema_documents(node: Node) -> list[dict[str, Any]]:
 
 def _has_schema(node: Node) -> bool:
     """Only count an object schema as strict when unknown properties are rejected."""
-    for schema in _schema_documents(node):
-        if schema.get("type") == "object" and schema.get("additionalProperties") is False:
-            properties = schema.get("properties")
-            if isinstance(properties, dict) and properties:
-                return True
-    return False
+    return any(is_strict_object_schema(schema) for schema in _schema_documents(node))
 
 
 def _has_timeout(node: Node) -> bool:
-    return _key_matches(node.config, TIMEOUT_KEYS)
+    return has_explicit_timeout(node.config)
 
 
 def _has_limits(node: Node) -> bool:
-    return _key_matches(node.config, LIMIT_KEYS)
+    return has_positive_limit(node.config, LIMIT_KEYS)
 
 
 def _is_approval(node: Node) -> bool:
@@ -251,17 +258,7 @@ def _approval_action_ids(node: Node) -> tuple[set[str], set[str]]:
 
 
 def _system_prompt_text(node: Node) -> str:
-    chunks: list[str] = []
-    prompts = node.config.get("prompt_template")
-    if isinstance(prompts, list):
-        for item in prompts:
-            if isinstance(item, dict) and str(item.get("role", "")).lower() in {"system", "developer"}:
-                chunks.append(str(item.get("text") or item.get("content") or ""))
-    for key in ("system_prompt", "instruction", "instructions"):
-        value = node.config.get(key)
-        if isinstance(value, str):
-            chunks.append(value)
-    return "\n".join(chunks)
+    return prompt_instruction_text(node)
 
 
 def _prompt_references_node(prompt: str, node_id: str) -> bool:
@@ -371,6 +368,32 @@ class RuleCatalog:
             str(rule["id"]): {**defaults, **rule}
             for rule in rules if isinstance(rule, dict) and rule.get("id")
         }
+        bindings_path = path.parent / "dify-dsl-bindings.yml"
+        bindings_payload = yaml.safe_load(bindings_path.read_text(encoding="utf-8"))
+        bindings = bindings_payload.get("bindings", []) if isinstance(bindings_payload, dict) else []
+        self.dify_bindings: dict[str, dict[str, Any]] = {}
+        duplicate_binding_rules: set[str] = set()
+        for binding in bindings:
+            if not isinstance(binding, dict):
+                raise ValueError("Dify DSL binding entries must be objects")
+            for rule_id in binding.get("rule_ids", []):
+                rule_id = str(rule_id)
+                if rule_id in self.dify_bindings:
+                    duplicate_binding_rules.add(rule_id)
+                self.dify_bindings[rule_id] = {
+                    "name": str(binding.get("name") or ""),
+                    "node_types": [str(item) for item in binding.get("node_types", [])],
+                    "dsl_fields": [str(item) for item in binding.get("dsl_fields", [])],
+                    "runtime_context": [str(item) for item in binding.get("runtime_context", [])],
+                }
+        unknown_binding_rules = sorted(set(self.dify_bindings) - set(self.rules))
+        missing_binding_rules = sorted(set(self.rules) - set(self.dify_bindings))
+        if duplicate_binding_rules or unknown_binding_rules or missing_binding_rules:
+            raise ValueError(
+                "Dify DSL rule-binding mismatch; "
+                f"duplicate={sorted(duplicate_binding_rules)}, "
+                f"unknown={unknown_binding_rules}, missing={missing_binding_rules}"
+            )
         domains = payload.get("control_domains", {}) if isinstance(payload, dict) else {}
         self.control_domain_by_rule: dict[str, str] = {}
         for domain, rule_ids in domains.items():
@@ -407,6 +430,9 @@ class RuleCatalog:
 
     def control_domain(self, rule_id: str) -> str:
         return self.control_domain_by_rule[rule_id]
+
+    def dify_binding(self, rule_id: str) -> dict[str, Any]:
+        return self.dify_bindings[rule_id]
 
 
 class SecurityEngine:
@@ -480,6 +506,7 @@ class SecurityEngine:
                 NodeType.OUTPUT.value: self._output_rules,
                 NodeType.KNOWLEDGE.value: self._knowledge_rules,
                 NodeType.LOOP.value: self._loop_rules,
+                NodeType.ITERATION.value: self._iteration_rules,
             }.get(node.type, lambda _: None)(node)
         self._cross_node_rules()
         severity_rank = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
@@ -709,7 +736,7 @@ class SecurityEngine:
             for item in self.ir.nodes
         )
         downstream_loops = any(
-            item.type == NodeType.LOOP.value and self.graph.path(node.id, item.id)
+            item.type in {NodeType.LOOP.value, NodeType.ITERATION.value} and self.graph.path(node.id, item.id)
             for item in self.ir.nodes
         )
         for variable in variables:
@@ -717,11 +744,11 @@ class SecurityEngine:
             value_type = str(variable.get("type") or variable.get("value_type") or "").lower()
             if not value_type:
                 self._emit("IN-001", [node.id], f"输入字段 {name} 未声明类型。", status=Status.CONFIRMED)
-            if value_type in {"array", "list", "file", "file-list", "files"} or (
+            if value_type in {"array", "list", "file-list", "files"} or (
                 value_type in {"text-input", "paragraph", "string", "text"}
                 and (downstream_effects or downstream_loops)
             ):
-                limits = [variable.get(key) for key in ("max_length", "maxLength", "max_items", "maxItems", "size_limit", "max_files") if key in variable]
+                limits = input_limit_values(variable)
                 if not limits or all(value in (None, "", 0, False) for value in limits):
                     self._emit(
                         "IN-002", [node.id],
@@ -730,11 +757,24 @@ class SecurityEngine:
                         dynamic_test="resource_budget",
                     )
             if "file" in value_type:
-                has_file_controls = any(key in variable for key in ("allowed_file_types", "allowed_extensions", "mime_types", "size_limit"))
-                if not has_file_controls:
-                    self._emit("IN-003", [node.id], f"文件字段 {name} 缺少类型或大小限制。", status=Status.CONFIRMED, dynamic_test="malicious_file_upload")
-            if value_type in {"object", "json", "map"} and variable.get("additionalProperties", True) is not False:
-                self._emit("IN-005", [node.id], f"对象字段 {name} 未禁止额外属性。", status=Status.CONFIRMED)
+                issues = file_contract_issues(variable)
+                if issues:
+                    self._emit(
+                        "IN-003", [node.id],
+                        f"文件字段 {name} 的 Dify 上传契约不完整：{', '.join(issues)}。",
+                        status=Status.CONFIRMED,
+                        dynamic_test="malicious_file_upload",
+                    )
+            object_schema = input_object_schema(variable)
+            object_contract_relevant = value_type in {"object", "json_object", "map"} or (
+                value_type == "json" and isinstance(object_schema, dict) and object_schema.get("type") == "object"
+            )
+            if object_contract_relevant and not is_strict_object_schema(object_schema):
+                self._emit(
+                    "IN-005", [node.id],
+                    f"对象字段 {name} 的 json_schema 未禁止额外属性或缺少明确属性定义。",
+                    status=Status.CONFIRMED,
+                )
             if _has_words(name + " " + str(variable.get("label", "")), SENSITIVE_WORDS) and any(
                 item.external and self.graph.path(node.id, item.id)
                 for item in self.ir.nodes
@@ -787,8 +827,8 @@ class SecurityEngine:
             item for item in self.ir.nodes
             if _is_effectful_tool(item) and self.graph.path(node.id, item.id)
         ]
-        autonomous = node.original_type.lower() == "agent" or _key_matches(
-            node.config, ("agent_parameters", "agent_strategy", "planning_strategy")
+        autonomous = node.original_type.lower().replace("_", "-") in {"agent", "agent-v2"} or _key_matches(
+            node.config, ("agent_parameters", "agent_strategy", "planning_strategy", "agent_node_kind")
         )
         if (autonomous or downstream_effects) and not _has_limits(node):
             self._emit("LLM-009", [node.id], "LLM 节点缺少可识别的 Token、重试、超时或预算限制。", status=Status.PROBABLE, confidence=0.8, dynamic_test="resource_budget")
@@ -816,7 +856,14 @@ class SecurityEngine:
             refs = unsafe_dangerous_refs
             self._emit("TOOL-002", [*sorted({ref.producer_node_id for ref in refs}), node.id], "高影响工具的安全敏感参数由模型或上游变量控制。", status=Status.CONFIRMED, dynamic_test="model_controlled_tool_argument")
         if url_refs and not _key_matches(node.config, ("allowlist", "allowed_hosts", "allowed_domains", "network_policy")):
-            self._emit("TOOL-003", [node.id], "动态 URL/Host 缺少域名或地址 Allowlist。", status=Status.CONFIRMED, dynamic_test="ssrf")
+            self._emit(
+                "TOOL-003", [node.id],
+                "DSL 确认 URL/Host 可动态控制，但 Dify 节点本身不携带可验证的域名/IP 出站策略。",
+                status=Status.OBSERVED,
+                confidence=0.9,
+                missing_context=["需要核验 Dify SSRF 代理、网络出口策略或内部工具注册表。"],
+                dynamic_test="ssrf",
+            )
         code_body = "\n".join(str(node.config.get(key) or "") for key in ("code", "script", "source"))
         templated_dangerous_code = (
             node.type == NodeType.CODE.value
@@ -866,8 +913,16 @@ class SecurityEngine:
                 NodeType.KNOWLEDGE.value, NodeType.CONTENT.value,
             }
         ]
-        if model_or_untrusted_refs and _is_effectful_tool(node) and not _has_schema(node):
-            self._emit("TOOL-011", [node.id], "工具输入缺少可识别的严格 Schema。", status=Status.PROBABLE, confidence=0.8)
+        has_input_contract = _has_schema(node) or has_dify_tool_parameter_contract(node)
+        if model_or_untrusted_refs and _is_effectful_tool(node) and not has_input_contract:
+            official_runtime_contract = node.original_type.lower().replace("_", "-") in {"tool", "http-request", "agent"}
+            self._emit(
+                "TOOL-011", [node.id],
+                "工具输入在导出的 DSL 中缺少可验证的严格参数契约。",
+                status=Status.COVERAGE_GAP if official_runtime_contract else Status.PROBABLE,
+                confidence=1.0 if official_runtime_contract else 0.8,
+                missing_context=["Dify 插件/工具注册表中的 paramSchemas 或目标 API 请求 Schema 未包含在 DSL 中。"] if official_runtime_contract else [],
+            )
         timeout_relevant = _is_effectful_tool(node) or "UNKNOWN_TOOL_CAPABILITY" in node.capabilities
         if timeout_relevant and not _has_timeout(node) and not _has_registry_integrity(node):
             self._emit(
@@ -977,8 +1032,18 @@ class SecurityEngine:
         business_partition_relevant = multi_dataset and _has_words(
             f"{node.title}\n{node.text}", (*SENSITIVE_WORDS, *IDENTITY_RESOURCE_WORDS)
         )
-        if (dynamic_dataset_scope or business_partition_relevant) and not _key_matches(node.config, FILTER_KEYS):
-            self._emit("KB-002", [node.id], "知识检索未配置可识别的租户、用户或业务元数据过滤。", status=Status.PROBABLE, confidence=0.85, missing_context=["若平台在 DSL 外强制租户隔离，应在内部基线中登记。"])
+        filter_state = knowledge_filter_state(node.config)
+        if (dynamic_dataset_scope or business_partition_relevant) and filter_state != "manual":
+            filter_note = (
+                "Dify 自动元数据过滤由模型生成条件，不能代替确定性的租户/业务分区约束。"
+                if filter_state == "automatic"
+                else "知识检索未配置有效的 manual metadata_filtering_conditions。"
+            )
+            self._emit(
+                "KB-002", [node.id], filter_note,
+                status=Status.PROBABLE, confidence=0.85,
+                missing_context=["若平台在 DSL 外强制租户隔离，应在内部基线中登记。"],
+            )
         top_k_values = _key_values(node.config, ("top_k",))
         score_values = _key_values(node.config, ("score_threshold",))
         risky_top_k = any(isinstance(value, (int, float)) and value > 20 for value in top_k_values)
@@ -1016,8 +1081,31 @@ class SecurityEngine:
             )
 
     def _loop_rules(self, node: Node) -> None:
-        if not _has_limits(node):
-            self._emit("FLOW-007", [node.id], "循环/迭代节点缺少次数、时间或预算上限。", status=Status.CONFIRMED, dynamic_test="runaway_loop")
+        loop_count = node.config.get("loop_count")
+        valid_loop_count = (
+            isinstance(loop_count, int)
+            and not isinstance(loop_count, bool)
+            and loop_count > 0
+        )
+        if not valid_loop_count:
+            self._emit(
+                "FLOW-007", [node.id],
+                "Dify Loop 节点的 loop_count 缺失或不是正整数。",
+                status=Status.CONFIRMED,
+                dynamic_test="runaway_loop",
+            )
+
+    def _iteration_rules(self, node: Node) -> None:
+        # Dify Iteration consumes every item from iterator_selector.  It has no
+        # loop_count field; collection bounds are checked on the producing Start
+        # field by IN-002, while deployment step/time limits are runtime context.
+        selector = node.config.get("iterator_selector")
+        if not isinstance(selector, list) or len(selector) < 2:
+            self._emit(
+                "FLOW-001", [node.id],
+                "Dify Iteration 节点缺少有效的 iterator_selector。",
+                status=Status.CONFIRMED,
+            )
 
     def _cross_node_rules(self) -> None:
         nodes = self.ir.nodes
@@ -1244,14 +1332,18 @@ class SecurityEngine:
 
         autonomous_agents = [
             node for node in llms
-            if node.original_type.lower() == "agent" or _key_matches(node.config, ("agent_parameters", "agent_strategy", "planning_strategy"))
+            if node.original_type.lower().replace("_", "-") in {"agent", "agent-v2"}
+            or _key_matches(node.config, ("agent_parameters", "agent_strategy", "planning_strategy", "agent_node_kind"))
         ]
         for agent in autonomous_agents:
             incoming = self.graph.any_path([*inputs, *knowledge, *tools], [agent], data_preferred=True)
             downstream = self.graph.any_path([agent], dangerous_tools)
             has_containment = _key_matches(
                 agent.config,
-                ("goal_lock", "allowed_goals", "kill_switch", "emergency_stop", "stop_conditions", "max_iterations"),
+                (
+                    "goal_lock", "allowed_goals", "kill_switch", "emergency_stop",
+                    "stop_conditions", "max_iterations", "maximum_iterations", "max_iteration",
+                ),
             )
             if incoming and downstream and not has_containment:
                 chain = [*incoming, *downstream[1:]]
@@ -1271,7 +1363,14 @@ class SecurityEngine:
                     or set(tool.capabilities) & {"NETWORK_READ", "UNKNOWN_TOOL_CAPABILITY"}
                 )
                 if path and untrusted_tool_output and not _has_schema(tool):
-                    self._emit("TOOL-012", path, "工具输出未经严格 Schema 验证进入 LLM 上下文。", status=Status.CONFIRMED, dynamic_test="tool_output_prompt_injection")
+                    self._emit(
+                        "TOOL-012", path,
+                        "外部工具输出进入 LLM，但导出的 Dify DSL 不包含可验证的输出 Schema。",
+                        status=Status.COVERAGE_GAP,
+                        confidence=1.0,
+                        missing_context=["需要工具插件注册表的输出定义或路径中的显式验证节点。"],
+                        dynamic_test="tool_output_prompt_injection",
+                    )
 
         for llm in llms:
             for tool in dangerous_tools:
@@ -1341,6 +1440,7 @@ def execute_rules(ir: WorkflowIR, catalog_path: Path) -> tuple[list[Fact], list[
                 "standards": catalog.get(finding.rule_id).get("standards", []),
                 "detectability": catalog.get(finding.rule_id).get("detectability"),
                 "references": catalog.get(finding.rule_id).get("references", []),
+                "dify_binding": catalog.dify_binding(finding.rule_id),
                 "node_ids": finding.node_ids,
                 "evidence_refs": finding.evidence_refs,
                 "recommended_status": finding.status,

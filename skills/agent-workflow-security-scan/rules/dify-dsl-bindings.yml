@@ -1,0 +1,117 @@
+schema_version: 1.0.0
+dify_contract:
+  app_dsl_version: 0.7.0
+  node_contract_source: https://github.com/langgenius/dify/blob/main/web/app/components/workflow/types.ts
+  runtime_contract_source: https://github.com/langgenius/dify/blob/main/api/configs/feature/__init__.py
+
+# Every catalog rule must occur in exactly one binding.  These bindings state
+# which native Dify fields provide static evidence and which facts remain
+# outside an exported application DSL.
+bindings:
+  - name: graph_integrity
+    rule_ids: [FLOW-001, FLOW-002]
+    node_types: [all]
+    dsl_fields: ['workflow.graph.nodes[].id', 'workflow.graph.nodes[].data.type', 'workflow.graph.edges[].source', 'workflow.graph.edges[].target', 'workflow.graph.edges[].sourceHandle', 'workflow.graph.edges[].targetHandle']
+    runtime_context: []
+
+  - name: cross_node_paths
+    rule_ids: [FLOW-003, FLOW-004, FLOW-005, FLOW-006, FLOW-009, FLOW-010, FLOW-011, FLOW-012, FLOW-013]
+    node_types: [start, trigger-webhook, trigger-plugin, llm, agent, agent-v2, knowledge-retrieval, document-extractor, tool, http-request, code, human-input]
+    dsl_fields: ['workflow.graph.edges', 'data.value_selector', 'data.variable_selector', 'data.tool_parameters', 'data.user_actions', 'data.agent_parameters', 'data.structured_output']
+    runtime_context: [tool_capabilities, object_authorization, network_egress, plugin_runtime, workflow_execution_budget]
+
+  - name: loop_and_iteration_budget
+    rule_ids: [FLOW-007]
+    node_types: [loop, iteration]
+    dsl_fields: ['data.loop_count', 'data.break_conditions', 'data.iterator_selector', 'data.is_parallel', 'data.parallel_nums']
+    runtime_context: [WORKFLOW_MAX_EXECUTION_STEPS, WORKFLOW_MAX_EXECUTION_TIME, LOOP_NODE_MAX_COUNT]
+
+  - name: embedded_secrets
+    rule_ids: [FLOW-008]
+    node_types: [all]
+    dsl_fields: ['workflow.environment_variables', 'workflow.conversation_variables', 'workflow.graph.nodes[].data']
+    runtime_context: [secret_manager, log_redaction]
+
+  - name: start_input_contract
+    rule_ids: [IN-001, IN-002, IN-003, IN-004, IN-005]
+    node_types: [start, human-input, trigger-webhook, trigger-plugin]
+    dsl_fields: ['data.variables[].type', 'data.variables[].required', 'data.variables[].max_length', 'data.variables[].number_limits', 'data.variables[].allowed_file_types', 'data.variables[].allowed_file_extensions', 'data.variables[].allowed_file_upload_methods', 'data.variables[].json_schema']
+    runtime_context: [workflow_file_upload_limit, file_size_limits, input_normalization]
+
+  - name: untrusted_input_flow
+    rule_ids: [IN-006, IN-007, IN-009]
+    node_types: [start, trigger-webhook, trigger-plugin, llm, agent, agent-v2, tool, end, answer]
+    dsl_fields: ['data.variables', 'data.prompt_template', 'data.prompt_config.jinja2_variables', 'data.value_selector', 'data.tool_parameters', 'data.outputs']
+    runtime_context: [dlp, model_behavior]
+
+  - name: persistent_input_and_memory
+    rule_ids: [IN-008, KB-007, KB-011, KB-012]
+    node_types: [variable-assigner, knowledge-index, tool, agent, agent-v2]
+    dsl_fields: ['workflow.conversation_variables', 'data.variables', 'data.tool_parameters', 'data.agent_parameters', 'data.value_selector']
+    runtime_context: [memory_store, tenant_namespace, retention, write_authorization]
+
+  - name: llm_instruction_boundary
+    rule_ids: [LLM-001, LLM-002, LLM-003, LLM-004, LLM-007, LLM-011]
+    node_types: [llm, agent, agent-v2]
+    dsl_fields: ['data.prompt_template[].role', 'data.prompt_template[].text', 'data.prompt_template[].jinja2_text', 'data.prompt_config.jinja2_variables', 'data.agent_parameters.instruction', 'data.model']
+    runtime_context: [model_behavior, context_dlp]
+
+  - name: llm_structured_action
+    rule_ids: [LLM-005, LLM-006, LLM-008]
+    node_types: [llm, agent, agent-v2, tool, http-request, code, human-input]
+    dsl_fields: ['data.structured_output_enabled', 'data.structured_output.schema', 'data.output_schema', 'data.tool_parameters', 'data.paramSchemas', 'data.user_actions']
+    runtime_context: [plugin_parameter_schema, deterministic_policy_gate]
+
+  - name: llm_resilience
+    rule_ids: [LLM-009, LLM-010]
+    node_types: [llm, agent, agent-v2]
+    dsl_fields: ['data.model.completion_params.max_tokens', 'data.retry_config', 'data.error_strategy', 'data.default_value', 'data.agent_parameters.maximum_iterations']
+    runtime_context: [model_timeout, WORKFLOW_MAX_EXECUTION_STEPS, WORKFLOW_MAX_EXECUTION_TIME]
+
+  - name: tool_capability_and_authorization
+    rule_ids: [TOOL-001, TOOL-002, TOOL-008, TOOL-009, TOOL-014, TOOL-015, TOOL-016]
+    node_types: [tool, http-request, code, agent, agent-v2]
+    dsl_fields: ['data.provider_id', 'data.provider_type', 'data.provider_name', 'data.tool_name', 'data.tool_parameters', 'data.plugin_id', 'data.plugin_unique_identifier', 'data.version', 'data.tool_node_version']
+    runtime_context: [plugin_registry, business_purpose, subject_object_action_authorization, tenant_binding]
+
+  - name: tool_execution_and_egress
+    rule_ids: [TOOL-003, TOOL-004, TOOL-005, TOOL-006, TOOL-007, TOOL-017]
+    node_types: [tool, http-request, code]
+    dsl_fields: ['data.url', 'data.method', 'data.headers', 'data.params', 'data.body', 'data.tool_parameters', 'data.code', 'data.variables']
+    runtime_context: [ssrf_proxy, network_egress, query_parameterization, sandbox_policy, path_policy, dlp]
+
+  - name: tool_secret_schema_and_timeout
+    rule_ids: [TOOL-010, TOOL-011, TOOL-012, TOOL-013]
+    node_types: [tool, http-request, agent]
+    dsl_fields: ['data.authorization', 'data.tool_configurations', 'data.paramSchemas', 'data.output_schema', 'data.timeout.connect', 'data.timeout.read', 'data.timeout.write', 'data.retry_config']
+    runtime_context: [credential_store, plugin_input_output_schema, API_TOOL_DEFAULT_CONNECT_TIMEOUT, API_TOOL_DEFAULT_READ_TIMEOUT]
+
+  - name: output_contract_and_failure
+    rule_ids: [OUT-001, OUT-006, OUT-008]
+    node_types: [end, answer, llm, agent, agent-v2]
+    dsl_fields: ['data.outputs', 'data.value_selector', 'data.structured_output.schema', 'data.output_schema', 'data.error_strategy', 'data.default_value']
+    runtime_context: [api_consumer_contract, fail_closed_policy]
+
+  - name: output_content_safety
+    rule_ids: [OUT-002, OUT-003, OUT-004, OUT-005, OUT-009, OUT-010]
+    node_types: [end, answer]
+    dsl_fields: ['data.answer', 'data.outputs', 'data.value_selector', 'workflow.features']
+    runtime_context: [renderer_context, content_security_policy, remote_image_proxy, output_dlp, provenance]
+
+  - name: rag_output_provenance
+    rule_ids: [OUT-007]
+    node_types: [knowledge-retrieval, llm, end, answer]
+    dsl_fields: ['data.context.variable_selector', 'data.outputs', 'data.answer', 'workflow.features.retriever_resource']
+    runtime_context: [retrieval_metadata, citation_binding]
+
+  - name: knowledge_scope
+    rule_ids: [KB-001, KB-002, KB-003]
+    node_types: [knowledge-retrieval]
+    dsl_fields: ['data.dataset_ids', 'data.retrieval_mode', 'data.multiple_retrieval_config.top_k', 'data.multiple_retrieval_config.score_threshold', 'data.metadata_filtering_mode', 'data.metadata_filtering_conditions', 'data.metadata_model_config']
+    runtime_context: [dataset_acl, tenant_partition]
+
+  - name: knowledge_trust_and_governance
+    rule_ids: [KB-004, KB-005, KB-006, KB-008, KB-009, KB-010]
+    node_types: [knowledge-retrieval, knowledge-index, llm, agent, agent-v2, tool, end, answer]
+    dsl_fields: ['data.dataset_ids', 'data.context.variable_selector', 'data.prompt_template', 'data.metadata_filtering_conditions', 'data.tool_parameters', 'data.outputs']
+    runtime_context: [document_provenance, dataset_acl, quarantine, retention, citation_metadata, prompt_injection_screening]

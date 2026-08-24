@@ -30,6 +30,8 @@ In particular:
 
 Every rule has an ID, base severity, detectability class, standard mappings, evidence, remediation, and optional dynamic test type. The executable metadata is in `rules/core-rules.yml`; evaluators are in `scripts/agent_workflow_scan/engine.py`.
 
+`rules/dify-dsl-bindings.yml` additionally binds every catalog rule, exactly once, to native Dify node types and exported DSL fields. It also lists facts that live only in deployment configuration, plugin registries or runtime policy. Catalog loading fails if a rule is missing, duplicated or unknown in this binding file. Candidate artifacts carry this binding so reviewers can distinguish native DSL evidence from missing runtime context.
+
 ## Evidence states
 
 - `CONFIRMED`: deterministic DSL/config/path evidence exists.
@@ -68,6 +70,7 @@ DSL-only scanning does not prove actual IAM, knowledge ACLs, plugin implementati
 1. Add metadata to `rules/core-rules.yml`.
 2. Assign the rule to exactly one `control_domains` entry. Catalog loading fails on missing, duplicate or unknown assignments.
 3. Add a deterministic or hybrid evaluator to `engine.py`.
-4. Emit a Fact before a Finding and preserve DSL pointers.
-5. Add positive, negative, mitigated, and coverage-gap fixtures.
-6. Map a safe dynamic test type when runtime confirmation is needed.
+4. Add or update the rule's unique entry in `rules/dify-dsl-bindings.yml`.
+5. Emit a Fact before a Finding and preserve DSL pointers.
+6. Add positive, negative, mitigated, coverage-gap, and official-Dify-contract fixtures.
+7. Map a safe dynamic test type when runtime confirmation is needed.

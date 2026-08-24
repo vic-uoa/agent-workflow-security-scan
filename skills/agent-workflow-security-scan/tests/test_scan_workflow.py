@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-from agent_workflow_scan.engine import execute_rules  # noqa: E402
+from agent_workflow_scan.engine import RuleCatalog, execute_rules  # noqa: E402
 from agent_workflow_scan.llm import (  # noqa: E402
     ModelAdvisor,
     OpenAIResponsesClient,
@@ -65,6 +65,33 @@ class ParserTests(unittest.TestCase):
         self.assertEqual("<REDACTED_SECRET>", redacted["api_key"])
         self.assertNotIn("abcdefghijklmnop", redacted["text"])
 
+    def test_dify_07_contract_normalizes_official_nodes_and_virtual_sources(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-0.7-contract-workflow.yml")
+        nodes = ir.node_map()
+        self.assertEqual("0.7.0", ir.raw_metadata["dsl_version"])
+        self.assertEqual("advanced-chat", ir.raw_metadata["app_mode"])
+        self.assertEqual("LOOP", nodes["loop"].type)
+        self.assertEqual("ITERATION", nodes["iteration"].type)
+        self.assertEqual("STRUCTURAL", nodes["loop-start"].type)
+        self.assertEqual("STRUCTURAL", nodes["iteration-start"].type)
+        self.assertEqual("LLM", nodes["agent-v2"].type)
+        self.assertEqual("CONTENT", nodes["source"].type)
+        self.assertEqual("INPUT", nodes["trigger"].type)
+        self.assertEqual("INPUT", nodes["sys"].type)
+        self.assertEqual([], ir.coverage_gaps)
+        self.assertTrue(any(
+            ref.producer_node_id == "sys"
+            and ref.variable_name == "query"
+            and ref.consumer_node_id == "llm"
+            for ref in ir.variable_refs
+        ))
+        recipient_refs = [
+            ref for ref in ir.variable_refs
+            if ref.consumer_node_id == "mail" and ref.producer_node_id == "llm"
+        ]
+        self.assertTrue(recipient_refs)
+        self.assertEqual({"recipient"}, {ref.consumer_field for ref in recipient_refs})
+
     def test_responses_request_uses_strict_schema_and_no_storage(self) -> None:
         schema = {
             "type": "object",
@@ -105,6 +132,11 @@ class ParserTests(unittest.TestCase):
 
 
 class RuleTests(unittest.TestCase):
+    def test_every_rule_has_exactly_one_dify_dsl_binding(self) -> None:
+        catalog = RuleCatalog(RULES)
+        self.assertEqual(set(catalog.rules), set(catalog.dify_bindings))
+        self.assertTrue(all(binding["dsl_fields"] for binding in catalog.dify_bindings.values()))
+
     def test_node_rule_matrix_covers_every_catalog_rule_once(self) -> None:
         catalog = yaml.safe_load(RULES.read_text(encoding="utf-8"))
         expected = {item["id"] for item in catalog["rules"]}
@@ -128,6 +160,27 @@ class RuleTests(unittest.TestCase):
             self.assertIn(rule_id, rule_ids)
         confirmed_high = [finding for finding in findings if finding.status == "CONFIRMED" and finding.severity in {"HIGH", "CRITICAL"}]
         self.assertTrue(confirmed_high)
+
+    def test_official_loop_iteration_input_and_tool_contracts_do_not_false_positive(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-0.7-contract-workflow.yml")
+        _, findings, candidates = execute_rules(ir, RULES)
+        rule_ids = all_rule_ids(findings)
+        self.assertNotIn("FLOW-007", rule_ids)
+        self.assertNotIn("IN-003", rule_ids)
+        self.assertNotIn("IN-005", rule_ids)
+        self.assertNotIn("TOOL-011", rule_ids)
+        self.assertTrue(all(item["dify_binding"]["dsl_fields"] for item in candidates["candidates"]))
+
+        ir.node_map()["loop"].config["loop_count"] = 0
+        _, invalid_findings, _ = execute_rules(ir, RULES)
+        self.assertIn("FLOW-007", all_rule_ids(invalid_findings))
+
+        single_file_ir, _ = parse_dify_dsl(FIXTURES / "dify-0.7-contract-workflow.yml")
+        single_file = single_file_ir.node_map()["start"].config["variables"][0]
+        single_file["type"] = "file"
+        single_file.pop("max_length", None)
+        _, single_file_findings, _ = execute_rules(single_file_ir, RULES)
+        self.assertNotIn("IN-002", all_rule_ids(single_file_findings))
 
     def test_safe_fixture_has_no_secret_or_high_impact_tool_findings(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "safe-workflow.yml")

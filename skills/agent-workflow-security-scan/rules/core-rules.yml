@@ -43,7 +43,7 @@ rules:
   - {id: FLOW-004, title: "敏感数据可达外部边界", severity: HIGH, detectability: H, standards: [AISVS-C7, ASI03]}
   - {id: FLOW-005, title: "间接 Prompt Injection 工具链", severity: HIGH, detectability: H, standards: [ASI01, AISVS-9.3]}
   - {id: FLOW-006, title: "审批或过滤可绕过", severity: HIGH, detectability: S, standards: [AISVS-9.2, ASI02, ASI03]}
-  - {id: FLOW-007, title: "无界循环或级联调用", severity: MEDIUM, detectability: S, standards: [AISVS-9.1, ASI08]}
+  - {id: FLOW-007, title: "Dify Loop 最大次数无效", severity: MEDIUM, detectability: S, standards: [AISVS-9.1, ASI08], applies_to: [dify_loop], exclusion_facts: [positive_integer_loop_count, dify_iteration_uses_bounded_collection]}
   - {id: FLOW-008, title: "凭证进入模型可见上下文", severity: CRITICAL, detectability: S, standards: [AISVS-9.5.4, ASI03]}
   - {id: FLOW-009, title: "敏感资产经模型到外部通道的复合外泄链", severity: CRITICAL, detectability: S, standards: [ASI01, ASI03], attack_family: web_exfiltration}
   - {id: FLOW-010, title: "外部不可信内容经模型到代码执行", severity: CRITICAL, detectability: S, standards: [ASI01, ASI05], attack_family: unexpected_code_execution}
