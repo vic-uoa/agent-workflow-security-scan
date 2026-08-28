@@ -1,0 +1,47 @@
+kind: app
+version: 0.7.0
+app:
+  name: dify-decision-output-injection
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          variables:
+            - variable: request
+              type: text-input
+              max_length: 1000
+      - id: llm
+        data:
+          type: llm
+          prompt_template:
+            - role: system
+              text: "Decide access for {{#start.request#}}"
+          structured_output_enabled: true
+          output_schema:
+            type: object
+            properties:
+              allow: {type: boolean}
+            required: [allow]
+            additionalProperties: false
+      - id: end
+        data:
+          type: end
+          decision_output: true
+          machine_consumed: true
+          fallback: fail_closed
+          outputs:
+            result:
+              value_selector: [llm, structured_output]
+              value_type: object
+          output_schema:
+            type: object
+            properties:
+              allow: {type: boolean}
+            required: [allow]
+            additionalProperties: false
+    edges:
+      - {id: e1, source: start, target: llm}
+      - {id: e2, source: llm, target: end}

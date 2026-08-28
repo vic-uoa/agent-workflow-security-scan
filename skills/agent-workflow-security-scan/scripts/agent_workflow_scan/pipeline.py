@@ -273,12 +273,44 @@ def evaluate_quality_gate(findings: list[Finding], baseline: dict[str, Any], wai
     policy = baseline.get("quality_gate", {}) if isinstance(baseline.get("quality_gate", {}), dict) else {}
     blocking_severities = {str(item) for item in policy.get("blocking_severities", ["CRITICAL", "HIGH"])}
     blocking_statuses = {str(item) for item in policy.get("blocking_statuses", ["CONFIRMED"])}
-    review_statuses = {str(item) for item in policy.get("review_statuses", ["OBSERVED", "PROBABLE", "CANDIDATE", "COVERAGE_GAP"])}
+    review_severities = {str(item) for item in policy.get("review_severities", ["CRITICAL", "HIGH", "MEDIUM"])}
+    review_statuses = {str(item) for item in policy.get(
+        "review_statuses", ["CONFIRMED", "PROBABLE", "OBSERVED", "CANDIDATE", "COVERAGE_GAP"],
+    )}
+    def evidence_instances(finding: Finding) -> list[dict[str, Any]]:
+        return finding.instance_summaries or [{
+            "finding_id": finding.id,
+            "rule_ids": [finding.rule_id, *finding.related_rule_ids],
+            "status": finding.status,
+            "severity": finding.severity,
+            "path": finding.node_ids,
+        }]
+
+    def has_disposition(finding: Finding, severities: set[str], statuses: set[str]) -> bool:
+        return any(
+            str(instance.get("severity")) in severities
+            and str(instance.get("status")) in statuses
+            for instance in evidence_instances(finding)
+        )
+
     blockers = [
         finding for finding in findings
-        if not finding.waived and finding.severity in blocking_severities and finding.status in blocking_statuses
+        if not finding.waived and has_disposition(finding, blocking_severities, blocking_statuses)
     ]
-    reviews = [finding for finding in findings if not finding.waived and finding.status in review_statuses]
+    blocker_ids = {finding.id for finding in blockers}
+    reviews = [
+        finding for finding in findings
+        if not finding.waived
+        and finding.id not in blocker_ids
+        and has_disposition(finding, review_severities, review_statuses)
+    ]
+    review_ids = {finding.id for finding in reviews}
+    advisories = [
+        finding for finding in findings
+        if not finding.waived
+        and finding.id not in blocker_ids | review_ids
+        and finding.status not in {"MITIGATED", "NOT_APPLICABLE"}
+    ]
     decision = "FAIL" if blockers else ("REVIEW" if reviews else "PASS")
     return {
         "decision": decision,
@@ -286,13 +318,32 @@ def evaluate_quality_gate(findings: list[Finding], baseline: dict[str, Any], wai
         "policy": {
             "blocking_severities": sorted(blocking_severities),
             "blocking_statuses": sorted(blocking_statuses),
+            "review_severities": sorted(review_severities),
             "review_statuses": sorted(review_statuses),
+            "low_observations_are_advisory_only": True,
             "waivers_require_workflow_hash_approver_justification_and_expiry": True,
         },
         "blocking_finding_ids": [finding.id for finding in blockers],
         "review_finding_ids": [finding.id for finding in reviews],
+        "blocking_instances": [
+            {"risk_item_id": finding.id, **instance}
+            for finding in blockers for instance in evidence_instances(finding)
+            if str(instance.get("severity")) in blocking_severities
+            and str(instance.get("status")) in blocking_statuses
+        ],
+        "review_instances": [
+            {"risk_item_id": finding.id, **instance}
+            for finding in reviews for instance in evidence_instances(finding)
+            if str(instance.get("severity")) in review_severities
+            and str(instance.get("status")) in review_statuses
+        ],
         "blocking_count": len(blockers),
         "review_count": len(reviews),
+        "advisory_finding_ids": [finding.id for finding in advisories],
+        "advisory_count": len(advisories),
+        "mitigated_finding_ids": [
+            finding.id for finding in findings if finding.status == "MITIGATED"
+        ],
         "waived_count": sum(finding.waived for finding in findings),
         "waiver_audit": waiver_audit,
     }
@@ -434,6 +485,46 @@ def verify_deterministic_findings(
     return verification
 
 
+def enrich_semantic_inventory_with_facts(semantic: dict[str, Any], facts: list[Any]) -> dict[str, Any]:
+    """Add typed, non-secret asset classifications to the semantic inventory."""
+    result = deepcopy(semantic)
+    classifications: list[dict[str, Any]] = []
+    live_assets: list[dict[str, Any]] = []
+    for fact in facts:
+        if getattr(fact, "kind", None) != "sensitive_asset_classification":
+            continue
+        data = dict(getattr(fact, "data", {}) or {})
+        node_ids = list(getattr(fact, "node_ids", []) or [])
+        entry = {
+            "classification_id": fact.id,
+            "node_ids": node_ids,
+            "source_kind": data.get("source_kind"),
+            "value_kind": data.get("value_kind"),
+            "classification": data.get("classification"),
+            "certainty": data.get("certainty"),
+            "context_kind": data.get("context_kind"),
+            "variable_names": data.get("variable_names", []),
+            "eligible_for_egress_chain": bool(data.get("eligible_for_egress_chain")),
+            "candidate_for_egress_review": bool(data.get("candidate_for_egress_review")),
+            "evidence": list(getattr(fact, "evidence", []) or []),
+        }
+        classifications.append(entry)
+        if entry["eligible_for_egress_chain"]:
+            live_assets.append({
+                "asset_id": stable_id("ASSET", fact.id),
+                "name": f"类型化敏感资产：{entry['value_kind']}",
+                "sensitivity": str(entry["classification"] or "UNCLASSIFIED").upper(),
+                "value_kind": entry["value_kind"],
+                "certainty": entry["certainty"],
+                "node_ids": node_ids,
+                "evidence": entry["evidence"],
+                "confidence": 1.0 if entry["certainty"] == "confirmed" else 0.78,
+            })
+    result["asset_classifications"] = classifications
+    result["assets"] = [*result.get("assets", []), *live_assets]
+    return result
+
+
 def run_scan(
     *,
     dsl_path: Path,
@@ -501,7 +592,7 @@ def run_scan(
     write_artifact(output_dir / "02-security-facts.json", artifact({"facts": [to_jsonable(fact) for fact in facts]}, scan_id, "rule-engine", ir.workflow_hash))
 
     advisory_pipeline = ModelAdvisor(llm_enabled, advisory_model, scan_id)
-    semantic = deterministic_semantic_inventory(ir)
+    semantic = enrich_semantic_inventory_with_facts(deterministic_semantic_inventory(ir), facts)
     write_artifact(output_dir / "03-semantic-inventory.json", artifact({"semantic_inventory": semantic}, scan_id, "deterministic-semantic-inventory", ir.workflow_hash))
 
     write_artifact(output_dir / "04-rule-candidates.json", artifact(candidates, scan_id, "rule-engine", ir.workflow_hash))
@@ -531,11 +622,8 @@ def run_scan(
     verification["test_cluster"] = cluster_verification
     waiver_audit = apply_waivers(final_findings, waivers, ir.workflow_hash)
     quality_gate = evaluate_quality_gate(final_findings, baseline, waiver_audit)
-    if scan_mode == "structure-only" and quality_gate["decision"] == "PASS" and any(
-        finding.status in {"OBSERVED", "PROBABLE", "CANDIDATE", "COVERAGE_GAP"} for finding in final_findings
-    ):
-        quality_gate["decision"] = "REVIEW"
-        quality_gate["exit_code"] = 0
+    # Structure-only scans use the same severity-aware gate matrix.  Low
+    # observations remain visible advisories and do not force REVIEW.
     verification["model_advisory"] = model_advisory
     explanation = advisory_pipeline.explain_report(final_findings)
     invalid_explanation_refs = validate_references(explanation, {finding.id for finding in final_findings})

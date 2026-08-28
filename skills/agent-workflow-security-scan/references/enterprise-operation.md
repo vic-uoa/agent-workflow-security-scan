@@ -83,3 +83,7 @@ A waiver must include `waiver_id`, `workflow_hash`, `approver`, `justification` 
 | `non-strict-schema-workflow.yml` | FAIL / LLM-006 + TOOL-011 | Schema presence without closed properties is insufficient |
 | `document-indirect-injection-workflow.yml` | FAIL / FLOW-005 + FLOW-010 | Uploaded document text is an untrusted content source |
 | `tencent-inspired-workflow.yml` | FAIL | Composite injection, exfiltration, memory, agent and code-execution paths |
+| `dify-output-type-mismatch-workflow.yml` | REVIEW / FLOW-014 | Explicitly incompatible producer and consumer types remain reviewable without being promoted to a high-impact exploit |
+| `dify-regex-derived-route-workflow.yml` | REVIEW / FLOW-015 | Untrusted text parsed without a strict contract can derive a value that controls a condition branch |
+| `dify-llm-code-parser-workflow.yml` | REVIEW / LLM-006 + deployment gaps | Model free text is machine-consumed through parser code while provider and downstream boundaries remain unknown |
+| `dify-conflicting-branch-prompts-workflow.yml` | REVIEW / FLOW-016 | A direct edge between two condition-selected LLM nodes is a structural candidate, not a title-based confirmed defect |

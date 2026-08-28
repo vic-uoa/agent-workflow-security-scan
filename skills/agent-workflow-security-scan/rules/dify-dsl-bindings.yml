@@ -15,10 +15,10 @@ bindings:
     runtime_context: []
 
   - name: cross_node_paths
-    rule_ids: [FLOW-003, FLOW-004, FLOW-005, FLOW-006, FLOW-009, FLOW-010, FLOW-011, FLOW-012, FLOW-013]
+    rule_ids: [FLOW-003, FLOW-004, FLOW-005, FLOW-006, FLOW-009, FLOW-010, FLOW-011, FLOW-012, FLOW-013, FLOW-015, FLOW-016]
     node_types: [start, trigger-webhook, trigger-plugin, llm, agent, agent-v2, knowledge-retrieval, document-extractor, tool, http-request, code, human-input]
-    dsl_fields: ['workflow.graph.edges', 'data.value_selector', 'data.variable_selector', 'data.tool_parameters', 'data.user_actions', 'data.agent_parameters', 'data.structured_output']
-    runtime_context: [tool_capabilities, object_authorization, network_egress, plugin_runtime, workflow_execution_budget]
+    dsl_fields: ['workflow.graph.edges', 'data.value_selector', 'data.variable_selector', 'data.code', 'data.cases', 'data.prompt_template', 'data.tool_parameters', 'data.user_actions', 'data.agent_parameters', 'data.structured_output', 'data.security_control', 'data.output_audience', 'data.audience']
+    runtime_context: [tool_capabilities, object_authorization, network_egress, plugin_runtime, workflow_execution_budget, security_control_registry_integrity]
 
   - name: loop_and_iteration_budget
     rule_ids: [FLOW-007]
@@ -29,7 +29,7 @@ bindings:
   - name: embedded_secrets
     rule_ids: [FLOW-008]
     node_types: [all]
-    dsl_fields: ['workflow.environment_variables', 'workflow.conversation_variables', 'workflow.graph.nodes[].data']
+    dsl_fields: ['workflow.environment_variables', 'workflow.environment_variables[].value_type', 'workflow.conversation_variables', 'workflow.conversation_variables[].value_type', 'workflow.graph.nodes[].data']
     runtime_context: [secret_manager, log_redaction]
 
   - name: start_input_contract
@@ -41,7 +41,7 @@ bindings:
   - name: untrusted_input_flow
     rule_ids: [IN-006, IN-007, IN-009]
     node_types: [start, trigger-webhook, trigger-plugin, llm, agent, agent-v2, tool, end, answer]
-    dsl_fields: ['data.variables', 'data.prompt_template', 'data.prompt_config.jinja2_variables', 'data.value_selector', 'data.tool_parameters', 'data.outputs']
+    dsl_fields: ['data.variables', 'data.variables[].data_classification', 'data.prompt_template', 'data.prompt_config.jinja2_variables', 'data.value_selector', 'data.tool_parameters', 'data.outputs']
     runtime_context: [dlp, model_behavior]
 
   - name: persistent_input_and_memory
@@ -51,15 +51,15 @@ bindings:
     runtime_context: [memory_store, tenant_namespace, retention, write_authorization]
 
   - name: llm_instruction_boundary
-    rule_ids: [LLM-001, LLM-002, LLM-003, LLM-004, LLM-007, LLM-011]
+    rule_ids: [LLM-001, LLM-002, LLM-003, LLM-004, LLM-007, LLM-011, LLM-012]
     node_types: [llm, agent, agent-v2]
     dsl_fields: ['data.prompt_template[].role', 'data.prompt_template[].text', 'data.prompt_template[].jinja2_text', 'data.prompt_config.jinja2_variables', 'data.agent_parameters.instruction', 'data.model']
-    runtime_context: [model_behavior, context_dlp]
+    runtime_context: [model_behavior, context_dlp, model_endpoint, model_data_retention]
 
   - name: llm_structured_action
     rule_ids: [LLM-005, LLM-006, LLM-008]
     node_types: [llm, agent, agent-v2, tool, http-request, code, human-input]
-    dsl_fields: ['data.structured_output_enabled', 'data.structured_output.schema', 'data.output_schema', 'data.tool_parameters', 'data.paramSchemas', 'data.user_actions']
+    dsl_fields: ['data.structured_output_enabled', 'data.structured_output.schema', 'data.output_schema', 'data.tool_parameters', 'data.paramSchemas', 'data.user_actions', 'data.machine_consumed', 'data.decision_output', 'data.automated_decision']
     runtime_context: [plugin_parameter_schema, deterministic_policy_gate]
 
   - name: llm_resilience
@@ -87,15 +87,15 @@ bindings:
     runtime_context: [credential_store, plugin_input_output_schema, API_TOOL_DEFAULT_CONNECT_TIMEOUT, API_TOOL_DEFAULT_READ_TIMEOUT]
 
   - name: output_contract_and_failure
-    rule_ids: [OUT-001, OUT-006, OUT-008]
+    rule_ids: [FLOW-014, OUT-001, OUT-006, OUT-008, OUT-011]
     node_types: [end, answer, llm, agent, agent-v2]
     dsl_fields: ['data.outputs', 'data.value_selector', 'data.structured_output.schema', 'data.output_schema', 'data.error_strategy', 'data.default_value']
-    runtime_context: [api_consumer_contract, fail_closed_policy]
+    runtime_context: [api_consumer_contract, caller_authentication, downstream_automation, fail_closed_policy]
 
   - name: output_content_safety
     rule_ids: [OUT-002, OUT-003, OUT-004, OUT-005, OUT-009, OUT-010]
     node_types: [end, answer]
-    dsl_fields: ['data.answer', 'data.outputs', 'data.value_selector', 'workflow.features']
+    dsl_fields: ['data.answer', 'data.outputs', 'data.value_selector', 'data.audience', 'data.output_audience', 'data.visibility', 'workflow.features']
     runtime_context: [renderer_context, content_security_policy, remote_image_proxy, output_dlp, provenance]
 
   - name: rag_output_provenance

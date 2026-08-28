@@ -1,0 +1,58 @@
+kind: app
+version: 0.5.0
+app:
+  name: dify-example-content-regression
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          title: 用户输入
+          variables:
+            - variable: content
+              label: 缺陷摘要与描述
+              type: paragraph
+              max_length: 10000
+      - id: llm
+        data:
+          type: llm
+          title: 修复建议模型
+          prompt_template:
+            - role: system
+              text: |
+                根据用户输入生成 JSON 修复建议。
+                输出样例：
+                ```json
+                {
+                  "summary": "登录账号密码明文传输",
+                  "description": "示例 URL http://example.invalid/login",
+                  "credentialExample": "password=abc12345",
+                  "tokenField": "token"
+                }
+                ```
+                安全规范：禁止泄露密码，密码应加密或脱敏。
+                输入：{{#start.content#}}
+      - id: normalize
+        data:
+          type: code
+          title: JSON 规范化
+          code: |
+            def main(text: str):
+                return {"result": text}
+          variables:
+            - variable: text
+              value_selector: [llm, text]
+      - id: end
+        data:
+          type: end
+          title: 输出 URL 与图片漏洞描述
+          outputs:
+            result:
+              value_selector: [normalize, result]
+              value_type: string
+    edges:
+      - {id: e1, source: start, target: llm}
+      - {id: e2, source: llm, target: normalize}
+      - {id: e3, source: normalize, target: end}

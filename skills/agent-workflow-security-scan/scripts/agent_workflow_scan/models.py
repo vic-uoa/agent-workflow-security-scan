@@ -9,7 +9,7 @@ from typing import Any
 import json
 
 
-SCHEMA_VERSION = "1.5.0"
+SCHEMA_VERSION = "1.6.0"
 
 
 class NodeType(str, Enum):
@@ -116,6 +116,7 @@ class Finding:
     potential_severity: str | None = None
     finding_instance_ids: list[str] = field(default_factory=list)
     path_variants: list[list[str]] = field(default_factory=list)
+    affected_node_ids: list[str] = field(default_factory=list)
     instance_summaries: list[dict[str, Any]] = field(default_factory=list)
     dynamic_tests: list[str] = field(default_factory=list)
     waived: bool = False

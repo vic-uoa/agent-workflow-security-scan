@@ -21,6 +21,10 @@
     ,"requires_dynamic_validation": {"type": "boolean"}
     ,"applies_to": {"type": "array", "items": {"type": "string"}}
     ,"exclusion_facts": {"type": "array", "items": {"type": "string"}}
+    ,"required_facts": {"type": "array", "items": {"type": "string"}}
+    ,"candidate_facts": {"type": "array", "items": {"type": "string"}}
+    ,"unknown_policy": {"type": "string"}
+    ,"gate_policy": {"type": "string"}
   },
   "additionalProperties": true
 }

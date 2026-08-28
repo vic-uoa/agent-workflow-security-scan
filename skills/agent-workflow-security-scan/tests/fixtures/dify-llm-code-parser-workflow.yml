@@ -1,0 +1,42 @@
+kind: app
+version: 0.7.0
+app:
+  name: dify-llm-code-parser
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          variables:
+            - {variable: content, type: paragraph, max_length: 1000}
+      - id: llm
+        data:
+          type: llm
+          model:
+            provider: langgenius/openai_api_compatible/openai_api_compatible
+            name: internal-model
+          prompt_template:
+            - {role: user, text: "Return JSON for {{#start.content#}}"}
+      - id: parse-json
+        data:
+          type: code
+          code_language: python3
+          code: |
+            import json
+            def main(text: str):
+                return {"result": json.loads(text)}
+          variables:
+            - {variable: text, value_selector: [llm, text], value_type: string}
+          outputs:
+            result: {type: object}
+      - id: end
+        data:
+          type: end
+          outputs:
+            - {variable: result, value_selector: [parse-json, result], value_type: object}
+    edges:
+      - {id: e1, source: start, target: llm}
+      - {id: e2, source: llm, target: parse-json}
+      - {id: e3, source: parse-json, target: end}

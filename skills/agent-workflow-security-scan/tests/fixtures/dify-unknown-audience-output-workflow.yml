@@ -1,0 +1,35 @@
+kind: app
+version: 0.5.0
+app:
+  name: dify-unknown-audience-output-regression
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          variables:
+            - variable: query
+              type: text-input
+              max_length: 1000
+      - id: kb
+        data:
+          type: knowledge-retrieval
+          title: 内部业务知识库
+          data_classification: confidential
+          dataset_ids: [internal-business]
+          query_variable_selector: [start, query]
+          multiple_retrieval_config:
+            top_k: 5
+            score_threshold: 0.3
+      - id: end
+        data:
+          type: end
+          title: 返回调用方
+          outputs:
+            result: [kb, result]
+          fallback: fail_closed
+    edges:
+      - {id: e1, source: start, target: kb}
+      - {id: e2, source: kb, target: end}

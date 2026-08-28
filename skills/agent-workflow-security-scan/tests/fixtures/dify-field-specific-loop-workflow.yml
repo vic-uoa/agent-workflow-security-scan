@@ -1,0 +1,40 @@
+kind: app
+version: 0.7.0
+app:
+  name: dify-field-specific-loop
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          title: 输入
+          variables:
+            - variable: items
+              type: array
+              max_length: 20
+            - variable: role
+              type: paragraph
+            - variable: example
+              type: paragraph
+      - id: loop
+        data:
+          type: loop
+          title: 有界循环
+          loop_count: 10
+          loop_variables:
+            - id: loop_items
+              value: [start, items]
+              value_type: variable
+              var_type: array
+      - id: llm
+        data:
+          type: llm
+          title: 文本处理
+          prompt_template:
+            - role: system
+              text: "角色：{{#start.role#}}；样例：{{#start.example#}}"
+    edges:
+      - {id: e1, source: start, target: loop}
+      - {id: e2, source: loop, target: llm}

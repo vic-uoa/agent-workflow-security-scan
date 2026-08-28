@@ -1,0 +1,32 @@
+kind: app
+version: 0.7.0
+app:
+  name: dify-output-type-mismatch
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          variables:
+            - {variable: content, type: paragraph, max_length: 1000}
+      - id: build
+        data:
+          type: code
+          code_language: python3
+          code: |
+            def main(content: str):
+                return {"result": {"summary": content}}
+          variables:
+            - {variable: content, value_selector: [start, content], value_type: string}
+          outputs:
+            result: {type: object}
+      - id: end
+        data:
+          type: end
+          outputs:
+            - {variable: result, value_selector: [build, result], value_type: string}
+    edges:
+      - {id: e1, source: start, target: build}
+      - {id: e2, source: build, target: end}

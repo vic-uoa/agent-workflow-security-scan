@@ -44,6 +44,17 @@ python scripts/scan_workflow.py scan --mode assessment --dsl <workflow.yml> --sa
 - 禁止执行工作流和生成的载荷。`10-dynamic-test-plan.json` 只是交给隔离沙盒的计划。
 - 每个派生用例必须与种子不同并带有确定性判定条件；变异必须命中适用的用户可控字段，而不是随意选择第一个标量。
 - 仅基于变量引用的 `path_variants` 属于数据流。可执行控制流必须使用图边和分支句柄；无法求解的代码条件记录在 `missing_route_context`。
+- 敏感词只能形成分类候选。必须区分凭证明文、字段名、占位符、明确标注的示例、未标注代码块、安全说明和运行时数据。Dify 原生 `value_type: secret/password/credential/token` 属于类型化资产；字段名或上下文凭证形态沿类型化路径到达外部/公开 Sink 时保留 `CANDIDATE/REVIEW`，不能升级为完整外泄链。
+- 示例、代码块和安全说明属于降置信上下文，不是绝对豁免：明确标注示例中的普通 `password=...` 可以保持惰性，但提供商特征 Token、未标注配置代码块或安全说明邻近的具体值必须保留候选证据。
+- 普通 `End`/`Answer` 不是网络写 Sink。复合外泄链必须逐项满足资产、同上下文、类型化载荷、可观察 Sink 和无全路径缓解等硬前提；字段名候选不得形成 `FLOW-009`。
+- LOW/INFO 观察项作为加固建议保留但不单独触发 REVIEW。只有所有风险路径都经过**已验证**的强制脱敏、授权或策略门时才能使用 `MITIGATED`；普通 `output_dlp` 字段、自声明控制或无法证明变换有效的代码只能作为待核验声明，不能抑制风险。
+- Prompt 边界影响必须结合下游语义：普通人读文本可以降为 LOW/OBSERVED；进入条件、`machine_consumed`、`decision_output`、自动决策或副作用能力时至少提升为 MEDIUM/HIGH PROBABLE。
+- 同时分析派生控制血缘。用户文本经正则、字符串切分或解析代码生成字段，再通过变量引用进入 `if-else`/条件节点时，属于 `untrusted_text → parser → condition` 路径；仅画布控制边或仅代码中出现正则均不足以成项。
+- 固定 CODE 节点不自动等于验证控制。只有严格 Schema/enum、未知与重复字段拒绝、明确失败关闭和匹配的输出类型都可验证时，才能把解析代码视为缓解；`json.loads`、`re.search` 或返回空对象本身不能满足。
+- 当生产者与消费者都声明变量类型时必须做逐引用契约比较。明确不兼容的 object/array/string 类型是 `CONFIRMED` 契约错误并触发 REVIEW；任一侧类型未知、兼容数值类型或通用 array/具体 array 不应误报。
+- `LLM → JSON/正则解析代码 → End/条件/工具` 属于机器消费路径。仅进入调用方响应时按 MEDIUM 契约完整性处理；进入条件或高影响动作时再提高潜在影响。只把模型文本作为不透明字符串搬运不适用。
+- 条件分支专属 LLM 直接进入另一个条件分支专属 LLM 时，只能形成 `CANDIDATE/REVIEW`；不得仅根据节点标题宣称配置错误已确认，必须保留“有意串行复核”的反证可能。
+- OpenAI-compatible 端点位置、End 调用方身份和下游是否自动消费若未导出，仅记录一次工作流/输出级 `COVERAGE_GAP`。这些未知信息不能把 End 改写为网络外发，也不能触发 FAIL。
 
 修改解析器、Dify 契约、图、控制识别、规则、门禁或报告行为后，必须运行：
 

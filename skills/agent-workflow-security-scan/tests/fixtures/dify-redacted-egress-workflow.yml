@@ -1,0 +1,41 @@
+kind: app
+version: 0.7.0
+app:
+  name: dify-redacted-egress
+  mode: workflow
+workflow:
+  environment_variables:
+    - id: service_secret
+      name: service_secret
+      value_type: secret
+      data_classification: credential
+  graph:
+    nodes:
+      - id: redact
+        data:
+          type: code
+          title: 强制脱敏
+          security_control:
+            type: redaction
+            mandatory: true
+            failure_mode: fail_closed
+          code: |
+            def main(secret: str):
+                return {"masked": "***"}
+          variables:
+            - variable: secret
+              value_selector: [env, service_secret]
+      - id: audit
+        data:
+          type: http-request
+          title: 固定审计写入
+          method: POST
+          url: "https://trusted.invalid/audit"
+          body:
+            value: "{{#redact.masked#}}"
+          paramSchemas:
+            - {name: body, type: object}
+          timeout: {connect: 3, read: 5, write: 5}
+    edges:
+      - {id: e1, source: redact, target: audit}
+

@@ -43,7 +43,37 @@ def build_attack_surface(
             case_by_finding.setdefault(str(finding_id), []).append(str(case.get("case_id")))
 
     paths = []
+    mitigated_paths = []
+    coverage_gap_paths = []
+    candidate_paths = []
     for finding in findings:
+        if finding.status in {"MITIGATED", "NOT_APPLICABLE"}:
+            mitigated_paths.append({
+                "finding_id": finding.id,
+                "rule_ids": [finding.rule_id, *finding.related_rule_ids],
+                "path_variants": finding.path_variants or [finding.node_ids],
+                "counter_evidence": finding.counter_evidence,
+                "status": finding.status,
+            })
+            continue
+        if finding.status == "CANDIDATE":
+            candidate_paths.append({
+                "finding_id": finding.id,
+                "rule_ids": [finding.rule_id, *finding.related_rule_ids],
+                "path_variants": finding.path_variants or [finding.node_ids],
+                "missing_context": finding.missing_context,
+                "status": finding.status,
+            })
+            continue
+        if finding.status == "COVERAGE_GAP":
+            coverage_gap_paths.append({
+                "finding_id": finding.id,
+                "rule_ids": [finding.rule_id, *finding.related_rule_ids],
+                "path_variants": finding.path_variants or [finding.node_ids],
+                "missing_context": finding.missing_context,
+                "status": finding.status,
+            })
+            continue
         related_cases = []
         route_variants: list[dict[str, Any]] = []
         for case_id in case_by_finding.get(finding.id, []):
@@ -60,14 +90,17 @@ def build_attack_surface(
             if case.get("route_variants") and not matching_variants:
                 continue
             related_cases.append(case_id)
-            route_variants.extend(matching_variants or [{
+            route_variants.extend([
+                {**variant, "_case_id": case_id}
+                for variant in (matching_variants or [{
                 "finding_id": finding.id,
                 "target_node": finding.anchor_node_id,
                 "target_path": case.get("target_path", []),
                 "route_status": case.get("route_status", "NOT_EVALUATED"),
                 "route_constraints": case.get("route_constraints", []),
                 "missing_route_context": case.get("missing_route_context", []),
-            }])
+                }])
+            ])
         variant_paths = [
             item.get("target_path", []) for item in route_variants
             if isinstance(item.get("target_path"), list) and item.get("target_path")
@@ -81,6 +114,11 @@ def build_attack_surface(
             instance = next(
                 (item for item in finding.instance_summaries if item.get("path") == path), {}
             )
+            path_case_ids = list(dict.fromkeys(
+                str(variant.get("_case_id"))
+                for variant in route_variants
+                if variant.get("target_path") == path and variant.get("_case_id")
+            ))
             paths.append({
                 "attack_path_id": stable_id("AP", finding.id, path_index, *path),
                 "finding_id": finding.id,
@@ -109,8 +147,8 @@ def build_attack_surface(
                         for message in variant.get("missing_route_context", [])
                     ),
                 ])),
-                "test_case_ids": list(dict.fromkeys(related_cases)),
-                "planned_test_coverage": bool(related_cases),
+                "test_case_ids": path_case_ids,
+                "planned_test_coverage": bool(path_case_ids),
                 "route_satisfiable": any(
                     variant.get("target_path") == path and variant.get("route_status") == "SATISFIABLE"
                     for variant in route_variants
@@ -130,6 +168,8 @@ def build_attack_surface(
     severity_rank = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
     correlated: dict[tuple[str, ...], dict[str, Any]] = {}
     for item in paths:
+        if item.get("severity") in {"LOW", "INFO"}:
+            continue
         key = tuple(item.get("path", [])) or (str(item.get("target_node") or "global"),)
         bucket = correlated.setdefault(key, {
             "risk_chain_id": stable_id("CHAIN", *key),
@@ -178,6 +218,10 @@ def build_attack_surface(
         "capabilities": capabilities,
         "attack_paths": paths,
         "risk_chains": risk_chains,
+        "advisory_paths": [item for item in paths if item.get("severity") in {"LOW", "INFO"}],
+        "mitigated_paths": mitigated_paths,
+        "coverage_gap_paths": coverage_gap_paths,
+        "candidate_paths": candidate_paths,
         "semantic_attack_hypotheses": semantic.get("attack_hypotheses", []),
         "test_coverage": {
             "covered_finding_ids": planned_findings,
@@ -229,8 +273,15 @@ def build_report_json(
     verification: dict[str, Any],
     quality_gate: dict[str, Any],
 ) -> dict[str, Any]:
-    issues = [finding for finding in findings if finding.status != "COVERAGE_GAP"]
+    issues = [
+        finding for finding in findings
+        if finding.status not in {"COVERAGE_GAP", "MITIGATED", "NOT_APPLICABLE"}
+    ]
     gaps = [finding for finding in findings if finding.status == "COVERAGE_GAP"]
+    mitigated = [finding for finding in findings if finding.status == "MITIGATED"]
+    action_ids = set(quality_gate.get("blocking_finding_ids", [])) | set(quality_gate.get("review_finding_ids", []))
+    action_items = [finding for finding in issues if finding.id in action_ids]
+    advisories = [finding for finding in issues if finding.id not in action_ids]
     serialized_findings: list[dict[str, Any]] = []
     for finding in findings:
         item = to_jsonable(finding)
@@ -238,7 +289,8 @@ def build_report_json(
     severity_counts = Counter(finding.severity for finding in issues)
     status_counts = Counter(finding.status for finding in findings)
     deterministic_summary = (
-        f"静态扫描形成 {len(issues)} 个节点风险项和 {len(gaps)} 个覆盖缺口；"
+        f"静态扫描形成 {len(action_items)} 个需处理风险项、{len(advisories)} 个加固建议、"
+        f"{len(gaps)} 个覆盖缺口和 {len(mitigated)} 个已缓解项；"
         f"其中 CONFIRMED={status_counts.get('CONFIRMED', 0)}、"
         f"PROBABLE={status_counts.get('PROBABLE', 0)}、"
         f"OBSERVED={status_counts.get('OBSERVED', 0)}、"
@@ -270,6 +322,9 @@ def build_report_json(
             "edge_count": len(ir.edges),
             "finding_count": len(issues),
             "risk_item_count": len(issues),
+            "action_item_count": len(action_items),
+            "advisory_count": len(advisories),
+            "mitigated_count": len(mitigated),
             "evidence_instance_count": sum(len(finding.instance_summaries) or 1 for finding in issues),
             "raw_observation_count": len(findings),
             "coverage_gap_count": len(gaps),
@@ -320,8 +375,15 @@ def build_report_json(
 def render_markdown(report: dict[str, Any]) -> str:
     summary = report["summary"]
     all_findings = report.get("findings", [])
-    findings = [finding for finding in all_findings if finding.get("status") != "COVERAGE_GAP"]
-    gate = report.get("quality_gate", {}).get("decision", "UNKNOWN")
+    findings = [
+        finding for finding in all_findings
+        if finding.get("status") not in {"COVERAGE_GAP", "MITIGATED", "NOT_APPLICABLE"}
+    ]
+    gate_payload = report.get("quality_gate", {})
+    gate = gate_payload.get("decision", "UNKNOWN")
+    action_ids = set(gate_payload.get("blocking_finding_ids", [])) | set(gate_payload.get("review_finding_ids", []))
+    action_findings = [finding for finding in findings if finding.get("id") in action_ids]
+    advisory_findings = [finding for finding in findings if finding.get("id") not in action_ids]
     lines = [
         f"# Workflow 静态安全扫描报告：{summary['workflow_id']}",
         "",
@@ -331,8 +393,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "| 指标 | 结果 | 如何理解 |",
         "|---|---:|---|",
-        f"| 发布门禁 | `{gate}` | FAIL 表示存在未豁免的 CONFIRMED 高/严重风险；REVIEW 表示需要人工或运行时核验 |",
-        f"| 节点风险项 | {summary.get('risk_item_count', summary['finding_count'])} | 已按“责任节点 + 控制域”去重，不等同于原始规则命中数 |",
+        f"| 发布门禁 | `{gate}` | FAIL 仅由已确认高/严重风险触发；REVIEW 由中等级以上待处理证据触发 |",
+        f"| 需处理风险项 | {summary.get('action_item_count', 0)} | 影响发布门禁或需要人工补证 |",
+        f"| 加固建议 | {summary.get('advisory_count', 0)} | LOW/INFO 观察与可靠性项，不单独触发门禁 |",
+        f"| 已缓解项 | {summary.get('mitigated_count', 0)} | 风险路径存在，但全部路径已被确定性控制覆盖 |",
         f"| 规则/路径证据实例 | {summary.get('evidence_instance_count', summary['finding_count'])} | 作为风险项明细保留，不重复计数 |",
         f"| 严重等级 | {_table_cell(_format_counts(summary.get('severity_counts', {})))} | 表示若风险成立的潜在影响 |",
         f"| 证据状态 | {_table_cell(_format_counts(summary.get('status_counts', {})))} | 表示静态证据强度，不等同于漏洞已被利用 |",
@@ -344,8 +408,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         "| 风险项 | 责任节点 | 控制域 | 等级 / 状态 | 为什么报告 | 优先措施 |",
         "|---|---|---|---|---|---|",
     ]
-    if findings:
-        for finding in findings:
+    if action_findings:
+        for finding in action_findings:
             remediation = (finding.get("remediation") or ["人工复核并补充匹配控制"])[0]
             lines.append(
                 f"| `{finding['id']}` | `{finding.get('anchor_node_id') or 'workflow'}` | "
@@ -354,7 +418,23 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"{_table_cell(finding.get('message', ''))} | {_table_cell(remediation)} |"
             )
     else:
-        lines.append("| — | — | — | — | 未形成风险项 | — |")
+        lines.append("| — | — | — | — | 未形成影响门禁的风险项 | — |")
+
+    lines.extend(["", "### 加固建议摘要", ""])
+    if advisory_findings:
+        lines.extend([
+            "| 风险项 | 影响节点 | 等级 / 状态 | 建议 |",
+            "|---|---|---|---|",
+        ])
+        for finding in advisory_findings:
+            affected = finding.get("affected_node_ids") or finding.get("node_ids", [])
+            remediation = (finding.get("remediation") or ["纳入后续加固"])[0]
+            lines.append(
+                f"| `{finding['id']}` | {_table_cell(', '.join(affected))} | "
+                f"`{finding['severity']}` / `{finding['status']}` | {_table_cell(remediation)} |"
+            )
+    else:
+        lines.append("本次没有额外加固建议。")
 
     cluster = report.get("test_cluster_summary", {})
     advisory = report.get("model_advisory_summary", {})
@@ -370,8 +450,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         "| `OBSERVED` | 确认存在某种弱点，但尚不足以证明安全影响 | 作为加固项评估 |",
         "| `CANDIDATE` | 确定性规则只能形成候选，尚缺充分成项证据 | 必须复核，不能静默 PASS |",
         "| `COVERAGE_GAP` | DSL 看不到相关运行时控制 | 补充平台/IAM/网络等证据 |",
+        "| `MITIGATED` | 风险路径存在，但所有已识别路径均经过不可绕过的确定性控制 | 保留证据并防止控制退化 |",
         "",
-        "## 输入簇与证据边界",
+        "## 审计附录：输入簇与证据边界",
         "",
         "| 项目 | 结果 |",
         "|---|---|",
@@ -387,7 +468,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"| 血缘校验 | `{'通过' if cluster.get('lineage_verified') else '未通过或无样例'}` |",
         f"| 实际执行 | {cluster.get('executed_case_count', 0)}；输入簇只用于规划攻击面和生成沙盒计划，不能确认或排除 Finding |",
         "",
-        "## 模型参与边界",
+        "## 审计附录：模型参与边界",
         "",
         f"本次模式：`{'确定性扫描 + 可选模型顾问' if advisory_enabled else '仅确定性扫描'}`。"
         + ("模型只补充未执行测试建议和非权威表述，不参与 Finding、严重度或门禁。" if advisory_enabled else "没有调用模型，全部风险结论和门禁均来自确定性逻辑。"),
@@ -402,7 +483,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         "| 等级 | 状态 | 路径 | 规则映射 | 关联风险项 | 建议用例（未执行） |",
         "|---|---|---|---|---|---|",
     ])
-    attack_paths = report.get("attack_surface", {}).get("risk_chains", [])
+    attack_paths = [
+        path for path in report.get("attack_surface", {}).get("risk_chains", [])
+        if set(path.get("finding_ids", [])) & action_ids
+    ]
     if attack_paths:
         for path in attack_paths[:20]:
             chain = " → ".join(path.get("path", [])) or "单节点"
@@ -415,7 +499,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     else:
         lines.append("| — | — | — | — | — | 未形成可展示的攻击链 |")
 
-    lines.extend(["", "完整的入口、资产、信任边界和能力清单见 `attack-surface.md`。", "", "## 节点风险项明细", ""])
+    lines.extend(["", "完整的入口、资产、信任边界和能力清单见 `attack-surface.md`。", "", "## 审计附录：风险项明细", ""])
     if not findings:
         lines.extend(["未发现规则命中；仍需查看覆盖缺口和运行时验证范围。", ""])
     node_summaries = report.get("node_risk_summary", [])
@@ -447,6 +531,8 @@ def render_markdown(report: dict[str, Any]) -> str:
             ])
             if finding.get("root_cause_id"):
                 lines.append(f"- 风险项指纹：`{finding['root_cause_id']}`")
+            if finding.get("affected_node_ids"):
+                lines.append(f"- 受影响节点：{', '.join(f'`{item}`' for item in finding['affected_node_ids'])}")
             if finding.get("missing_context"):
                 lines.append(f"- 缺失上下文：{'；'.join(finding['missing_context'])}")
             if finding.get("dynamic_tests") or finding.get("dynamic_test"):
@@ -466,6 +552,17 @@ def render_markdown(report: dict[str, Any]) -> str:
             lines.append(f"- `{finding['rule_id']}`：{finding['message']}")
     else:
         lines.append("本次未记录额外覆盖缺口。")
+    mitigated = [finding for finding in all_findings if finding.get("status") == "MITIGATED"]
+    lines.extend(["", "## 已缓解项", ""])
+    if mitigated:
+        for finding in mitigated:
+            controls = "；".join(finding.get("counter_evidence", [])) or "存在覆盖全部路径的确定性控制。"
+            lines.append(
+                f"- `{finding['id']}`（{', '.join([finding['rule_id'], *finding.get('related_rule_ids', [])])}）："
+                f"{finding.get('message', '')} 反证：{controls}"
+            )
+    else:
+        lines.append("本次未记录已缓解项。")
     lines.extend([
         "",
         "## 使用边界",

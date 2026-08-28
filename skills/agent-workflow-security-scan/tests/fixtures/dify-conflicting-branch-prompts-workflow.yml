@@ -1,0 +1,51 @@
+kind: app
+version: 0.7.0
+app:
+  name: dify-conflicting-branch-prompts
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          variables:
+            - {variable: content, type: paragraph, max_length: 1000}
+      - id: route-a
+        data:
+          type: if-else
+          cases:
+            - case_id: a
+              conditions:
+                - {comparison_operator: contains, value: a, varType: string, variable_selector: [start, content]}
+      - id: route-b
+        data:
+          type: if-else
+          cases:
+            - case_id: b
+              conditions:
+                - {comparison_operator: contains, value: b, varType: string, variable_selector: [start, content]}
+      - id: non-issue
+        data:
+          type: llm
+          title: Prompt-非问题关闭
+          prompt_template:
+            - {role: user, text: "Review {{#start.content#}}"}
+      - id: transferred
+        data:
+          type: llm
+          title: Prompt-转需求
+          prompt_template:
+            - {role: user, text: "Review transfer requirements"}
+      - id: end
+        data:
+          type: end
+          outputs:
+            - {variable: result, value_selector: [transferred, text], value_type: string}
+    edges:
+      - {id: e1, source: start, target: route-a}
+      - {id: e2, source: start, target: route-b}
+      - {id: e3, source: route-a, sourceHandle: a, target: non-issue}
+      - {id: e4, source: route-b, sourceHandle: b, target: transferred}
+      - {id: e5, source: non-issue, target: transferred}
+      - {id: e6, source: transferred, target: end}

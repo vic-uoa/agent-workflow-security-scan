@@ -40,14 +40,100 @@ SECRET_RE = re.compile(
     r")"
 )
 
+STRONG_SECRET_RE = re.compile(
+    r"(?ix)(?:"
+    r"bearer\s+[A-Za-z0-9._~+/=-]{12,}"
+    r"|\bAKIA[0-9A-Z]{16}\b"
+    r"|\bgh[pousr]_[A-Za-z0-9]{20,}\b"
+    r"|\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}\b"
+    r"|-----BEGIN(?: RSA| EC| OPENSSH)? PRIVATE KEY-----"
+    r"|\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?)://[^\s:/]+:[^\s@]+@[^\s]+"
+    r")"
+)
+
 PLACEHOLDER_SECRET_RE = re.compile(
     r"(?ix)(?:your[_-]?(?:api[_-]?key|token|secret|password)|example|placeholder|dummy|<redacted>|\*{3,})"
 )
 
+EXAMPLE_CONTEXT_RE = re.compile(
+    r"(?i)(?:example|sample|demo|fixture|format\s+(?:example|below)|示例|样例|例如|格式如下|输出格式|输入示例|输出示例)"
+)
+SECURITY_INSTRUCTION_RE = re.compile(
+    r"(?i)(?:do\s+not\s+(?:expose|leak|log)|must\s+(?:encrypt|redact|protect)|"
+    r"never\s+(?:expose|reveal)|禁止(?:泄露|记录|明文)|不得(?:泄露|记录)|"
+    r"不要(?:泄露|记录)|应(?:加密|脱敏|保护)|安全规范|修复建议)"
+)
+
+
+def classify_secret_occurrences(value: str) -> list[dict[str, Any]]:
+    """Classify credential-like literals without returning their plaintext.
+
+    A credential-shaped token in an example, schema or security instruction is
+    evidence about documentation, not a live secret asset.  The scanner keeps
+    that distinction before any taint or egress rule is evaluated.
+    """
+    results: list[dict[str, Any]] = []
+    lines = value.splitlines() or [value]
+    in_fence = False
+    fence_context = ""
+    for line_number, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            if not in_fence:
+                preceding = "\n".join(lines[max(0, line_number - 4):line_number])
+                fence_context = "example" if EXAMPLE_CONTEXT_RE.search(preceding) else "code"
+                in_fence = True
+            else:
+                in_fence = False
+                fence_context = ""
+            continue
+        for match in SECRET_RE.finditer(line):
+            context_start = max(0, line_number - 3)
+            context = "\n".join(lines[context_start:line_number])
+            matched_text = match.group(0)
+            specificity = "high" if STRONG_SECRET_RE.search(matched_text) else "generic_assignment"
+            if PLACEHOLDER_SECRET_RE.search(matched_text):
+                value_kind = "placeholder"
+                likelihood = "inert"
+                context_kind = "placeholder"
+            elif fence_context == "example" or (not in_fence and EXAMPLE_CONTEXT_RE.search(context)):
+                # Generic password/key assignments in an explicitly labelled
+                # example stay inert. Provider-specific token shapes remain a
+                # candidate because real credentials are often pasted into
+                # example sections during debugging.
+                value_kind = "credential_literal_candidate" if specificity == "high" else "example_content"
+                likelihood = "candidate" if specificity == "high" else "inert"
+                context_kind = "example_content"
+            elif in_fence:
+                # A code fence is a rendering construct, not proof that its
+                # contents are synthetic configuration.
+                value_kind = "credential_literal_candidate"
+                likelihood = "candidate"
+                context_kind = "code_block"
+            elif SECURITY_INSTRUCTION_RE.search(context):
+                # Security prose lowers confidence but must not erase a concrete
+                # value on an adjacent line.
+                value_kind = "credential_literal_candidate"
+                likelihood = "candidate"
+                context_kind = "security_instruction"
+            else:
+                value_kind = "credential_literal"
+                likelihood = "confirmed"
+                context_kind = "configuration"
+            results.append({
+                "value_kind": value_kind,
+                "credential_likelihood": likelihood,
+                "specificity": specificity,
+                "context_kind": context_kind,
+                "line": line_number,
+                "credential_fingerprint": stable_id("CREDENTIAL", matched_text),
+            })
+    return results
+
 
 def contains_secret(value: str) -> bool:
-    """Return true for credential-like values while excluding obvious examples/placeholders."""
-    return bool(SECRET_RE.search(value)) and not bool(PLACEHOLDER_SECRET_RE.search(value))
+    """Return true only for credential literals outside inert documentation contexts."""
+    return any(item["value_kind"] == "credential_literal" for item in classify_secret_occurrences(value))
 
 
 class BoundedSafeLoader(yaml.SafeLoader):
@@ -209,6 +295,13 @@ def _classify_capabilities(node_type: NodeType, original_type: str, config: dict
         capabilities.add("DATABASE_READ")
     if node_type == NodeType.OUTPUT:
         capabilities.add("USER_OUTPUT")
+        normalized_output_type = original_type.lower().replace("_", "-")
+        if normalized_output_type == "answer":
+            capabilities.add("HUMAN_OUTPUT")
+        elif normalized_output_type == "end":
+            capabilities.add("API_RESPONSE")
+        else:
+            capabilities.add("UNKNOWN_OUTPUT_AUDIENCE")
     if node_type == NodeType.HUMAN:
         capabilities.add("HUMAN_DECISION")
     if node_type == NodeType.CONTENT:
@@ -352,6 +445,16 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
                     "allowed_file_extensions": upload.get("allowed_file_extensions"),
                     "allowed_file_upload_methods": upload.get("allowed_file_upload_methods"),
                 })
+        if namespace in {"env", "environment", "conversation"}:
+            source_key = "conversation_variables" if namespace == "conversation" else "environment_variables"
+            declared = workflow.get(source_key)
+            if isinstance(declared, list):
+                for item in declared:
+                    if not isinstance(item, dict):
+                        continue
+                    name = str(item.get("name") or item.get("variable") or item.get("id") or "")
+                    if name and name.split(".", 1)[0] in referenced_names:
+                        virtual_variables.append(dict(item))
         nodes.append(Node(
             id=namespace,
             original_type=f"virtual-{namespace}",

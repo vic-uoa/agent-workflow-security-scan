@@ -26,7 +26,7 @@ from agent_workflow_scan.llm import (  # noqa: E402
     redact_for_model,
 )
 from agent_workflow_scan.models import Finding  # noqa: E402
-from agent_workflow_scan.parser import parse_dify_dsl  # noqa: E402
+from agent_workflow_scan.parser import classify_secret_occurrences, parse_dify_dsl  # noqa: E402
 from agent_workflow_scan.pipeline import (  # noqa: E402
     apply_baseline,
     evaluate_quality_gate,
@@ -52,6 +52,29 @@ def all_rule_ids(findings) -> set[str]:
 
 
 class ParserTests(unittest.TestCase):
+    def test_secret_context_classifier_separates_examples_from_live_literals(self) -> None:
+        sample = "输出样例：\n```json\n{\"password\": \"password=abc12345\"}\n```"
+        live = "production password=RealSecret123"
+        self.assertEqual({"example_content"}, {
+            item["value_kind"] for item in classify_secret_occurrences(sample)
+        })
+        self.assertEqual({"credential_literal"}, {
+            item["value_kind"] for item in classify_secret_occurrences(live)
+        })
+
+    def test_secret_context_reduces_confidence_without_erasing_concrete_values(self) -> None:
+        fenced = "```env\napi_key=ABCDEFGH12345678\n```"
+        adjacent = "安全规范：不得泄露或记录凭证。\napi_key=ABCDEFGH12345678"
+        strong_example = "输出示例：sk-proj-ABCDEFGHIJKLMNOPQRSTUV"
+        for value in (fenced, adjacent, strong_example):
+            occurrences = classify_secret_occurrences(value)
+            self.assertEqual({"credential_literal_candidate"}, {
+                item["value_kind"] for item in occurrences
+            })
+            self.assertEqual({"candidate"}, {
+                item["credential_likelihood"] for item in occurrences
+            })
+
     def test_parses_internal_dify_graph_and_variable_refs(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "risky-workflow.yml")
         self.assertEqual(5, len(ir.nodes))
@@ -132,6 +155,131 @@ class ParserTests(unittest.TestCase):
 
 
 class RuleTests(unittest.TestCase):
+    def test_dify_example_password_url_and_end_are_not_sensitive_egress(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-example-content-workflow.yml")
+        facts, findings, _ = execute_rules(ir, RULES)
+        rule_ids = all_rule_ids(findings)
+        self.assertFalse({
+            "FLOW-004", "FLOW-008", "FLOW-009", "LLM-004", "LLM-011",
+            "OUT-002", "OUT-004", "OUT-005", "OUT-009",
+        } & rule_ids)
+        prompt_findings = [finding for finding in findings if "LLM-001" in {finding.rule_id, *finding.related_rule_ids}]
+        self.assertEqual(1, len(prompt_findings))
+        self.assertEqual(("LOW", "OBSERVED"), (prompt_findings[0].severity, prompt_findings[0].status))
+        self.assertEqual([], ir.raw_metadata["secret_locations"])
+        self.assertIn("API_RESPONSE", ir.node_map()["end"].capabilities)
+        asset_facts = [fact for fact in facts if fact.kind == "sensitive_asset_classification"]
+        self.assertTrue(any(fact.data["value_kind"] == "example_content" for fact in asset_facts))
+        self.assertFalse(any(fact.data["eligible_for_egress_chain"] for fact in asset_facts))
+
+    def test_confirmed_classified_asset_dynamic_write_forms_complete_chain(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-confirmed-egress-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        rule_ids = all_rule_ids(findings)
+        self.assertTrue({"FLOW-004", "FLOW-009", "TOOL-007", "TOOL-017"}.issubset(rule_ids))
+        chain = next(finding for finding in findings if "FLOW-009" in {finding.rule_id, *finding.related_rule_ids})
+        self.assertEqual(("CRITICAL", "CONFIRMED"), (chain.severity, chain.status))
+        self.assertGreaterEqual(len(chain.attack_preconditions), 5)
+
+    def test_mandatory_redaction_marks_all_egress_paths_mitigated(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-redacted-egress-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        egress = [
+            finding for finding in findings
+            if {finding.rule_id, *finding.related_rule_ids} & {"FLOW-004", "TOOL-007"}
+        ]
+        self.assertTrue(egress)
+        self.assertTrue(all(finding.status == "MITIGATED" for finding in egress))
+        gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("PASS", gate["decision"])
+        self.assertTrue(gate["mitigated_finding_ids"])
+
+    def test_declared_or_passthrough_redaction_cannot_suppress_egress(self) -> None:
+        for mutation in ("weak_marker", "passthrough"):
+            document = yaml.safe_load(
+                (FIXTURES / "dify-redacted-egress-workflow.yml").read_text(encoding="utf-8")
+            )
+            redact = document["workflow"]["graph"]["nodes"][0]["data"]
+            if mutation == "weak_marker":
+                redact.pop("security_control")
+                redact["output_dlp"] = "planned"
+            else:
+                redact["code"] = "def main(secret):\n    return dict(masked=secret)\n"
+            with TemporaryDirectory() as temp_dir:
+                path = Path(temp_dir) / "mutated.yml"
+                path.write_text(yaml.safe_dump(document, allow_unicode=True, sort_keys=False), encoding="utf-8")
+                ir, _ = parse_dify_dsl(path)
+                _, findings, _ = execute_rules(ir, RULES)
+            egress = next(
+                finding for finding in findings
+                if {finding.rule_id, *finding.related_rule_ids} & {"FLOW-004", "TOOL-007"}
+            )
+            self.assertNotEqual("MITIGATED", egress.status, mutation)
+            gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
+            self.assertEqual("FAIL", gate["decision"], mutation)
+
+    def test_explicit_public_output_can_be_an_attacker_observable_sink(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-public-output-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        rule_ids = all_rule_ids(findings)
+        self.assertTrue({"FLOW-004", "FLOW-009", "OUT-002"}.issubset(rule_ids))
+        chain = next(finding for finding in findings if "FLOW-009" in {finding.rule_id, *finding.related_rule_ids})
+        self.assertEqual(("CRITICAL", "CONFIRMED"), (chain.severity, chain.status))
+
+    def test_dify_secret_value_type_is_a_confirmed_asset_without_custom_classification(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-env-secret-type-egress-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        egress = next(
+            finding for finding in findings
+            if "FLOW-004" in {finding.rule_id, *finding.related_rule_ids}
+        )
+        self.assertEqual(("HIGH", "CONFIRMED"), (egress.severity, egress.status))
+
+    def test_sensitive_field_name_to_public_output_is_review_not_confirmed(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-candidate-password-public-output-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        output = next(
+            finding for finding in findings
+            if "OUT-002" in {finding.rule_id, *finding.related_rule_ids}
+        )
+        self.assertEqual("CANDIDATE", output.status)
+        self.assertNotIn("FLOW-009", all_rule_ids(findings))
+        gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("REVIEW", gate["decision"])
+        surface = build_attack_surface(ir, deterministic_semantic_inventory(ir), findings, {"cases": []})
+        self.assertEqual([], surface["risk_chains"])
+        self.assertTrue(surface["candidate_paths"])
+
+    def test_machine_decision_output_escalates_prompt_boundary_impact(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-decision-output-injection-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        prompt = next(
+            finding for finding in findings
+            if "LLM-001" in {finding.rule_id, *finding.related_rule_ids}
+        )
+        self.assertEqual(("HIGH", "PROBABLE"), (prompt.severity, prompt.status))
+
+    def test_unrelated_disclosure_negation_does_not_hide_authorization_delegation(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-mixed-authorization-instruction-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        authorization = next(finding for finding in findings if finding.rule_id == "LLM-007")
+        self.assertEqual(("HIGH", "PROBABLE"), (authorization.severity, authorization.status))
+
+    def test_security_instruction_adjacent_credential_requires_review_not_fail(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-security-adjacent-credential-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        candidate = next(finding for finding in findings if finding.rule_id == "LLM-011")
+        self.assertEqual(("HIGH", "CANDIDATE"), (candidate.severity, candidate.status))
+        self.assertNotIn("LLM-004", all_rule_ids(findings))
+        gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("REVIEW", gate["decision"])
+
+    def test_only_the_field_bound_to_loop_requires_a_resource_limit(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-field-specific-loop-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        self.assertNotIn("IN-002", all_rule_ids(findings))
+        self.assertNotIn("FLOW-007", all_rule_ids(findings))
+
     def test_every_rule_has_exactly_one_dify_dsl_binding(self) -> None:
         catalog = RuleCatalog(RULES)
         self.assertEqual(set(catalog.rules), set(catalog.dify_bindings))
@@ -199,6 +347,20 @@ class RuleTests(unittest.TestCase):
         self.assertTrue({"IN-007", "IN-009", "LLM-002"}.issubset(set(prompt_findings[0].related_rule_ids)))
         self.assertFalse({"OUT-001", "OUT-008"} & all_rule_ids(findings))
         self.assertNotIn("IN-002", all_rule_ids(findings))
+
+    def test_security_instructions_are_not_positive_authorization_or_disclosure_evidence(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-security-instruction-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        rule_ids = all_rule_ids(findings)
+        self.assertIn("LLM-001", rule_ids)
+        self.assertFalse({"LLM-007", "OUT-003", "OUT-008", "OUT-010"} & rule_ids)
+
+    def test_sensitive_asset_to_ordinary_end_is_audience_gap_not_confirmed_egress(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-unknown-audience-output-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        output = next(finding for finding in findings if finding.rule_id == "OUT-002")
+        self.assertEqual("COVERAGE_GAP", output.status)
+        self.assertFalse({"FLOW-004", "FLOW-009"} & all_rule_ids(findings))
 
     def test_fixed_sandboxed_code_treats_variables_as_data_not_commands(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "safe-code-transform-workflow.yml")
@@ -299,6 +461,46 @@ class RuleTests(unittest.TestCase):
         self.assertEqual("MEDIUM", machine_output.severity)
         self.assertEqual([], machine_output.missing_context)
 
+    def test_declared_producer_consumer_type_mismatch_requires_review(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-output-type-mismatch-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        rule_ids = all_rule_ids(findings)
+        self.assertIn("FLOW-014", rule_ids)
+        mismatch = next(item for item in findings if "FLOW-014" in {item.rule_id, *item.related_rule_ids})
+        self.assertEqual(("MEDIUM", "CONFIRMED"), (mismatch.severity, mismatch.status))
+        gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("REVIEW", gate["decision"])
+
+    def test_untrusted_regex_parser_to_condition_is_a_derived_control_path(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-regex-derived-route-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        route = next(item for item in findings if "FLOW-015" in {item.rule_id, *item.related_rule_ids})
+        self.assertEqual(("MEDIUM", "PROBABLE"), (route.severity, route.status))
+        self.assertEqual(["start", "parse-status", "route"], route.node_ids)
+        gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("REVIEW", gate["decision"])
+
+    def test_llm_output_parsed_by_code_is_machine_consumed_and_keeps_deployment_gaps(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-llm-code-parser-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        rule_ids = all_rule_ids(findings)
+        self.assertTrue({"LLM-006", "LLM-012", "OUT-011"}.issubset(rule_ids))
+        parser_contract = next(item for item in findings if "LLM-006" in {item.rule_id, *item.related_rule_ids})
+        self.assertEqual(("MEDIUM", "CONFIRMED"), (parser_contract.severity, parser_contract.status))
+        gaps = [item for item in findings if item.status == "COVERAGE_GAP"]
+        self.assertTrue(all(item.severity == "INFO" for item in gaps))
+        gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("REVIEW", gate["decision"])
+
+    def test_conflicting_business_state_prompt_edge_is_candidate_only(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "dify-conflicting-branch-prompts-workflow.yml")
+        _, findings, _ = execute_rules(ir, RULES)
+        branch = next(item for item in findings if "FLOW-016" in {item.rule_id, *item.related_rule_ids})
+        self.assertEqual(("MEDIUM", "CANDIDATE"), (branch.severity, branch.status))
+        self.assertEqual(["non-issue", "transferred"], branch.node_ids)
+        gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("REVIEW", gate["decision"])
+
     def test_node_control_aggregation_merges_paths_but_keeps_distinct_controls(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "tencent-inspired-workflow.yml")
         apply_baseline(ir, load_baseline(BASELINE))
@@ -319,18 +521,42 @@ class RuleTests(unittest.TestCase):
             {rule_id for finding in findings for rule_id in (finding.rule_id, *finding.related_rule_ids)},
         )
 
-    def test_sensitive_start_field_does_not_taint_unrelated_model_input(self) -> None:
+    def test_sensitive_field_name_creates_review_candidate_without_model_chain(self) -> None:
         ir, _ = parse_dify_dsl(ROOT / "examples" / "demo-static-employee-assistant.yml")
         apply_baseline(ir, load_baseline(BASELINE))
         _, findings, _ = execute_rules(ir, RULES)
-        self.assertTrue(any(f.rule_id == "TOOL-017" and "callback" in f.node_ids for f in findings))
+        tool_candidate = next(f for f in findings if f.rule_id == "TOOL-017")
+        self.assertEqual("CANDIDATE", tool_candidate.status)
+        self.assertEqual(["start", "callback"], tool_candidate.node_ids)
         self.assertFalse(any(
-            f.rule_id == "FLOW-009" and f.node_ids == ["start", "decision_llm", "answer"]
+            "FLOW-009" in {f.rule_id, *f.related_rule_ids}
             for f in findings
         ))
 
 
 class PipelineTests(unittest.TestCase):
+    def test_quality_gate_evaluates_all_aggregated_instances_without_axis_collapse(self) -> None:
+        mixed = Finding(
+            id="RISK-mixed", rule_id="OUT-001", title="mixed", status="CONFIRMED",
+            severity="LOW", confidence=1.0, node_ids=["end"], evidence_refs=[],
+            dsl_locations=[], message="mixed evidence", remediation=[],
+            instance_summaries=[
+                {"finding_id": "low", "rule_ids": ["OUT-001"], "status": "CONFIRMED", "severity": "LOW", "path": ["end"]},
+                {"finding_id": "high", "rule_ids": ["OUT-002"], "status": "PROBABLE", "severity": "HIGH", "path": ["kb", "end"]},
+            ],
+        )
+        review = evaluate_quality_gate([mixed], load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("REVIEW", review["decision"])
+        self.assertEqual("high", review["review_instances"][0]["finding_id"])
+
+        mixed.instance_summaries.append({
+            "finding_id": "blocker", "rule_ids": ["FLOW-004"], "status": "CONFIRMED",
+            "severity": "HIGH", "path": ["secret", "http"],
+        })
+        failed = evaluate_quality_gate([mixed], load_baseline(BASELINE), {"applied": [], "rejected": []})
+        self.assertEqual("FAIL", failed["decision"])
+        self.assertEqual("blocker", failed["blocking_instances"][0]["finding_id"])
+
     def test_user_seed_derives_positive_negative_boundary_and_metamorphic_cluster(self) -> None:
         cluster = deterministic_test_cluster({"samples": [
             {"sample_id": "seed-1", "input": {"query": "ok"}, "expected_business_intent": "answer normally"},
@@ -481,7 +707,7 @@ class PipelineTests(unittest.TestCase):
                 llm_mode="disabled",
                 scan_mode="assessment",
             )
-            self.assertEqual("REVIEW", result["quality_gate"])
+            self.assertEqual("PASS", result["quality_gate"])
             self.assertEqual(1, result["observation_count"])
             cluster = json.loads((Path(directory) / "05-test-cluster.json").read_text(encoding="utf-8"))["test_cluster"]
             self.assertTrue({"positive", "negative", "boundary"}.issubset({case["case_type"] for case in cluster["cases"]}))

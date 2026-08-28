@@ -20,6 +20,17 @@ calibration_policy:
   accepted_action_gates: [human_confirmation, deterministic_authorization, policy_engine, object_level_authorization, parameter_allowlist]
   runtime_unknown_is_coverage_not_confirmed_vulnerability: true
   missing_hardening_is_reported_only_when_impact_context_applies: true
+  sensitive_keywords_are_classification_candidates_not_assets: true
+  native_secret_or_password_value_types_are_typed_assets: true
+  inert_context_reduces_confidence_but_does_not_erase_strong_credential_shapes: true
+  end_and_answer_are_caller_outputs_not_network_writes: true
+  composite_chain_status_is_bounded_by_weakest_required_precondition: true
+  only_verified_mandatory_redaction_on_all_paths_yields_mitigated: true
+  machine_or_decision_outputs_raise_prompt_integrity_impact: true
+  declared_producer_consumer_type_mismatch_is_confirmed_contract_failure: true
+  fixed_code_is_not_a_validation_control_without_strict_parse_and_failure_semantics: true
+  untrusted_text_to_parser_to_condition_is_a_derived_control_path: true
+  semantic_branch_conflicts_are_candidates_until_business_intent_is_confirmed: true
 control_domains:
   structure_coverage: [FLOW-001, FLOW-002]
   input_contract: [IN-001, IN-002, IN-003, IN-004, IN-005, IN-006]
@@ -30,7 +41,9 @@ control_domains:
   data_protection: [FLOW-004, FLOW-008, LLM-004, LLM-011, TOOL-007, TOOL-010, OUT-002, OUT-003, KB-006]
   egress_control: [FLOW-009, TOOL-003, TOOL-017, OUT-009]
   execution_boundary: [FLOW-010, TOOL-004, TOOL-005, TOOL-006]
-  structured_data_contract: [FLOW-011, LLM-005, LLM-006, TOOL-011, OUT-001, OUT-006]
+  structured_data_contract: [FLOW-011, FLOW-014, LLM-005, LLM-006, TOOL-011, OUT-001, OUT-006]
+  routing_integrity: [FLOW-015, FLOW-016]
+  deployment_boundary: [LLM-012, OUT-011]
   resilience_budget: [FLOW-007, FLOW-012, LLM-009, LLM-010, TOOL-001, TOOL-009, TOOL-013, OUT-008]
   output_safety: [OUT-004, OUT-005, OUT-007, OUT-010]
   knowledge_governance: [KB-001, KB-002, KB-003, KB-008, KB-010]
@@ -40,19 +53,22 @@ rules:
   - {id: FLOW-001, title: "断裂节点或变量引用", severity: MEDIUM, detectability: S, standards: [AISVS-C9]}
   - {id: FLOW-002, title: "未知节点造成扫描盲区", severity: MEDIUM, detectability: S, standards: [AISVS-C9]}
   - {id: FLOW-003, title: "不可信输入到高危工具", severity: HIGH, detectability: S, standards: [AISVS-9.2, ASI02]}
-  - {id: FLOW-004, title: "敏感数据可达外部边界", severity: HIGH, detectability: H, standards: [AISVS-C7, ASI03]}
+  - {id: FLOW-004, title: "敏感数据可达外部边界", severity: HIGH, detectability: H, standards: [AISVS-C7, ASI03], required_facts: [typed_sensitive_asset, typed_data_path, external_write_or_attacker_observable_output], candidate_facts: [sensitive_field_name_with_typed_path, contextual_credential_candidate], unknown_policy: COVERAGE_GAP, gate_policy: "candidate evidence triggers REVIEW, never CONFIRMED or FAIL", exclusion_facts: [inert_labeled_example, caller_only_output, verified_mandatory_redaction_all_paths]}
   - {id: FLOW-005, title: "间接 Prompt Injection 工具链", severity: HIGH, detectability: H, standards: [ASI01, AISVS-9.3]}
   - {id: FLOW-006, title: "审批或过滤可绕过", severity: HIGH, detectability: S, standards: [AISVS-9.2, ASI02, ASI03]}
   - {id: FLOW-007, title: "Dify Loop 最大次数无效", severity: MEDIUM, detectability: S, standards: [AISVS-9.1, ASI08], applies_to: [dify_loop], exclusion_facts: [positive_integer_loop_count, dify_iteration_uses_bounded_collection]}
-  - {id: FLOW-008, title: "凭证进入模型可见上下文", severity: CRITICAL, detectability: S, standards: [AISVS-9.5.4, ASI03]}
-  - {id: FLOW-009, title: "敏感资产经模型到外部通道的复合外泄链", severity: CRITICAL, detectability: S, standards: [ASI01, ASI03], attack_family: web_exfiltration}
+  - {id: FLOW-008, title: "凭证进入模型可见上下文", severity: CRITICAL, detectability: S, standards: [AISVS-9.5.4, ASI03], required_facts: [credential_literal_or_classified_credential, typed_data_path_to_llm], exclusion_facts: [tool_only_credential, example_content, placeholder]}
+  - {id: FLOW-009, title: "敏感资产经模型到外部通道的复合外泄链", severity: CRITICAL, detectability: S, standards: [ASI01, ASI03], attack_family: web_exfiltration, required_facts: [untrusted_source, prompt_binding, typed_sensitive_asset, same_model_context, typed_payload_path, attacker_observable_sink, no_mandatory_redaction], unknown_policy: CANDIDATE_OR_COVERAGE_GAP, exclusion_facts: [field_name_only, example_content, caller_only_output, mandatory_redaction_all_paths]}
   - {id: FLOW-010, title: "外部不可信内容经模型到代码执行", severity: CRITICAL, detectability: S, standards: [ASI01, ASI05], attack_family: unexpected_code_execution}
   - {id: FLOW-011, title: "跨 Agent 消息缺少结构与信任校验", severity: HIGH, detectability: S, standards: [ASI07], attack_family: inter_agent_communication}
   - {id: FLOW-012, title: "多级副作用链缺少故障隔离", severity: HIGH, detectability: H, standards: [ASI08, AISVS-9.1], attack_family: cascading_failure}
   - {id: FLOW-013, title: "自主 Agent 缺少目标锁定和紧急停止边界", severity: HIGH, detectability: H, standards: [ASI10, AISVS-9.1], attack_family: rogue_agent}
+  - {id: FLOW-014, title: "变量生产者与消费者类型契约不一致", severity: MEDIUM, detectability: S, standards: [AISVS-C7, AISVS-C9], required_facts: [declared_producer_type, declared_consumer_type, incompatible_types], gate_policy: "confirmed incompatible declared types trigger REVIEW", exclusion_facts: [unknown_type_on_either_side, compatible_numeric_or_generic_array_types]}
+  - {id: FLOW-015, title: "不可信文本解析结果控制业务路由", severity: MEDIUM, detectability: H, standards: [AISVS-C2, AISVS-C9], attack_family: derived_route_manipulation, required_facts: [untrusted_text_source, parser_output_data_path, condition_consumer], gate_policy: "probable parser ambiguity triggers REVIEW; high impact requires downstream action evidence", exclusion_facts: [structured_enum_input, strict_parser_contract, fail_closed_duplicate_rejection]}
+  - {id: FLOW-016, title: "条件分支专属模型节点疑似跨分支串联", severity: MEDIUM, detectability: S, standards: [AISVS-C9], attack_family: branch_integrity, candidate_facts: [branch_selected_llm_directly_enters_another_branch_selected_llm], gate_policy: "structural cross-branch edges remain CANDIDATE/REVIEW until business intent is confirmed", exclusion_facts: [declared_multi_stage_review, explicit_cross_branch_merge]}
 
   - {id: IN-001, title: "输入字段缺少明确类型", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
-  - {id: IN-002, title: "进入循环或副作用路径的输入缺少上限", severity: MEDIUM, detectability: S, standards: [AISVS-C2], applies_to: [file_or_collection_input, text_reaching_loop_or_side_effect], exclusion_facts: [bounded_single_step_text_workflow]}
+  - {id: IN-002, title: "进入循环或副作用路径的输入缺少上限", severity: MEDIUM, detectability: S, standards: [AISVS-C2], applies_to: [file_or_collection_input, text_reaching_loop_or_side_effect], required_facts: [field_level_data_binding_to_loop_or_side_effect], exclusion_facts: [bounded_field, control_path_without_data_binding, bounded_single_step_text_workflow]}
   - {id: IN-003, title: "文件上传约束不足", severity: HIGH, detectability: S, standards: [AISVS-C2]}
   - {id: IN-004, title: "未声明输入规范化", severity: LOW, detectability: M, standards: [AISVS-C2], root_cause_family: input_canonicalization, requires_dynamic_validation: true}
   - {id: IN-005, title: "对象输入允许未知字段", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
@@ -71,7 +87,8 @@ rules:
   - {id: LLM-008, title: "高影响决策无确定性复核", severity: HIGH, detectability: S, standards: [AISVS-9.2]}
   - {id: LLM-009, title: "自主或副作用路径的模型资源预算不完整", severity: MEDIUM, detectability: S, standards: [AISVS-9.1], applies_to: [autonomous_agent, llm_reaching_side_effect], exclusion_facts: [single_step_text_only_llm]}
   - {id: LLM-010, title: "副作用路径的模型失败回退不明确", severity: MEDIUM, detectability: H, standards: [AISVS-9.6], applies_to: [llm_reaching_side_effect], exclusion_facts: [human_readable_text_only_output]}
-  - {id: LLM-011, title: "系统指令敏感内容存在泄露面", severity: HIGH, detectability: H, standards: [ASI03], attack_family: data_leakage}
+  - {id: LLM-011, title: "系统指令凭证明文存在泄露面", severity: HIGH, detectability: H, standards: [ASI03], attack_family: data_leakage, required_facts: [credential_literal_in_instruction], candidate_facts: [provider_token_shape_in_example, credential_shape_in_unlabelled_code_block, credential_adjacent_to_security_instruction], gate_policy: "contextual credential candidates trigger REVIEW, not FAIL", exclusion_facts: [sensitive_field_name, placeholder, generic_assignment_in_explicitly_labeled_example]}
+  - {id: LLM-012, title: "模型服务端点与数据边界不可验证", severity: INFO, detectability: M, standards: [AISVS-C10, ASI04], applies_to: [openai_compatible_provider_without_exported_endpoint], unknown_policy: COVERAGE_GAP, gate_policy: "deployment metadata gap never proves external disclosure"}
 
   - {id: TOOL-001, title: "工具能力无法确定", severity: MEDIUM, detectability: H, standards: [AISVS-9.3]}
   - {id: TOOL-002, title: "高危工具参数由模型控制", severity: HIGH, detectability: S, standards: [AISVS-9.5]}
@@ -89,10 +106,10 @@ rules:
   - {id: TOOL-014, title: "第三方或未知工具供应链不可验证", severity: HIGH, detectability: M, standards: [ASI04, AISVS-C10], applies_to: [third_party_plugin, unknown_tool_capability], exclusion_facts: [trusted_versioned_integrity_registry]}
   - {id: TOOL-015, title: "高影响工具缺少对象级授权约束", severity: HIGH, detectability: H, standards: [ASI03, AISVS-9.5.3], attack_family: authorization_bypass}
   - {id: TOOL-016, title: "用户可控身份或资源标识直达工具", severity: HIGH, detectability: S, standards: [ASI03], attack_family: authorization_bypass}
-  - {id: TOOL-017, title: "敏感载荷与动态网络目标形成外带通道", severity: CRITICAL, detectability: S, standards: [ASI03], attack_family: web_exfiltration}
+  - {id: TOOL-017, title: "敏感载荷与动态网络目标形成外带通道", severity: CRITICAL, detectability: S, standards: [ASI03], attack_family: web_exfiltration, required_facts: [typed_sensitive_asset, typed_payload_path, network_write, dynamic_target], candidate_facts: [sensitive_field_name_with_typed_payload_path], gate_policy: "field-name-only evidence triggers REVIEW and cannot form FLOW-009", exclusion_facts: [caller_only_output, verified_mandatory_redaction_all_paths]}
 
-  - {id: OUT-001, title: "结构化输出契约不足", severity: LOW, detectability: S, standards: [AISVS-C7], applies_to: [structured_output, machine_consumed_structured_output], exclusion_facts: [human_readable_free_text_output], escalation: "MEDIUM when DSL declares machine/API/decision consumption"}
-  - {id: OUT-002, title: "敏感信息可达外部输出", severity: HIGH, detectability: H, standards: [AISVS-C7]}
+  - {id: OUT-001, title: "结构化输出契约不足", severity: LOW, detectability: S, standards: [AISVS-C7], applies_to: [structured_output, machine_consumed_structured_output], exclusion_facts: [human_readable_free_text_output], escalation: "MEDIUM when DSL declares machine/API/decision consumption", gate_policy: "advisory unless machine/high-trust consumption is declared"}
+  - {id: OUT-002, title: "敏感信息可达未授权输出受众", severity: HIGH, detectability: H, standards: [AISVS-C7], required_facts: [typed_sensitive_asset, typed_data_path, attacker_observable_or_unknown_audience], candidate_facts: [sensitive_field_name_to_attacker_observable_output, contextual_credential_candidate], unknown_policy: COVERAGE_GAP, gate_policy: "candidate evidence triggers REVIEW, not FAIL", exclusion_facts: [current_user_output, authenticated_workflow_caller, verified_mandatory_redaction_all_paths]}
   - {id: OUT-003, title: "系统 Prompt 或内部信息泄露", severity: HIGH, detectability: S, standards: [ASI03]}
   - {id: OUT-004, title: "富文本输出缺少上下文编码", severity: HIGH, detectability: S, standards: [AISVS-C7]}
   - {id: OUT-005, title: "模型生成危险链接或协议", severity: MEDIUM, detectability: S, standards: [AISVS-C7]}
@@ -101,6 +118,7 @@ rules:
   - {id: OUT-008, title: "低置信或失败输出无回退", severity: MEDIUM, detectability: H, standards: [AISVS-C7], applies_to: [end_to_end_failure_path], exclusion_facts: [upstream_default_or_fail_closed_strategy]}
   - {id: OUT-009, title: "动态 Markdown 链接或图片可形成隐蔽外带", severity: HIGH, detectability: S, standards: [ASI03, AISVS-C7], attack_family: web_exfiltration}
   - {id: OUT-010, title: "面向人的高信任声明缺少来源证明", severity: MEDIUM, detectability: H, standards: [ASI09], attack_family: human_agent_trust_exploit}
+  - {id: OUT-011, title: "结构化响应的调用方与下游消费边界不可验证", severity: INFO, detectability: M, standards: [AISVS-C7, AISVS-C9], applies_to: [structured_or_programmatically_parsed_end_response], unknown_policy: COVERAGE_GAP, gate_policy: "missing caller identity or downstream automation metadata does not itself trigger REVIEW or FAIL"}
 
   - {id: KB-001, title: "知识数据集范围可被动态改写", severity: HIGH, detectability: S, standards: [AISVS-8.1], applies_to: [dynamic_or_wildcard_dataset_scope], exclusion_facts: [static_dataset_ids, empty_dataset_configuration_error]}
   - {id: KB-002, title: "动态或多业务知识范围缺少分区过滤", severity: HIGH, detectability: S, standards: [AISVS-8.1], applies_to: [dynamic_dataset_scope, sensitive_multi_dataset_scope], exclusion_facts: [static_single_dataset]}

@@ -1,0 +1,46 @@
+kind: app
+version: 0.7.0
+app:
+  name: dify-public-sensitive-output
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          title: 匿名请求
+          variables:
+            - variable: query
+              type: paragraph
+              max_length: 1000
+      - id: kb
+        data:
+          type: knowledge-retrieval
+          title: 客户资料库
+          data_classification: confidential
+          dataset_ids: [customer-private]
+          query_variable_selector: [start, query]
+      - id: llm
+        data:
+          type: llm
+          title: 回答模型
+          prompt_template:
+            - role: system
+              text: "结合 {{#kb.result#}} 回答请求。"
+            - role: user
+              text: "{{#start.query#}}"
+      - id: end
+        data:
+          type: end
+          title: 匿名公开输出
+          audience: public
+          outputs:
+            result:
+              value_selector: [llm, text]
+              value_type: string
+    edges:
+      - {id: e1, source: start, target: kb}
+      - {id: e2, source: kb, target: llm}
+      - {id: e3, source: llm, target: end}
+

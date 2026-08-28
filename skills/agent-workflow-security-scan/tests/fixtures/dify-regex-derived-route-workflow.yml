@@ -1,0 +1,46 @@
+kind: app
+version: 0.7.0
+app:
+  name: dify-regex-derived-route
+  mode: workflow
+workflow:
+  graph:
+    nodes:
+      - id: start
+        data:
+          type: start
+          variables:
+            - {variable: content, type: paragraph, max_length: 1000}
+      - id: parse-status
+        data:
+          type: code
+          code_language: python3
+          code: |
+            import re
+            def main(content: str):
+                match = re.search(r'Status:(.*?)\s', content)
+                return {"status": match.group(1).strip() if match else None}
+          variables:
+            - {variable: content, value_selector: [start, content], value_type: string}
+          outputs:
+            status: {type: string}
+      - id: route
+        data:
+          type: if-else
+          cases:
+            - case_id: approved
+              logical_operator: and
+              conditions:
+                - comparison_operator: is
+                  value: approved
+                  varType: string
+                  variable_selector: [parse-status, status]
+      - id: end
+        data:
+          type: end
+          outputs:
+            - {variable: status, value_selector: [parse-status, status], value_type: string}
+    edges:
+      - {id: e1, source: start, target: parse-status}
+      - {id: e2, source: parse-status, target: route}
+      - {id: e3, source: route, sourceHandle: approved, target: end}

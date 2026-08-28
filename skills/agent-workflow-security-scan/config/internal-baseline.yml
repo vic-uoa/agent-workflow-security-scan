@@ -1,7 +1,7 @@
 schema_version: 1.0.0
 scope:
   platform: internal-dify
-  detect_platform_or_version: false
+  detect_platform_or_version: true
   runtime_iam_in_scope: false
   container_security_in_scope: false
 
@@ -13,7 +13,8 @@ risk_policy:
 quality_gate:
   blocking_severities: [CRITICAL, HIGH]
   blocking_statuses: [CONFIRMED]
-  review_statuses: [OBSERVED, PROBABLE, CANDIDATE, COVERAGE_GAP]
+  review_severities: [CRITICAL, HIGH, MEDIUM]
+  review_statuses: [CONFIRMED, PROBABLE, OBSERVED, CANDIDATE, COVERAGE_GAP]
 
 sensitive_data_patterns:
   - password

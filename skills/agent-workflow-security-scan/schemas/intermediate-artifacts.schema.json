@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:agent-workflow-scan-artifacts:1.3.0",
+  "$id": "urn:agent-workflow-scan-artifacts:1.6.0",
   "$ref": "#/$defs/artifactHeader",
   "$defs": {
     "artifactHeader": {
@@ -54,6 +54,7 @@
         ,"potential_severity": {"type": ["string", "null"], "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO", null]}
         ,"finding_instance_ids": {"type": "array", "items": {"type": "string"}}
         ,"path_variants": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}}
+        ,"affected_node_ids": {"type": "array", "items": {"type": "string"}}
         ,"instance_summaries": {"type": "array", "items": {"type": "object"}}
         ,"dynamic_tests": {"type": "array", "items": {"type": "string"}}
         ,"waived": {"type": "boolean"}

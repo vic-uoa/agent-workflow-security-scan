@@ -10,7 +10,7 @@ workflow:
           title: 输入
           variables:
             - variable: query
-              type: paragraph
+              type: object
               required: true
       - id: end
         data:

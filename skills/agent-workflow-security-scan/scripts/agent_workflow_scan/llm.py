@@ -829,64 +829,72 @@ def deterministic_test_cluster(
                 if dynamic_test not in templates:
                     continue
                 technique, payload = templates[dynamic_test]
-            seed_ids = [item[0] for item in seed_records[:1]]
-            seed_input = seed_records[0][1] if seed_records else {}
-            expected = seed_records[0][2] if seed_records else ["对应安全规则不得被突破。"]
-            forbidden = seed_records[0][3] if seed_records else ["不得产生未授权副作用。"]
-            route = _route_plan(ir, finding.anchor_node_id or (finding.node_ids[-1] if finding.node_ids else None))
-            routed_seed = _apply_route_overrides(seed_input, route)
-            attacked_input, mutated_path = _seed_shaped_attack(routed_seed, payload, ir)
-            if _canonical_input(attacked_input) == _canonical_input(seed_input):
-                continue
-            validation_errors = validate_input_against_ir(attacked_input, ir)
-            if validation_errors:
-                route = deepcopy(route)
-                route["status"] = "PARTIAL"
-                route["missing_context"] = list(dict.fromkeys([
-                    *route["missing_context"],
-                    *(f"生成输入未满足 DSL 约束：{error}" for error in validation_errors),
-                ]))
-            route_variant = {
-                "finding_id": finding.id,
-                "target_node": finding.anchor_node_id,
-                "target_path": route["path"],
-                "route_status": route["status"],
-                "route_constraints": route["constraints"],
-                "missing_route_context": route["missing_context"],
-            }
-            cases.append({
-                "case_id": stable_id("TC", finding.id, dynamic_test),
-                "generation_source": "rule_targeted",
-                "case_type": "negative",
-                "seed_sample_ids": seed_ids,
-                "finding_ids": [finding.id],
-                "target_nodes": [finding.anchor_node_id] if finding.anchor_node_id else finding.node_ids,
-                "target_path": route["path"],
-                "rule_ids": [finding.rule_id, *finding.related_rule_ids],
-                "attack_techniques": [technique],
-                "input": attacked_input,
-                "derivation": f"Rule-targeted inert mutation for {finding.id} ({dynamic_test}).",
-                "oracle_source": "deterministic_derivation",
-                "preconditions": list(dict.fromkeys([
-                    *finding.attack_preconditions,
-                    *(f"需要满足路径条件：{item.get('variable')} {item.get('operator')} {item.get('value')!r}" for item in route["constraints"]),
-                ])),
-                "expected_security_invariants": list(dict.fromkeys([*expected, "对应安全规则不得被突破。"])),
-                "forbidden_effects": list(dict.fromkeys([*forbidden, "不得调用未授权工具、泄露敏感信息或产生真实外部副作用。"])),
-                "dynamic_level": "L2",
-                "execution_status": "NOT_EXECUTED",
-                "route_status": route["status"],
-                "route_constraints": route["constraints"],
-                "missing_route_context": route["missing_context"],
-                "route_variants": [route_variant],
-                "mutated_paths": [mutated_path] if mutated_path else [],
-                "input_validation": {
-                    "valid_against_declared_schema": not validation_errors,
-                    "errors": validation_errors,
-                    "expected_outcome": "ACCEPT",
-                },
-                "oracle": _oracle_for_technique(technique, expected, forbidden, route),
-            })
+            targets = list(dict.fromkeys(
+                [finding.anchor_node_id] if finding.anchor_node_id else (
+                    finding.affected_node_ids
+                    or [path[-1] for path in finding.path_variants if path]
+                    or ([finding.node_ids[-1]] if finding.node_ids else [])
+                )
+            ))
+            for target in targets or [None]:
+                seed_ids = [item[0] for item in seed_records[:1]]
+                seed_input = seed_records[0][1] if seed_records else {}
+                expected = seed_records[0][2] if seed_records else ["对应安全规则不得被突破。"]
+                forbidden = seed_records[0][3] if seed_records else ["不得产生未授权副作用。"]
+                route = _route_plan(ir, target)
+                routed_seed = _apply_route_overrides(seed_input, route)
+                attacked_input, mutated_path = _seed_shaped_attack(routed_seed, payload, ir)
+                if _canonical_input(attacked_input) == _canonical_input(seed_input):
+                    continue
+                validation_errors = validate_input_against_ir(attacked_input, ir)
+                if validation_errors:
+                    route = deepcopy(route)
+                    route["status"] = "PARTIAL"
+                    route["missing_context"] = list(dict.fromkeys([
+                        *route["missing_context"],
+                        *(f"生成输入未满足 DSL 约束：{error}" for error in validation_errors),
+                    ]))
+                route_variant = {
+                    "finding_id": finding.id,
+                    "target_node": target,
+                    "target_path": route["path"],
+                    "route_status": route["status"],
+                    "route_constraints": route["constraints"],
+                    "missing_route_context": route["missing_context"],
+                }
+                cases.append({
+                    "case_id": stable_id("TC", finding.id, dynamic_test, target),
+                    "generation_source": "rule_targeted",
+                    "case_type": "negative",
+                    "seed_sample_ids": seed_ids,
+                    "finding_ids": [finding.id],
+                    "target_nodes": [target] if target else finding.node_ids,
+                    "target_path": route["path"],
+                    "rule_ids": [finding.rule_id, *finding.related_rule_ids],
+                    "attack_techniques": [technique],
+                    "input": attacked_input,
+                    "derivation": f"Rule-targeted inert mutation for {finding.id} ({dynamic_test}) at {target or 'workflow'}.",
+                    "oracle_source": "deterministic_derivation",
+                    "preconditions": list(dict.fromkeys([
+                        *finding.attack_preconditions,
+                        *(f"需要满足路径条件：{item.get('variable')} {item.get('operator')} {item.get('value')!r}" for item in route["constraints"]),
+                    ])),
+                    "expected_security_invariants": list(dict.fromkeys([*expected, "对应安全规则不得被突破。"])),
+                    "forbidden_effects": list(dict.fromkeys([*forbidden, "不得调用未授权工具、泄露敏感信息或产生真实外部副作用。"])),
+                    "dynamic_level": "L2",
+                    "execution_status": "NOT_EXECUTED",
+                    "route_status": route["status"],
+                    "route_constraints": route["constraints"],
+                    "missing_route_context": route["missing_context"],
+                    "route_variants": [route_variant],
+                    "mutated_paths": [mutated_path] if mutated_path else [],
+                    "input_validation": {
+                        "valid_against_declared_schema": not validation_errors,
+                        "errors": validation_errors,
+                        "expected_outcome": "ACCEPT",
+                    },
+                    "oracle": _oracle_for_technique(technique, expected, forbidden, route),
+                })
     cases = _merge_duplicate_cases(cases)
     canonical_inputs = [_canonical_input(case.get("input", {})) for case in cases]
     return {
