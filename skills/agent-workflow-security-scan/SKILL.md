@@ -38,8 +38,8 @@ python scripts/scan_workflow.py scan --mode assessment --dsl <workflow.yml> --sa
 - 只有用户明确要求绕过完整评估流程时才使用 `structure-only`，并把结果标为 DSL 结构检查，不得称为安全评估。
 - 默认使用 `--llm disabled`。只有在密钥获批、数据已脱敏且用户明确需要额外测试建议或报告措辞时，才添加 `--llm enabled`。模型输出永远不能进入第 3 阶段的权威判定。
 - 不得推断或伪造 `confirmed_by_user`。只有用户明确回复确认已展示的规范化种子和判定条件后才能设为 `true`；哈希不属于用户确认内容。
-- 先检查 `08-findings.json`，CI 使用 `11-quality-gate.json`，并验证 `12-artifact-index.json`。
-- 面向用户优先展示 `report.md` 和 `attack-surface.md`。编号 JSON 是机器证据和调试产物，不要求用户阅读它们才能理解结果。
+- 扫描过程在内存中生成 Workflow IR、事实、候选、输入簇、Finding、攻击面和质量门禁；不得将这些中间件写入报告目录。
+- 面向用户只交付与 DSL 文件同名目录下的一份 HTML 报告。报告必须包含由 IR 绘制的完整工作流图和由确定性攻击路径高亮的逻辑链图，不以节点 ID 列表替代图形。
 - `--waivers` 只用于已经批准、理由明确且设置过期时间的例外。不得删除被豁免的 Finding。
 - 禁止执行工作流和生成的载荷。`10-dynamic-test-plan.json` 只是交给隔离沙盒的计划。
 - 每个派生用例必须与种子不同并带有确定性判定条件；变异必须命中适用的用户可控字段，而不是随意选择第一个标量。
@@ -48,7 +48,9 @@ python scripts/scan_workflow.py scan --mode assessment --dsl <workflow.yml> --sa
 - 示例、代码块和安全说明属于降置信上下文，不是绝对豁免：明确标注示例中的普通 `password=...` 可以保持惰性，但提供商特征 Token、未标注配置代码块或安全说明邻近的具体值必须保留候选证据。
 - 普通 `End`/`Answer` 不是网络写 Sink。复合外泄链必须逐项满足资产、同上下文、类型化载荷、可观察 Sink 和无全路径缓解等硬前提；字段名候选不得形成 `FLOW-009`。
 - LOW/INFO 观察项作为加固建议保留但不单独触发 REVIEW。只有所有风险路径都经过**已验证**的强制脱敏、授权或策略门时才能使用 `MITIGATED`；普通 `output_dlp` 字段、自声明控制或无法证明变换有效的代码只能作为待核验声明，不能抑制风险。
-- Prompt 边界影响必须结合下游语义：普通人读文本可以降为 LOW/OBSERVED；进入条件、`machine_consumed`、`decision_output`、自动决策或副作用能力时至少提升为 MEDIUM/HIGH PROBABLE。
+- Prompt 边界必须区分“配置事实”和“模型可利用性”：用户、知识或工具内容被直接插入 system/developer 消息时属于 `MEDIUM/CONFIRMED` 配置缺陷，动态攻击是否成功另行记录为测试状态；进入条件、`machine_consumed`、`decision_output`、自动决策或高后果能力时提升为 `HIGH/CONFIRMED`。只有“不可信内容可达模型但未证明进入高权限角色”的普通人读文本场景，才可保留为 `LOW/OBSERVED`。
+- 外部内容经模型到 Code 节点只有在变量进入命令、脚本、表达式或模板化代码体时才构成 `FLOW-010`；固定代码把模型输出作为普通数据解析不属于动态代码执行。
+- `FLOW-011` 仅适用于 Dify Agent/Agent-v2 之间的消息边界；普通 LLM 串联属于处理流水线，不得仅因缺少消息 Schema 报告跨 Agent 通信风险。
 - 同时分析派生控制血缘。用户文本经正则、字符串切分或解析代码生成字段，再通过变量引用进入 `if-else`/条件节点时，属于 `untrusted_text → parser → condition` 路径；仅画布控制边或仅代码中出现正则均不足以成项。
 - 固定 CODE 节点不自动等于验证控制。只有严格 Schema/enum、未知与重复字段拒绝、明确失败关闭和匹配的输出类型都可验证时，才能把解析代码视为缓解；`json.loads`、`re.search` 或返回空对象本身不能满足。
 - 当生产者与消费者都声明变量类型时必须做逐引用契约比较。明确不兼容的 object/array/string 类型是 `CONFIRMED` 契约错误并触发 REVIEW；任一侧类型未知、兼容数值类型或通用 array/具体 array 不应误报。
@@ -87,6 +89,7 @@ python scripts/validate_enterprise_suite.py --output <directory>
 
 - 解释规则覆盖或新增规则时，阅读 [references/rule-catalog.md](references/rule-catalog.md)；同时核对 [rules/dify-dsl-bindings.yml](rules/dify-dsl-bindings.yml) 中的 Dify 原生字段和运行时边界。
 - 映射全部规则到节点、解释攻击簇或复核适用性和误报排除时，阅读 [references/node-rule-matrix.md](references/node-rule-matrix.md)。
+- 为规则手册或评审材料提供逐条命中示例时，读取 [references/rule-examples.yml](references/rule-examples.yml)，并与规则矩阵的排除条件一起呈现。
 - 集成扫描产物或未来沙盒运行器时，阅读 [references/artifact-contracts.md](references/artifact-contracts.md)。
 - 解释 Tencent AI-Infra-Guard 对比、动态到静态映射或归属信息时，阅读 [references/upstream-research.md](references/upstream-research.md)。
 - 将扫描器用于发布门禁、添加 DSL 控制注解、批准豁免或解释 PASS/REVIEW/FAIL 前，阅读 [references/enterprise-operation.md](references/enterprise-operation.md)。

@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--baseline", type=Path, default=SCRIPT_DIR.parent / "config" / "internal-baseline.yml")
     scan.add_argument("--rules", type=Path, default=SCRIPT_DIR.parent / "rules" / "core-rules.yml")
     scan.add_argument("--waivers", type=Path, help="Optional audited YAML/JSON waiver file")
-    scan.add_argument("--output", required=True, type=Path)
+    scan.add_argument("--output", required=True, type=Path, help="Report root; the scanner creates <workflow filename>/<workflow filename>-安全扫描报告.html and writes no intermediate artifacts")
     scan.add_argument("--llm", choices=("disabled", "enabled"), default="disabled", help="Optional non-authoritative advisor for extra inert tests and wording; never changes findings or the gate")
     scan.add_argument("--advisory-model", default="gpt-5.6-terra")
     return parser
@@ -46,7 +46,9 @@ def main() -> int:
             advisory_model=args.advisory_model,
             scan_mode=args.mode,
         )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        # The pipeline returns underscore-prefixed in-memory evidence for its
+        # own test harness.  The CLI exposes only the concise scan result.
+        print(json.dumps({key: value for key, value in result.items() if not key.startswith("_")}, ensure_ascii=False, indent=2))
         return int(result.get("exit_code", 2))
     except Exception as error:
         print(json.dumps({"error": str(error), "type": type(error).__name__}, ensure_ascii=False), file=sys.stderr)

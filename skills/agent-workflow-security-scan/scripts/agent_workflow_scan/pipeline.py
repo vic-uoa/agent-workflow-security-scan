@@ -9,24 +9,20 @@ import re
 
 import yaml
 
-from . import __version__
 from .engine import execute_rules
 from .llm import (
     ModelAdvisor,
     deterministic_semantic_inventory,
     deterministic_test_cluster,
-    redact_for_model,
     validate_input_against_ir,
     validate_references,
 )
-from .models import SCHEMA_VERSION, Finding, WorkflowIR, file_sha256, stable_id, to_jsonable, utc_now, write_artifact
+from .models import Finding, WorkflowIR, stable_id, utc_now
 from .parser import parse_dify_dsl
 from .report import (
     build_attack_surface,
-    build_dynamic_plan,
     build_report_json,
-    render_attack_surface_markdown,
-    render_markdown,
+    render_html_report,
 )
 
 
@@ -349,24 +345,6 @@ def evaluate_quality_gate(findings: list[Finding], baseline: dict[str, Any], wai
     }
 
 
-def write_artifact_index(output_dir: Path, scan_id: str, workflow_hash: str) -> None:
-    expected = {
-        "00-scan-manifest.json", "01-workflow-ir.json", "02-security-facts.json",
-        "03-semantic-inventory.json", "04-rule-candidates.json", "05-test-cluster.json",
-        "06-model-advisory.json", "07-verification.json", "08-findings.json",
-        "09-attack-surface.json", "attack-surface.md", "10-dynamic-test-plan.json", "11-quality-gate.json",
-        "report.json", "report.md",
-    }
-    entries = []
-    for path in sorted(item for item in output_dir.iterdir() if item.is_file() and item.name in expected):
-        entries.append({"name": path.name, "sha256": file_sha256(path), "size_bytes": path.stat().st_size})
-    unexpected = sorted(item.name for item in output_dir.iterdir() if item.is_file() and item.name not in expected | {"12-artifact-index.json"})
-    write_artifact(
-        output_dir / "12-artifact-index.json",
-        artifact({"artifacts": entries, "unexpected_files": unexpected}, scan_id, "artifact-integrity-index", workflow_hash),
-    )
-
-
 def apply_baseline(ir: WorkflowIR, baseline: dict[str, Any]) -> None:
     registry = baseline.get("tool_registry", [])
     if not isinstance(registry, list):
@@ -423,18 +401,6 @@ def _baseline_values(config: Any, keys: tuple[str, ...]) -> list[Any]:
         for value in config:
             values.extend(_baseline_values(value, keys))
     return values
-
-
-def artifact(payload: dict[str, Any], scan_id: str, producer: str, workflow_hash: str) -> dict[str, Any]:
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "scan_id": scan_id,
-        "producer": producer,
-        "producer_version": __version__,
-        "workflow_hash": workflow_hash,
-        "created_at": utc_now(),
-        **payload,
-    }
 
 
 def verify_deterministic_findings(
@@ -543,8 +509,8 @@ def run_scan(
         raise ValueError("llm_mode must be disabled or enabled")
     if scan_mode == "assessment" and samples_path is None:
         raise ValueError("assessment mode requires --samples with user-confirmed seed inputs and expected behavior")
-    output_dir.mkdir(parents=True, exist_ok=True)
     ir, _document = parse_dify_dsl(dsl_path)
+    report_dir = output_dir / _report_directory_name(dsl_path)
     baseline = load_baseline(baseline_path)
     waivers = load_waivers(waivers_path)
     apply_baseline(ir, baseline)
@@ -554,48 +520,12 @@ def run_scan(
     scan_id = stable_id("SCAN", ir.workflow_hash, utc_now())
     llm_enabled = llm_mode == "enabled"
 
-    manifest = artifact({
-        "dsl_file": dsl_path.name,
-        "samples_file": samples_path.name if samples_path else None,
-        "baseline_file": baseline_path.name if baseline_path else None,
-        "rules_file": rules_path.name,
-        "rules_hash": file_sha256(rules_path),
-        "baseline_hash": file_sha256(baseline_path) if baseline_path else None,
-        "waivers_file": waivers_path.name if waivers_path else None,
-        "waivers_hash": file_sha256(waivers_path) if waivers_path else None,
-        "llm_requested": llm_mode,
-        "llm_enabled": llm_enabled,
-        "scan_mode": scan_mode,
-        "advisory_model": advisory_model if llm_enabled else None,
-        "model_authority": "non_authoritative_test_and_wording_advisor",
-        "scope": {
-            "platform_detection": False,
-            "runtime_iam": False,
-            "container_security": False,
-            "workflow_execution": False,
-        },
-        "pipeline_order": [
-            "1-resolve-explicit-dsl-or-ask-if-ambiguous-and-bind-internal-hash",
-            "2-confirm-seed-inputs-and-oracles",
-            "3-deterministic-static-analysis",
-            "4-generate-unexecuted-input-cluster",
-            "5-correlate-report-and-attack-surface",
-        ],
-    }, scan_id, "scanner", ir.workflow_hash)
-    write_artifact(output_dir / "00-scan-manifest.json", manifest)
-    write_artifact(
-        output_dir / "01-workflow-ir.json",
-        artifact({"workflow_ir": redact_for_model(to_jsonable(ir))}, scan_id, "dify-parser", ir.workflow_hash),
-    )
-
+    # All parser, rule, test-cluster and verification artifacts remain in
+    # memory.  The scan directory receives only the final HTML report.
     facts, initial_findings, candidates = execute_rules(ir, rules_path)
-    write_artifact(output_dir / "02-security-facts.json", artifact({"facts": [to_jsonable(fact) for fact in facts]}, scan_id, "rule-engine", ir.workflow_hash))
 
     advisory_pipeline = ModelAdvisor(llm_enabled, advisory_model, scan_id)
     semantic = enrich_semantic_inventory_with_facts(deterministic_semantic_inventory(ir), facts)
-    write_artifact(output_dir / "03-semantic-inventory.json", artifact({"semantic_inventory": semantic}, scan_id, "deterministic-semantic-inventory", ir.workflow_hash))
-
-    write_artifact(output_dir / "04-rule-candidates.json", artifact(candidates, scan_id, "rule-engine", ir.workflow_hash))
 
     # Stage 3 is fully deterministic. Optional model output never receives
     # authority over Finding status, severity, aggregation, or the quality gate.
@@ -607,17 +537,11 @@ def run_scan(
         "authority": "none_over_findings_severity_or_gate",
         "allowed_uses": ["additional_inert_test_proposals", "non_authoritative_report_wording"],
     }
-    write_artifact(
-        output_dir / "06-model-advisory.json",
-        artifact({"model_advisory": model_advisory}, scan_id, "model-advisory-boundary", ir.workflow_hash),
-    )
-
     # Stage 4 derives the input cluster from the deterministic static result.
     # Optional model proposals are validated and remain NOT_EXECUTED.
     base_tests = deterministic_test_cluster(samples, final_findings, ir)
     tests = advisory_pipeline.enrich_tests(ir, samples, final_findings, base_tests)
     tests, cluster_verification = verify_test_cluster(tests, samples, final_findings, ir)
-    write_artifact(output_dir / "05-test-cluster.json", artifact({"test_cluster": tests}, scan_id, tests.get("producer", "test-designer"), ir.workflow_hash))
 
     verification["test_cluster"] = cluster_verification
     waiver_audit = apply_waivers(final_findings, waivers, ir.workflow_hash)
@@ -639,28 +563,18 @@ def run_scan(
         "authoritative_for_finding_status_or_counts": False,
     }
     verification["llm_errors"] = advisory_pipeline.errors
-    write_artifact(output_dir / "07-verification.json", artifact({"verification": verification}, scan_id, "evidence-verifier", ir.workflow_hash))
-    write_artifact(output_dir / "08-findings.json", artifact({"findings": [to_jsonable(finding) for finding in final_findings]}, scan_id, "finding-merger", ir.workflow_hash))
 
     attack_surface = build_attack_surface(ir, semantic, final_findings, tests)
-    write_artifact(output_dir / "09-attack-surface.json", artifact({"attack_surface": attack_surface}, scan_id, "attack-surface-builder", ir.workflow_hash))
-    (output_dir / "attack-surface.md").write_text(
-        render_attack_surface_markdown(ir, attack_surface), encoding="utf-8"
-    )
-
-    dynamic_plan = build_dynamic_plan(ir, attack_surface, tests)
-    write_artifact(output_dir / "10-dynamic-test-plan.json", artifact({"dynamic_test_plan": dynamic_plan}, scan_id, "dynamic-plan-builder", ir.workflow_hash))
-    write_artifact(output_dir / "11-quality-gate.json", artifact({"quality_gate": quality_gate}, scan_id, "quality-gate", ir.workflow_hash))
 
     report = build_report_json(ir, final_findings, semantic, tests, attack_surface, explanation, verification, quality_gate)
-    report_payload = artifact({"report": report}, scan_id, "report-builder", ir.workflow_hash)
-    write_artifact(output_dir / "report.json", report_payload)
-    (output_dir / "report.md").write_text(render_markdown(report), encoding="utf-8")
-    write_artifact_index(output_dir, scan_id, ir.workflow_hash)
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / f"{_report_directory_name(dsl_path)}-安全扫描报告.html"
+    report_path.write_text(render_html_report(report), encoding="utf-8")
 
     return {
         "scan_id": scan_id,
-        "output_dir": str(output_dir.resolve()),
+        "output_dir": str(report_dir.resolve()),
+        "report_path": str(report_path.resolve()),
         "finding_count": sum(finding.status != "COVERAGE_GAP" for finding in final_findings),
         "observation_count": sum(finding.status == "OBSERVED" for finding in final_findings),
         "coverage_gap_count": sum(finding.status == "COVERAGE_GAP" for finding in final_findings),
@@ -673,4 +587,23 @@ def run_scan(
         "verification_valid": verification["valid"],
         "quality_gate": quality_gate["decision"],
         "exit_code": quality_gate["exit_code"],
+        "report_summary": report["summary"],
+        "finding_rule_ids": sorted({
+            rule_id for finding in final_findings
+            for rule_id in [finding.rule_id, *finding.related_rule_ids]
+        }),
+        "risk_chain_count": len(attack_surface.get("risk_chains", [])),
+        "test_case_count": len(tests.get("cases", [])),
+        "_verification": verification,
+        "_test_cluster": tests,
+        "_quality_gate": quality_gate,
+        "_findings": final_findings,
+        "_workflow_hash": ir.workflow_hash,
     }
+
+
+def _report_directory_name(dsl_path: Path) -> str:
+    """Use the uploaded workflow filename while preserving a valid Windows path."""
+    invalid = '<>:"/\\|?*\x00'
+    safe = "".join("_" if char in invalid or ord(char) < 32 else char for char in dsl_path.stem)
+    return safe.rstrip(". ") or "workflow"

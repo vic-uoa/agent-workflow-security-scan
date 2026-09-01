@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from html import escape
 from typing import Any
 
 from .models import Finding, WorkflowIR, stable_id, to_jsonable
@@ -314,6 +315,17 @@ def build_report_json(
                 key=lambda value: {"INFO": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}.get(value, -1),
             ),
         })
+    workflow_nodes = []
+    for node in ir.nodes:
+        condition_presentation = _condition_presentation(node, node_map)
+        workflow_nodes.append({
+            "id": node.id,
+            "title": node.title,
+            "type": node.type,
+            "capabilities": node.capabilities,
+            "position": ir.raw_metadata.get("canvas_positions", {}).get(node.id),
+            **condition_presentation,
+        })
     return {
         "summary": {
             "workflow_id": ir.workflow_id,
@@ -335,7 +347,7 @@ def build_report_json(
             "agent_narrative": explanation.get("executive_summary", ""),
         },
         "workflow": {
-            "nodes": [{"id": node.id, "title": node.title, "type": node.type, "capabilities": node.capabilities} for node in ir.nodes],
+            "nodes": workflow_nodes,
             "edges": [to_jsonable(edge) for edge in ir.edges],
         },
         "semantic_inventory": semantic,
@@ -370,6 +382,498 @@ def build_report_json(
         "verification": verification,
         "quality_gate": quality_gate,
     }
+
+
+def render_html_report(report: dict[str, Any]) -> str:
+    """Render a self-contained, evidence-first HTML report."""
+    summary = report["summary"]
+    workflow = report.get("workflow", {})
+    node_by_id = {str(item.get("id")): item for item in workflow.get("nodes", []) if isinstance(item, dict)}
+    findings = [
+        item for item in report.get("findings", [])
+        if item.get("status") not in {"COVERAGE_GAP", "MITIGATED", "NOT_APPLICABLE"}
+    ]
+    gate_payload = report.get("quality_gate", {})
+    gate = str(gate_payload.get("decision", "UNKNOWN"))
+    attack_paths = report.get("attack_surface", {}).get("attack_paths", [])
+    severity_counts = summary.get("severity_counts", {})
+    report_title = f"{summary.get('workflow_id', 'workflow')} · 安全扫描报告"
+
+    def esc(value: Any) -> str:
+        return escape(str(value if value not in (None, "") else "—"), quote=True)
+
+    def severity_label(value: Any) -> str:
+        return {"CRITICAL": "严重", "HIGH": "高危", "MEDIUM": "中危", "LOW": "低危", "INFO": "信息"}.get(str(value), str(value))
+
+    def status_label(value: Any) -> str:
+        return {
+            "CONFIRMED": "已确认",
+            "PROBABLE": "较可能",
+            "OBSERVED": "加固项",
+            "CANDIDATE": "待验证",
+        }.get(str(value), str(value))
+
+    def gate_label(value: str) -> str:
+        return {"FAIL": "阻断", "REVIEW": "需复核", "PASS": "通过"}.get(value, value)
+
+    def severity_badge(value: Any) -> str:
+        key = str(value or "INFO")
+        return f'<span class="badge severity {esc(key)}">{esc(severity_label(key))}</span>'
+
+    def status_badge(value: Any) -> str:
+        key = str(value or "UNKNOWN")
+        return f'<span class="badge status {esc(key)}">{esc(status_label(key))}</span>'
+
+    def node_label(node_id: Any) -> str:
+        node = node_by_id.get(str(node_id), {})
+        return str(node.get("title") or node_id or "工作流")
+
+    metrics = [
+        ("需处理", summary.get("action_item_count", 0)),
+        ("已确认", summary.get("status_counts", {}).get("CONFIRMED", 0)),
+        ("较可能", summary.get("status_counts", {}).get("PROBABLE", 0)),
+        ("工作流", f"{summary.get('node_count', 0)} 节点 · {summary.get('edge_count', 0)} 连线"),
+    ]
+    metrics_html = "".join(
+        f'<div class="metric"><span>{esc(label)}</span><strong>{esc(value)}</strong></div>'
+        for label, value in metrics
+    )
+
+    severity_cards = "".join(
+        f'<span class="count-chip {esc(level)}">{esc(severity_label(level))} {esc(count)}</span>'
+        for level, count in sorted(severity_counts.items(), key=lambda item: _severity_rank(item[0]), reverse=True)
+    ) or '<span class="muted">未形成风险项</span>'
+    highest_severity = max(
+        (level for level, count in severity_counts.items() if count),
+        key=_severity_rank,
+        default=None,
+    )
+    highest_risk_html = (
+        severity_badge(highest_severity)
+        if highest_severity else '<span class="no-risk">未形成风险项</span>'
+    )
+
+    finding_rows = []
+    for finding in findings:
+        severity = str(finding.get("severity", "INFO"))
+        status = str(finding.get("status", "UNKNOWN"))
+        remediation = (finding.get("remediation") or ["人工复核并补充匹配控制"])[0]
+        node_ids = finding.get("affected_node_ids") or finding.get("node_ids") or []
+        path_labels = " → ".join(node_label(node_id) for node_id in node_ids) or "工作流级"
+        rules = ", ".join(dict.fromkeys(filter(None, [
+            str(finding.get("rule_id", "")),
+            *map(str, finding.get("related_rule_ids", [])),
+        ])))
+        confidence = float(finding.get("confidence") or 0)
+        preconditions = "；".join(map(str, finding.get("attack_preconditions", []))) or "—"
+        missing_context = "；".join(map(str, finding.get("missing_context", []))) or "—"
+        dynamic_tests = list(dict.fromkeys(filter(None, [
+            *map(str, finding.get("dynamic_tests", [])),
+            str(finding.get("dynamic_test") or ""),
+        ])))
+        validation = f"本期未纳入 · {', '.join(dynamic_tests)}" if dynamic_tests else "—"
+        related_chains = [
+            path_item for path_item in attack_paths
+            if finding.get("id") == path_item.get("finding_id")
+        ]
+        bound_chain_sections = []
+        for chain_index, chain in enumerate(related_chains):
+            path = [str(value) for value in chain.get("path", [])]
+            chain_severity = severity
+            path_copy = " → ".join(node_label(node_id) for node_id in path) or "未形成节点路径"
+            chain_svg_id = f"finding-{finding.get('id')}-{chain_index}"
+            open_attribute = " open" if len(related_chains) == 1 else ""
+            bound_chain_sections.append(
+                f'<details class="bound-chain"{open_attribute}>'
+                '<summary class="bound-chain-head"><div><h4>对应逻辑链</h4>'
+                f'<p>{esc(path_copy)}</p></div><span>{esc(str(len(path)))} 个节点 · 展开</span></summary>'
+                f'<div class="bound-chain-frame">{render_risk_chain_svg(workflow, path, chain_svg_id, chain_severity)}</div>'
+                '<div class="bound-chain-meta">'
+                f'<span><b>规则</b>{esc("、".join(chain.get("rule_ids", [])) or "—")}</span>'
+                '</div></details>'
+            )
+        bound_chains_html = "".join(bound_chain_sections)
+        if not bound_chains_html:
+            bound_chains_html = (
+                '<div class="bound-chain-empty"><strong>暂无完整逻辑链</strong></div>'
+            )
+        finding_rows.append(
+            '<details class="finding issue-item" '
+            f'data-severity="{esc(severity)}" data-status="{esc(status)}">'
+            '<summary>'
+            '<span class="disclosure" aria-hidden="true">›</span>'
+            f'<div class="finding-heading"><div class="badge-row">{severity_badge(severity)}{status_badge(status)}</div>'
+            f'<div class="finding-title">{esc(finding.get("title"))}</div>'
+            f'<div class="finding-path">{esc(path_labels)}</div></div>'
+            f'<span class="finding-side"><span>{esc(str(len(related_chains)))} 条逻辑链</span></span></summary>'
+            '<div class="finding-body"><div class="evidence-panel"><h4>判定依据</h4>'
+            f'<p>{esc(finding.get("message"))}</p>'
+            '</div><div class="remediation-panel"><h4>修复建议</h4>'
+            f'<p>{esc(remediation)}</p></div>'
+            '<details class="technical"><summary>技术证据</summary><dl>'
+            f'<dt>风险编号</dt><dd>{esc(finding.get("id"))}</dd>'
+            f'<dt>责任节点</dt><dd>{esc(node_label(finding.get("anchor_node_id")))}</dd>'
+            f'<dt>规则映射</dt><dd>{esc(rules or "—")}</dd>'
+            f'<dt>证据状态</dt><dd>{esc(status)} · 置信度 {confidence:.2f}</dd>'
+            f'<dt>后续验证</dt><dd>{esc(validation)}</dd>'
+            f'<dt>攻击前提</dt><dd>{esc(preconditions)}</dd>'
+            f'<dt>待核实信息</dt><dd>{esc(missing_context)}</dd>'
+            f'<dt>DSL 位置</dt><dd>{esc("； ".join(map(str, finding.get("dsl_locations", []))) or "未记录")}</dd>'
+            f'</dl></details>{bound_chains_html}</div></details>'
+        )
+    findings_html = "".join(finding_rows) or '<div class="empty">未发现需要处理的风险项。</div>'
+
+    workflow_svg = render_workflow_svg(workflow, [], "workflow")
+    gate_copy = {
+        "FAIL": "存在已确认的高危或严重风险，建议阻断发布。",
+        "REVIEW": "存在中危以上的静态证据，需要人工复核后决定是否发布。",
+        "PASS": "当前静态证据未触发发布阻断或人工复核。",
+    }.get(gate, "请结合风险详情人工判断。")
+    style = """
+:root{color-scheme:light;--ink:#162033;--muted:#5d6b7d;--canvas:#f5f7fa;--line:#d7e0ea;--surface:#fff;--navy:#142033;--blue:#2563eb;--amber:#9a6700}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--canvas);color:var(--ink);font:15px/1.6 Inter,"Microsoft YaHei",Arial,sans-serif}
+a{color:inherit}header{background:var(--navy);color:#fff;padding:28px max(24px,calc((100vw - 1220px)/2)) 62px}header h1{margin:0;font-size:28px;letter-spacing:-.02em}header p{margin:4px 0 0;color:#cbd5e1;font-size:13px}
+main{max-width:1220px;margin:-38px auto 0;padding:0 22px 32px}.summary-shell{display:grid;grid-template-columns:300px 1fr;background:#fff;border:1px solid rgba(203,213,225,.85);border-radius:16px;overflow:hidden}.decision{padding:20px 24px;background:#f8fafc;border-right:1px solid var(--line)}.decision>small{display:block;color:var(--muted);font-weight:700}.decision>strong{display:block;margin:4px 0;font-size:28px}.decision.REVIEW>strong{color:#9a6700}.decision.FAIL>strong{color:#b42318}.decision.PASS>strong{color:#157f3d}.decision p{margin:4px 0 0;color:#475569;font-size:13px}.decision-risk{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.decision-risk>span:first-child{color:#475569;font-size:12px}.decision-risk .badge{font-size:12px}.no-risk{color:#157f3d;font-size:12px;font-weight:800}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center}.metric{padding:20px;border-right:1px solid #edf1f6}.metric:last-child{border:0}.metric span{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;margin-top:4px;font-size:19px;line-height:1.3}
+.jump-nav{display:flex;gap:8px;margin:16px 0 2px;overflow:auto}.jump-nav a{text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 13px;color:#475569;font-size:13px;white-space:nowrap}.jump-nav a:hover{border-color:#94a3b8;color:#0f172a}.report-section{padding:30px 0;border-bottom:1px solid var(--line);scroll-margin-top:12px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:16px}.section-head h2{margin:0;font-size:22px;letter-spacing:-.015em}.section-head p{max-width:720px;margin:4px 0 0;color:var(--muted)}
+.count-row,.badge-row{display:flex;gap:7px;flex-wrap:wrap}.badge,.count-chip{display:inline-flex;align-items:center;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800;white-space:nowrap}.severity.CRITICAL,.count-chip.CRITICAL{background:#fee2e2;color:#991b1b}.severity.HIGH,.count-chip.HIGH{background:#ffedd5;color:#9a3412}.severity.MEDIUM,.count-chip.MEDIUM{background:#fef3c7;color:#854d0e}.severity.LOW,.count-chip.LOW{background:#e0f2fe;color:#075985}.severity.INFO,.count-chip.INFO{background:#dcfce7;color:#166534}.status{background:#eef2f7;color:#475569}.status.CONFIRMED{background:#fee2e2;color:#991b1b}.status.PROBABLE{background:#fff7d6;color:#7c5700}.status.OBSERVED{background:#e0f2fe;color:#075985}.status.CANDIDATE{background:#f1f5f9;color:#475569}
+.diagram-frame{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}.workflow-svg{display:block;min-width:780px;width:100%;height:auto}.diagram-note{display:flex;justify-content:flex-end;margin-top:10px;color:var(--muted);font-size:12px}.legend{display:flex;flex-wrap:wrap;gap:12px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.filters{display:flex;gap:10px;flex-wrap:wrap}.filters label{display:grid;gap:4px;color:var(--muted);font-size:12px}.filters select{height:36px;min-width:140px;border:1px solid #cbd5e1;border-radius:8px;padding:0 9px;background:#fff;color:var(--ink)}#findings{display:grid;gap:10px}.finding{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}.finding>summary{cursor:pointer;list-style:none;padding:15px 17px;display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:12px;align-items:center}.finding>summary::-webkit-details-marker,.technical>summary::-webkit-details-marker,.bound-chain>summary::-webkit-details-marker{display:none}.disclosure{font-size:24px;color:#94a3b8;transition:transform .18s}.finding[open] .disclosure{transform:rotate(90deg)}.finding-heading{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;align-items:center}.finding-heading .badge-row{grid-row:1/3}.finding-title{font-weight:800}.finding-path{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.finding-side{display:grid;justify-items:end;color:#64748b;font-size:11px}.finding-body{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;padding:0 17px 17px 47px;border-top:1px solid #edf1f6}.finding-body h4{margin:14px 0 6px}.finding-body p{margin:0}.technical{grid-column:1/-1;border-top:1px dashed var(--line);padding-top:10px}.technical>summary{cursor:pointer;color:#475569;font-size:13px}.technical dl{display:grid;grid-template-columns:84px 1fr;gap:5px 10px;margin:10px 0 0;font-size:12px}.technical dt{color:var(--muted)}.technical dd{margin:0;word-break:break-word}.bound-chain{grid-column:1/-1;margin-top:2px;padding-top:14px;border-top:1px solid var(--line)}.bound-chain-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:10px;cursor:pointer;list-style:none}.bound-chain-head h4{margin:0}.bound-chain-head p{margin-top:2px;color:#475569;font-size:12px}.bound-chain-head>span{color:var(--muted);font-size:11px}.bound-chain[open] .bound-chain-head>span{color:#334155}.bound-chain-frame{overflow:auto;background:#f8fafc;border-radius:8px}.bound-chain-frame .workflow-svg{min-width:720px}.bound-chain-meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:8px;color:#64748b;font-size:11px}.bound-chain-meta b{margin-right:5px;color:#334155}.bound-chain-empty{grid-column:1/-1;padding-top:12px;border-top:1px solid var(--line);color:#64748b;font-size:12px}.bound-chain-empty strong{color:#334155}.empty{padding:26px;text-align:center;color:var(--muted)}footer{padding:18px 0;color:var(--muted);font-size:12px}
+@media(max-width:880px){header{padding:26px 18px 58px}main{padding:0 12px 24px}.summary-shell{grid-template-columns:1fr}.decision{border-right:0;border-bottom:1px solid var(--line)}.metrics{grid-template-columns:1fr 1fr}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid #edf1f6}.finding-body{grid-template-columns:1fr;padding-left:17px}.technical{grid-column:auto}.finding-heading{display:block}.finding-path{margin-top:5px}.section-head{display:block}.filters{margin-top:12px}}@media print{body{background:#fff}header{padding:18px 20px 48px}main{max-width:none}.jump-nav,.filters{display:none}.report-section{break-inside:avoid}.diagram-frame{box-shadow:none}details{display:block}}
+"""
+    script = """
+const sf=document.getElementById('severityFilter');const st=document.getElementById('statusFilter');
+function filterFindings(){document.querySelectorAll('.issue-item').forEach(x=>{x.hidden=!!((sf.value&&x.dataset.severity!==sf.value)||(st.value&&x.dataset.status!==st.value))})}
+sf.addEventListener('change',filterFindings);st.addEventListener('change',filterFindings);
+"""
+    return f'''<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{esc(report_title)}</title>
+<style>{style}</style>
+</head>
+<body><header><h1>{esc(report_title)}</h1><p>静态规则扫描</p></header>
+<main>
+<section class="summary-shell" id="overview"><div class="decision {esc(gate)}"><small>发布门禁</small><strong>{esc(gate_label(gate))}</strong><p>{esc(gate_copy)}</p><div class="decision-risk"><span>最高风险程度</span>{highest_risk_html}</div></div><div class="metrics">{metrics_html}</div></section>
+<nav class="jump-nav" aria-label="报告导航"><a href="#overview">概览</a><a href="#workflow">工作流图</a><a href="#findings-section">风险与逻辑链</a></nav>
+<section class="report-section" id="workflow"><div class="section-head"><h2>工作流图</h2><div class="count-row">{severity_cards}</div></div><div class="diagram-frame">{workflow_svg}</div><div class="diagram-note"><span class="legend"><span><i style="background:#dbeafe"></i>输入/内容</span><span><i style="background:#ede9fe"></i>LLM/处理</span><span><i style="background:#fef3c7"></i>条件</span><span><i style="background:#dcfce7"></i>输出/工具</span></span></div></section>
+<section class="report-section" id="findings-section"><div class="section-head"><div><h2>风险与逻辑链</h2><p>严重度表示影响，证据状态表示静态确定性。</p></div><div class="filters"><label>严重度<select id="severityFilter"><option value="">全部</option><option value="CRITICAL">严重</option><option value="HIGH">高危</option><option value="MEDIUM">中危</option><option value="LOW">低危</option><option value="INFO">信息</option></select></label><label>证据状态<select id="statusFilter"><option value="">全部</option><option value="CONFIRMED">已确认</option><option value="PROBABLE">较可能</option><option value="OBSERVED">加固项</option><option value="CANDIDATE">待验证</option></select></label></div></div><div id="findings">{findings_html}</div></section>
+<footer>静态安全扫描</footer>
+</main>
+<script>{script}</script>
+</body></html>'''
+
+
+def render_workflow_svg(workflow: dict[str, Any], highlight_path: list[str], svg_id: str) -> str:
+    """Draw the full workflow, preserving source canvas coordinates when present."""
+    nodes = [item for item in workflow.get("nodes", []) if isinstance(item, dict)]
+    edges = [item for item in workflow.get("edges", []) if isinstance(item, dict)]
+    node_by_id = {str(item.get("id")): item for item in nodes}
+    positions, width, height, layout_source = _workflow_positions(nodes, edges)
+    node_w, node_h = 176, 72
+    marker = f"arrow-{escape(svg_id, quote=True)}"
+    outgoing_edges: dict[str, list[dict[str, Any]]] = {}
+    incoming_edges: dict[str, list[dict[str, Any]]] = {}
+    for edge in edges:
+        source, target = str(edge.get("source")), str(edge.get("target"))
+        if source in positions and target in positions:
+            outgoing_edges.setdefault(source, []).append(edge)
+            incoming_edges.setdefault(target, []).append(edge)
+    for source, items in outgoing_edges.items():
+        items.sort(key=lambda item: positions[str(item.get("target"))][1])
+    for target, items in incoming_edges.items():
+        items.sort(key=lambda item: positions[str(item.get("source"))][1])
+    edge_svg = []
+    for edge in edges:
+        source, target = str(edge.get("source")), str(edge.get("target"))
+        if source not in positions or target not in positions:
+            continue
+        x1, y1 = positions[source]; x2, y2 = positions[target]
+        source_items = outgoing_edges.get(source, [edge]); target_items = incoming_edges.get(target, [edge])
+        source_index = source_items.index(edge); target_index = target_items.index(edge)
+        sy = y1 + node_h * (source_index + 1) / (len(source_items) + 1)
+        ty = y2 + node_h * (target_index + 1) / (len(target_items) + 1)
+        sx, tx = x1 + node_w, x2
+        if tx > sx + 26:
+            # Keep control points ordered even for the shortest valid gutter;
+            # crossing them makes a forward edge look like a tiny self-loop.
+            control = max(12, min(96, (tx - sx) * .42))
+            path_d = f"M {sx:.1f} {sy:.1f} C {sx + control:.1f} {sy:.1f}, {tx - control:.1f} {ty:.1f}, {tx:.1f} {ty:.1f}"
+        else:
+            lane_y = max(y1 + node_h, y2 + node_h) + 26 + 10 * source_index
+            path_d = f"M {sx:.1f} {sy:.1f} H {sx + 24:.1f} V {lane_y:.1f} H {tx - 24:.1f} V {ty:.1f} H {tx:.1f}"
+        edge_svg.append(f'<path d="{path_d}" fill="none" stroke="#8fa1b5" stroke-width="1.6" marker-end="url(#{marker})"><title>{escape(node_label_for_svg(node_by_id, source))} → {escape(node_label_for_svg(node_by_id, target))}</title></path>')
+        if len(source_items) > 1:
+            branch = _branch_label(
+                edge.get("source_handle") or edge.get("sourceHandle"),
+                source_index,
+                node_by_id.get(source),
+            )
+            visible_branch = _compact_branch_label(
+                edge.get("source_handle") or edge.get("sourceHandle"),
+                source_index,
+                node_by_id.get(source),
+            )
+            label_x, label_y = sx + 12, sy - 7
+            label_w = max(36, 9 * len(visible_branch) + 12)
+            edge_svg.append(f'<g><title>{escape(branch)}</title><rect x="{label_x:.1f}" y="{label_y - 11:.1f}" width="{label_w}" height="17" rx="7" fill="#fff" stroke="#dbe3ee"/><text x="{label_x + 6:.1f}" y="{label_y + 1:.1f}" font-size="9" fill="#53657a">{escape(visible_branch)}</text></g>')
+    node_svg = []
+    for node_id, node in node_by_id.items():
+        x, y = positions[node_id]
+        node_type = str(node.get("type", "UNKNOWN"))
+        fill = _node_fill(node_type)
+        title = _svg_text(node.get("title") or node_id, 19)
+        type_copy = _condition_type_copy(node, node_type)
+        node_svg.append(
+            f'<g><rect x="{x}" y="{y}" width="{node_w}" height="{node_h}" rx="9" fill="{fill}" stroke="#b9c6d5" stroke-width="1"/>'
+            f'<text x="{x + 11}" y="{y + 25}" font-size="12" font-weight="700" fill="#172033">{escape(title)}</text>'
+            f'<text x="{x + 11}" y="{y + 51}" font-size="10" fill="#475569">{escape(_svg_text(type_copy, 24))}</text></g>'
+        )
+    return f'<svg class="workflow-svg" data-layout="{layout_source}" viewBox="0 0 {width} {height}" role="img" aria-label="Workflow 流程图"><defs><marker id="{marker}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#8fa1b5"/></marker></defs>{"".join(edge_svg)}{"".join(node_svg)}</svg>'
+
+
+def render_risk_chain_svg(workflow: dict[str, Any], path: list[str], svg_id: str, severity: str) -> str:
+    """Draw a focused, numbered risk path instead of recolouring the full graph."""
+    nodes = {str(item.get("id")): item for item in workflow.get("nodes", []) if isinstance(item, dict)}
+    edges = [item for item in workflow.get("edges", []) if isinstance(item, dict)]
+    visible = [node_id for node_id in path if node_id in nodes]
+    width = max(760, 74 + 226 * len(visible))
+    height = 164
+    node_w, node_h, node_y = 176, 74, 44
+    color = _risk_color(severity)
+    marker = f"focus-arrow-{escape(svg_id, quote=True)}"
+    body: list[str] = []
+    for index in range(len(visible) - 1):
+        source, target = visible[index], visible[index + 1]
+        sx = 42 + index * 226 + node_w
+        tx = 42 + (index + 1) * 226
+        cy = node_y + node_h / 2
+        edge = next((item for item in edges if str(item.get("source")) == source and str(item.get("target")) == target), {})
+        handle = edge.get("source_handle") or edge.get("sourceHandle")
+        label = _branch_label(handle, 0, nodes.get(source)) if handle not in (None, "", "source") else ""
+        visible_label = _compact_branch_label(handle, 0, nodes.get(source)) if label else ""
+        body.append(f'<path d="M {sx} {cy:.1f} H {tx}" fill="none" stroke="{color}" stroke-width="2.4" marker-end="url(#{marker})"/>')
+        if visible_label:
+            mid = (sx + tx) / 2
+            body.append(f'<text x="{mid:.1f}" y="{cy - 9:.1f}" text-anchor="middle" font-size="9" font-weight="700" fill="{color}"><title>{escape(label)}</title>{escape(visible_label)}</text>')
+    for index, node_id in enumerate(visible):
+        node = nodes[node_id]; x = 42 + index * 226
+        title = _svg_text(node.get("title") or node_id, 19)
+        node_type = _svg_text(_condition_type_copy(node, str(node.get("type", "UNKNOWN"))), 23)
+        body.append(
+            f'<g><rect x="{x}" y="{node_y}" width="{node_w}" height="{node_h}" rx="9" fill="{_node_fill(str(node.get("type", "UNKNOWN")))}" stroke="{color}" stroke-width="1.7"/>'
+            f'<circle cx="{x + 15}" cy="{node_y + 15}" r="10" fill="{color}"/><text x="{x + 15}" y="{node_y + 18.5}" text-anchor="middle" font-size="9" font-weight="800" fill="#fff">{index + 1}</text>'
+            f'<text x="{x + 31}" y="{node_y + 20}" font-size="11.5" font-weight="700" fill="#172033">{escape(title)}</text>'
+            f'<text x="{x + 12}" y="{node_y + 53}" font-size="10" fill="#53657a">{escape(node_type)}</text></g>'
+        )
+    if not visible:
+        body.append('<text x="28" y="55" font-size="13" fill="#64748b">该风险没有可展示的节点路径。</text>')
+    return f'<svg class="workflow-svg" viewBox="0 0 {width} {height}" role="img" aria-label="风险逻辑链"><defs><marker id="{marker}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="{color}"/></marker></defs>{"".join(body)}</svg>'
+
+
+def _workflow_positions(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> tuple[dict[str, tuple[int, int]], int, int, str]:
+    canvas: dict[str, tuple[float, float]] = {}
+    for node in nodes:
+        position = node.get("position")
+        if not isinstance(position, dict):
+            continue
+        try:
+            canvas[str(node.get("id"))] = (float(position["x"]), float(position["y"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    positions: dict[str, tuple[int, int]] = {}
+    if canvas:
+        min_x = min(value[0] for value in canvas.values()); min_y = min(value[1] for value in canvas.values())
+        # Dify stores free-form canvas coordinates. Nearby x values usually
+        # represent one visual column, while adjacent columns can be closer
+        # than the fixed report node width. Cluster those columns and enforce
+        # a safe horizontal gutter so a short forward edge is never mistaken
+        # for a self-loop/back-edge by the SVG router.
+        x_clusters: list[list[float]] = []
+        for x in sorted({value[0] for value in canvas.values()}):
+            if x_clusters and x - x_clusters[-1][-1] <= 80:
+                x_clusters[-1].append(x)
+            else:
+                x_clusters.append([x])
+        normalized_x: dict[float, int] = {}
+        previous_column: int | None = None
+        for cluster in x_clusters:
+            representative = sum(cluster) / len(cluster)
+            desired = 44 + int((representative - min_x) * .72)
+            assigned = desired if previous_column is None else max(desired, previous_column + 300)
+            for raw_x in cluster:
+                normalized_x[raw_x] = assigned
+            previous_column = assigned
+        by_column: dict[int, list[tuple[str, float]]] = {}
+        for node_id, (x, y) in canvas.items():
+            by_column.setdefault(normalized_x[x], []).append((node_id, y))
+        for column_x, column_nodes in by_column.items():
+            previous_y: int | None = None
+            for node_id, raw_y in sorted(column_nodes, key=lambda item: item[1]):
+                desired_y = 38 + int((raw_y - min_y) * .72)
+                assigned_y = desired_y if previous_y is None else max(desired_y, previous_y + 92)
+                positions[node_id] = (column_x, assigned_y)
+                previous_y = assigned_y
+        bottom = max(y for _, y in positions.values()) + 112
+        for index, node in enumerate(item for item in nodes if str(item.get("id")) not in positions):
+            positions[str(node.get("id"))] = (44, bottom + index * 104)
+        width = max(800, max(x for x, _ in positions.values()) + 224)
+        height = max(230, max(y for _, y in positions.values()) + 122)
+        return positions, width, height, "dsl-canvas"
+
+    node_ids = [str(item.get("id")) for item in nodes]
+    incoming = {node_id: 0 for node_id in node_ids}; outgoing: dict[str, list[str]] = {node_id: [] for node_id in node_ids}
+    for edge in edges:
+        source, target = str(edge.get("source")), str(edge.get("target"))
+        if source in outgoing and target in incoming:
+            outgoing[source].append(target); incoming[target] += 1
+    queue = sorted(node_id for node_id, count in incoming.items() if count == 0); ranks = {node_id: 0 for node_id in queue}
+    while queue:
+        current = queue.pop(0)
+        for target in sorted(outgoing[current]):
+            ranks[target] = max(ranks.get(target, 0), ranks[current] + 1); incoming[target] -= 1
+            if incoming[target] == 0:
+                queue.append(target)
+    for node_id in node_ids:
+        ranks.setdefault(node_id, max(ranks.values(), default=-1) + 1)
+    columns: dict[int, list[str]] = {}
+    for node_id, rank in ranks.items():
+        columns.setdefault(rank, []).append(node_id)
+    for rank in sorted(columns):
+        columns[rank].sort(key=lambda node_id: sum(ranks.get(source, 0) for source in node_ids if node_id in outgoing.get(source, [])))
+        for index, node_id in enumerate(columns[rank]):
+            positions[node_id] = (44 + rank * 244, 38 + index * 106)
+    return positions, max(800, max((x for x, _ in positions.values()), default=0) + 224), max(230, max((y for _, y in positions.values()), default=0) + 122), "derived-layered"
+
+
+def _branch_label(handle: Any, index: int, source_node: dict[str, Any] | None = None) -> str:
+    value = str(handle or "")
+    branch_conditions = source_node.get("branch_conditions", {}) if isinstance(source_node, dict) else {}
+    if isinstance(branch_conditions, dict) and value in branch_conditions:
+        return str(branch_conditions[value])
+    if value == "true":
+        return "是 / true"
+    if value == "false":
+        return "否则"
+    if value in {"source", ""}:
+        return f"分支 {index + 1}"
+    return f"分支 {index + 1}"
+
+
+def _compact_branch_label(handle: Any, index: int, source_node: dict[str, Any] | None = None) -> str:
+    value = str(handle or "")
+    branch_conditions = source_node.get("branch_conditions", {}) if isinstance(source_node, dict) else {}
+    if isinstance(branch_conditions, dict) and value in branch_conditions:
+        if str(branch_conditions[value]) == "否则" or value == "false":
+            return "否则"
+        ordered_handles = [key for key in branch_conditions if key != "false"]
+        return f"条件 {ordered_handles.index(value) + 1}"
+    if value == "true":
+        return "是"
+    if value == "false":
+        return "否则"
+    return f"分支 {index + 1}"
+
+
+def _condition_presentation(node: Any, node_map: dict[str, Any]) -> dict[str, Any]:
+    if getattr(node, "type", None) != "CONDITION":
+        return {}
+    cases = node.config.get("cases") if isinstance(node.config, dict) else None
+    if not isinstance(cases, list):
+        return {}
+    labels: dict[str, str] = {}
+    subjects: list[str] = []
+    for case_index, case in enumerate(cases):
+        if not isinstance(case, dict):
+            continue
+        handle = str(case.get("case_id") or case.get("id") or f"case-{case_index + 1}")
+        conditions = [item for item in case.get("conditions", []) if isinstance(item, dict)]
+        fragments: list[str] = []
+        for condition in conditions:
+            selector = condition.get("variable_selector")
+            producer_id = str(selector[0]) if isinstance(selector, list) and selector else ""
+            producer = node_map.get(producer_id)
+            subject = str(getattr(producer, "title", "") or (selector[-1] if isinstance(selector, list) and selector else "条件值"))
+            subjects.append(subject)
+            operator = _condition_operator_label(condition.get("comparison_operator"))
+            value = condition.get("value")
+            fragments.append(f"{operator}「{value}」")
+        joiner = " 或 " if str(case.get("logical_operator", "and")).lower() == "or" else " 且 "
+        labels[handle] = joiner.join(fragments) or f"条件 {case_index + 1}"
+    if labels:
+        labels.setdefault("false", "否则")
+    unique_subjects = list(dict.fromkeys(subjects))
+    return {
+        "branch_conditions": labels,
+        "condition_subject": " / ".join(unique_subjects),
+        "condition_case_count": len(labels) - (1 if "false" in labels else 0),
+    }
+
+
+def _condition_operator_label(operator: Any) -> str:
+    return {
+        "contains": "包含",
+        "not contains": "不包含",
+        "not_contains": "不包含",
+        "is": "等于",
+        "is not": "不等于",
+        "is_not": "不等于",
+        "starts with": "开头为",
+        "starts_with": "开头为",
+        "ends with": "结尾为",
+        "ends_with": "结尾为",
+        "empty": "为空",
+        "not empty": "不为空",
+        "not_empty": "不为空",
+        ">": "大于",
+        "<": "小于",
+        ">=": "大于等于",
+        "<=": "小于等于",
+    }.get(str(operator or "").lower(), str(operator or "满足"))
+
+
+def _condition_type_copy(node: dict[str, Any], fallback: str) -> str:
+    if fallback != "CONDITION":
+        return fallback
+    subject = str(node.get("condition_subject") or "条件值")
+    count = int(node.get("condition_case_count") or 0)
+    return f"条件 · {subject} · {count} 个分支"
+
+
+def node_label_for_svg(nodes: dict[str, dict[str, Any]], node_id: str) -> str:
+    return str(nodes.get(node_id, {}).get("title") or node_id)
+
+
+def _risk_color(severity: str) -> str:
+    return {"CRITICAL": "#b91c1c", "HIGH": "#c2410c", "MEDIUM": "#b7791f", "LOW": "#0284c7"}.get(severity, "#64748b")
+
+
+def _status_explanation(status: str) -> str:
+    return {
+        "CONFIRMED": "规则已获得足够的静态直接证据，但仍不代表攻击已实际发生。",
+        "PROBABLE": "路径和危险模式成立，仍需结合业务约束或运行时行为人工确认。",
+        "OBSERVED": "已观察到需要加固的模式，通常不单独触发发布阻断。",
+        "CANDIDATE": "存在风险线索，但上下文不足，当前不应当作已确认漏洞。",
+    }.get(status, "请结合技术证据人工判断。")
+
+
+def _node_fill(node_type: str) -> str:
+    if node_type in {"INPUT", "CONTENT", "KNOWLEDGE"}:
+        return "#dbeafe"
+    if node_type in {"CONDITION", "HUMAN", "LOOP", "ITERATION", "STRUCTURAL"}:
+        return "#fef3c7"
+    if node_type in {"TOOL", "OUTPUT"}:
+        return "#dcfce7"
+    return "#ede9fe"
+
+
+def _svg_text(value: Any, limit: int) -> str:
+    text = str(value if value is not None else "")
+    return text if len(text) <= limit else f"{text[:max(1, limit - 1)]}…"
+
+
+def _severity_rank(value: Any) -> int:
+    return {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}.get(str(value), -1)
 
 
 def render_markdown(report: dict[str, Any]) -> str:

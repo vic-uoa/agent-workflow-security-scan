@@ -21,7 +21,7 @@ CASES = [
     {"name": "approval-bypass-workflow", "gate": "FAIL", "present": {"FLOW-006"}, "absent": set()},
     {"name": "keyword-spoofed-control", "gate": "FAIL", "present": {"FLOW-003", "TOOL-008"}, "absent": set(), "max_findings": 2},
     {"name": "parameter-precision-workflow", "gate": "PASS", "present": set(), "absent": {"TOOL-003", "TOOL-017"}, "zero": True},
-    {"name": "text-optimization-workflow", "gate": "PASS", "present": {"LLM-001"}, "absent": {"IN-002", "OUT-001", "OUT-008"}, "max_findings": 1},
+    {"name": "text-optimization-workflow", "gate": "REVIEW", "present": {"LLM-001"}, "absent": {"IN-002", "OUT-001", "OUT-008"}, "max_findings": 1},
     {"name": "review-only-workflow", "gate": "PASS", "present": set(), "absent": {"LLM-006", "LLM-009", "LLM-010"}, "zero": True},
     {"name": "safe-code-transform-workflow", "gate": "PASS", "present": set(), "absent": {"FLOW-003", "FLOW-010", "TOOL-002", "TOOL-004", "TOOL-008"}, "zero": True},
     {"name": "simple-rag-readonly-workflow", "gate": "PASS", "present": set(), "absent": {"KB-001", "KB-002", "KB-003", "KB-008", "KB-009", "KB-010"}, "zero": True},
@@ -29,18 +29,18 @@ CASES = [
     {"name": "document-indirect-injection-workflow", "gate": "FAIL", "present": {"FLOW-005", "LLM-003", "FLOW-010"}, "absent": set(), "max_findings": 6},
     {"name": "risky-workflow", "gate": "FAIL", "present": {"FLOW-005", "TOOL-003", "TOOL-010", "KB-005"}, "absent": set(), "max_findings": 20},
     {"name": "tencent-inspired-workflow", "gate": "FAIL", "present": {"FLOW-009", "FLOW-010", "FLOW-011", "FLOW-012", "FLOW-013", "TOOL-016", "TOOL-017", "KB-012", "OUT-009"}, "absent": set(), "max_findings": 40},
-    {"name": "dify-example-content-workflow", "gate": "PASS", "present": {"LLM-001"}, "absent": {"FLOW-004", "FLOW-008", "FLOW-009", "LLM-004", "LLM-011", "OUT-002", "OUT-004", "OUT-005", "OUT-009"}, "max_findings": 1},
-    {"name": "dify-security-instruction-workflow", "gate": "PASS", "present": {"LLM-001"}, "absent": {"LLM-007", "OUT-003", "OUT-008", "OUT-010"}, "max_findings": 1},
+    {"name": "dify-example-content-workflow", "gate": "REVIEW", "present": {"LLM-001"}, "absent": {"FLOW-004", "FLOW-008", "FLOW-009", "LLM-004", "LLM-011", "OUT-002", "OUT-004", "OUT-005", "OUT-009"}, "max_findings": 1},
+    {"name": "dify-security-instruction-workflow", "gate": "REVIEW", "present": {"LLM-001"}, "absent": {"LLM-007", "OUT-003", "OUT-008", "OUT-010"}, "max_findings": 1},
     {"name": "dify-security-adjacent-credential-workflow", "gate": "REVIEW", "present": {"LLM-011"}, "absent": {"LLM-004", "FLOW-009"}, "max_findings": 2},
     {"name": "dify-unknown-audience-output-workflow", "gate": "REVIEW", "present": {"OUT-002"}, "absent": {"FLOW-004", "FLOW-009"}, "max_findings": 1},
     {"name": "dify-env-secret-type-egress-workflow", "gate": "FAIL", "present": {"FLOW-004", "TOOL-007"}, "absent": {"FLOW-009"}, "max_findings": 2},
     {"name": "dify-candidate-password-public-output-workflow", "gate": "REVIEW", "present": {"FLOW-004", "OUT-002"}, "absent": {"FLOW-009"}, "max_findings": 1},
-    {"name": "dify-decision-output-injection-workflow", "gate": "REVIEW", "present": {"LLM-001"}, "absent": {"FLOW-003", "LLM-007"}, "max_findings": 1},
+    {"name": "dify-decision-output-injection-workflow", "gate": "FAIL", "present": {"LLM-001"}, "absent": {"FLOW-003", "LLM-007"}, "max_findings": 1},
     {"name": "dify-mixed-authorization-instruction-workflow", "gate": "REVIEW", "present": {"LLM-007"}, "absent": {"OUT-003"}, "max_findings": 1},
     {"name": "dify-confirmed-egress-workflow", "gate": "FAIL", "present": {"FLOW-004", "FLOW-009", "TOOL-007", "TOOL-017"}, "absent": set(), "max_findings": 8},
     {"name": "dify-redacted-egress-workflow", "gate": "PASS", "present": {"FLOW-004", "TOOL-007"}, "absent": {"FLOW-009", "TOOL-017"}, "zero": True},
     {"name": "dify-public-output-workflow", "gate": "FAIL", "present": {"FLOW-004", "FLOW-009", "OUT-002"}, "absent": {"TOOL-007", "TOOL-017"}, "max_findings": 4},
-    {"name": "dify-field-specific-loop-workflow", "gate": "PASS", "present": {"LLM-001"}, "absent": {"IN-002", "FLOW-007"}, "max_findings": 1},
+    {"name": "dify-field-specific-loop-workflow", "gate": "REVIEW", "present": {"LLM-001"}, "absent": {"IN-002", "FLOW-007"}, "max_findings": 1},
     {"name": "dify-output-type-mismatch-workflow", "gate": "REVIEW", "present": {"FLOW-014"}, "absent": {"FLOW-009"}, "max_findings": 2},
     {"name": "dify-regex-derived-route-workflow", "gate": "REVIEW", "present": {"FLOW-015"}, "absent": {"FLOW-003", "TOOL-004"}, "max_findings": 2},
     {"name": "dify-llm-code-parser-workflow", "gate": "REVIEW", "present": {"LLM-006", "LLM-012", "OUT-011"}, "absent": {"FLOW-010", "TOOL-004"}, "max_findings": 4},
@@ -59,33 +59,27 @@ def main() -> int:
     results = []
     for case in CASES:
         name = case["name"]
-        case_output = args.output / name
         run = run_scan(
             dsl_path=fixtures / f"{name}.yml",
             samples_path=fixtures / "samples.json" if name in {"risky-workflow", "tencent-inspired-workflow"} else None,
             baseline_path=baseline,
-            output_dir=case_output,
+            output_dir=args.output,
             rules_path=rules,
             llm_mode="disabled",
         )
-        report = json.loads((case_output / "report.json").read_text(encoding="utf-8"))["report"]
-        rule_ids = {
-            rule_id
-            for item in report["findings"]
-            for rule_id in [item["rule_id"], *item.get("related_rule_ids", [])]
-        }
+        rule_ids = set(run["finding_rule_ids"])
         missing = sorted(case["present"] - rule_ids)
         unexpected = sorted(case["absent"] & rule_ids)
-        zero_ok = not case.get("zero") or report["summary"]["finding_count"] == 0
-        count_ok = report["summary"]["finding_count"] <= case.get("max_findings", 10_000)
+        zero_ok = not case.get("zero") or run["report_summary"]["finding_count"] == 0
+        count_ok = run["report_summary"]["finding_count"] <= case.get("max_findings", 10_000)
         passed = run["quality_gate"] == case["gate"] and not missing and not unexpected and zero_ok and count_ok
         results.append({
             "case": name,
             "expected_gate": case["gate"],
             "actual_gate": run["quality_gate"],
-            "finding_count": report["summary"]["finding_count"],
-            "risk_chain_count": len(report["attack_surface"].get("risk_chains", [])),
-            "test_case_count": report["test_cluster_summary"]["case_count"],
+            "finding_count": run["report_summary"]["finding_count"],
+            "risk_chain_count": run["risk_chain_count"],
+            "test_case_count": run["test_case_count"],
             "expected_present": sorted(case["present"]),
             "expected_absent": sorted(case["absent"]),
             "missing_rules": missing,

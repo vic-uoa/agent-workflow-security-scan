@@ -981,9 +981,10 @@ class SecurityEngine:
     def _control_anchor(self, finding: Finding, domain: str) -> str:
         if not finding.node_ids:
             return "workflow"
-        if domain == "instruction_boundary" and finding.status == Status.OBSERVED.value and finding.severity == Severity.LOW.value:
-            # Text-only prompt-boundary observations share one workflow design
-            # root cause; keep affected nodes and paths in the audit detail.
+        if domain == "instruction_boundary":
+            # Prompt-role misuse is normally a workflow-wide construction
+            # defect repeated across several LLM nodes. Keep one remediation
+            # item while preserving every affected node and path as evidence.
             return "workflow"
         if domain in {"instruction_boundary", "untrusted_content_boundary", "agent_governance"}:
             return next(
@@ -1056,7 +1057,10 @@ class SecurityEngine:
             primary.root_cause_id = primary.id
             primary.anchor_node_id = None if anchor == "workflow" else anchor
             primary.control_domain = domain
-            primary.title = f"{anchor_title}：{CONTROL_DOMAIN_TITLES[domain]}"
+            if domain == "instruction_boundary" and aggregate_status == "CONFIRMED":
+                primary.title = f"{anchor_title}：不可信内容进入高权限 Prompt"
+            else:
+                primary.title = f"{anchor_title}：{CONTROL_DOMAIN_TITLES[domain]}"
             primary.status = aggregate_status
             primary.severity = aggregate_severity
             primary.potential_severity = max(
@@ -1099,7 +1103,12 @@ class SecurityEngine:
             primary.counter_evidence = list(dict.fromkeys(value for item in members for value in item.counter_evidence))
             primary.missing_context = list(dict.fromkeys(value for item in members for value in item.missing_context))
             primary.remediation = list(dict.fromkeys(value for item in members for value in item.remediation))
-            if len(members) > 1:
+            if len(members) > 1 and domain == "instruction_boundary" and aggregate_status == "CONFIRMED":
+                primary.message = (
+                    f"DSL 已确认 {len(primary.affected_node_ids)} 个模型节点将不可信内容放入系统或开发者指令区域；"
+                    "该配置越过了指令与数据边界，模型层面的可利用性尚未动态验证。"
+                )
+            elif len(members) > 1:
                 primary.message = (
                     f"责任节点“{anchor_title}”在“{CONTROL_DOMAIN_TITLES[domain]}”方面存在 "
                     f"{len(members)} 个规则或路径实例；主项按最强静态证据定级，具体影响见实例明细。"
@@ -1161,6 +1170,11 @@ class SecurityEngine:
             primary.counter_evidence = list(dict.fromkeys(value for item in members for value in item.counter_evidence))
             primary.missing_context = list(dict.fromkeys(value for item in members for value in item.missing_context))
             if family == "prompt_boundary":
+                confirmed_privilege_boundary = any(
+                    item.rule_id in {"IN-007", "LLM-001", "KB-004"}
+                    and item.status == Status.CONFIRMED.value
+                    for item in members
+                )
                 downstream_tools = [
                     node for node in self.ir.nodes
                     if _is_effectful_tool(node)
@@ -1188,19 +1202,38 @@ class SecurityEngine:
                     _key_matches(node.config, ("decision_output", "automated_decision"))
                     for node in automated_outputs
                 )
-                if downstream_tools or downstream_conditions or automated_outputs or sensitive_context:
-                    primary.severity = "HIGH" if (
-                        any(node.high_impact for node in downstream_tools) or high_integrity_sink
-                    ) else "MEDIUM"
+                impact_relevant = bool(
+                    downstream_tools or downstream_conditions or automated_outputs or sensitive_context
+                )
+                high_impact = bool(
+                    any(node.high_impact for node in downstream_tools) or high_integrity_sink
+                )
+                if confirmed_privilege_boundary:
+                    # The placement defect is a deterministic configuration
+                    # fact. Dynamic testing validates model exploitability; it
+                    # must not downgrade the configuration evidence itself.
+                    primary.severity = "HIGH" if high_impact else "MEDIUM"
+                    primary.status = "CONFIRMED"
+                elif impact_relevant:
+                    primary.severity = "HIGH" if high_impact else "MEDIUM"
                     primary.status = "PROBABLE"
                 else:
-                    # In a text-only workflow this is an instruction-integrity
-                    # observation, not a high-impact security defect.
+                    # Merely reaching a model without a visible prompt guard is
+                    # an observation when no privileged-role interpolation or
+                    # material downstream impact is proven.
                     primary.severity = "LOW"
                     primary.status = "OBSERVED"
                 primary.confidence = min(primary.confidence, 0.9)
-                primary.title = "不可信输入进入高权限 Prompt"
-                primary.message = "用户输入被放入系统/开发者指令区域；静态扫描确认了边界缺陷，但是否可劫持模型及其实际影响仍需动态样例验证。"
+                primary.title = (
+                    "不可信输入进入高权限 Prompt"
+                    if confirmed_privilege_boundary else
+                    "模型指令与不可信数据隔离不足"
+                )
+                primary.message = (
+                    "DSL 确认不可信内容被放入系统/开发者指令区域；模型是否会服从其中的攻击指令仍需动态验证。"
+                    if confirmed_privilege_boundary else
+                    "不可信内容可到达模型，现有 DSL 未显示明确的指令与数据隔离控制。"
+                )
                 primary.remediation = [
                     "将固定指令保留在 system/developer 消息中，将待处理内容放入 user 消息或明确的数据容器。",
                     "使用已确认的正常、对抗和边界样例验证任务目标不会被输入内容覆盖。",
@@ -1210,15 +1243,17 @@ class SecurityEngine:
 
     def _global_rules(self) -> None:
         for gap in self.ir.coverage_gaps:
-            rule_id = "FLOW-001" if gap.get("reason") == "dangling_edge" else "FLOW-002"
+            reason = str(gap.get("reason") or "unknown")
+            structural_failure = reason in {"dangling_edge", "node_not_object", "edge_not_object"}
+            rule_id = "FLOW-001" if structural_failure else "FLOW-002"
             node_ids = [gap["node_id"]] if gap.get("node_id") else []
             self._emit(
                 rule_id,
                 node_ids,
-                f"DSL 存在未覆盖结构：{gap.get('reason')}。",
-                status=Status.COVERAGE_GAP,
+                f"DSL 存在未覆盖结构：{reason}。",
+                status=Status.CONFIRMED if structural_failure else Status.COVERAGE_GAP,
                 confidence=1.0,
-                missing_context=[str(gap)],
+                missing_context=[] if structural_failure else [str(gap)],
             )
         llms = [node for node in self.ir.nodes if node.type == NodeType.LLM.value]
         compatible_provider_llms = [
@@ -1238,38 +1273,38 @@ class SecurityEngine:
                 missing_context=["模型端点位置、运营主体、传输边界、日志与数据保留策略。"],
             )
 
-            parser_nodes = [
-                node for node in self.ir.nodes
-                if _code_parser_features(node)
-                and any(self.graph.path(llm.id, node.id, data_preferred=True) for llm in llms)
-            ]
-            for output in [node for node in self.ir.nodes if node.type == NodeType.OUTPUT.value]:
-                output_types = {
-                    _normalize_contract_type(value)
-                    for value in _key_values(output.config, ("value_type", "output_type"))
-                    if isinstance(value, str)
-                }
-                structured_or_parsed = bool(
-                    output_types & {"object", "array", "array[object]"}
-                    or any(self.graph.path(parser.id, output.id, data_preferred=True) for parser in parser_nodes)
+        parser_nodes = [
+            node for node in self.ir.nodes
+            if _code_parser_features(node)
+            and any(self.graph.path(llm.id, node.id, data_preferred=True) for llm in llms)
+        ]
+        for output in [node for node in self.ir.nodes if node.type == NodeType.OUTPUT.value]:
+            output_types = {
+                _normalize_contract_type(value)
+                for value in _key_values(output.config, ("value_type", "output_type"))
+                if isinstance(value, str)
+            }
+            structured_or_parsed = bool(
+                output_types & {"object", "array", "array[object]"}
+                or any(self.graph.path(parser.id, output.id, data_preferred=True) for parser in parser_nodes)
+            )
+            has_consumer_context = _key_matches(
+                output.config,
+                (
+                    "audience", "output_audience", "visibility", "authentication_required",
+                    "machine_consumed", "api_contract", "decision_output", "automation_output",
+                ),
+            )
+            if structured_or_parsed and not has_consumer_context:
+                self._emit(
+                    "OUT-011",
+                    [output.id],
+                    "结构化或程序解析后的结果通过 End 返回，但 DSL 未声明调用方认证和下游是否自动消费。",
+                    status=Status.COVERAGE_GAP,
+                    severity=Severity.INFO,
+                    confidence=1.0,
+                    missing_context=["调用方身份、租户/对象授权、下游是否自动修改业务状态。"],
                 )
-                has_consumer_context = _key_matches(
-                    output.config,
-                    (
-                        "audience", "output_audience", "visibility", "authentication_required",
-                        "machine_consumed", "api_contract", "decision_output", "automation_output",
-                    ),
-                )
-                if structured_or_parsed and not has_consumer_context:
-                    self._emit(
-                        "OUT-011",
-                        [output.id],
-                        "结构化或程序解析后的结果通过 End 返回，但 DSL 未声明调用方认证和下游是否自动消费。",
-                        status=Status.COVERAGE_GAP,
-                        severity=Severity.INFO,
-                        confidence=1.0,
-                        missing_context=["调用方身份、租户/对象授权、下游是否自动修改业务状态。"],
-                    )
         for source in self.ir.nodes:
             credential_assets = [
                 asset for asset in self.asset_inventory.get(source.id, [])
@@ -1410,7 +1445,7 @@ class SecurityEngine:
         }
         system_has_ref = any(_prompt_references_node(system_text, producer) for producer in untrusted_producers)
         if system_has_ref:
-            self._emit("LLM-001", [*sorted(untrusted_producers), node.id], "不可信变量被插入系统或高权限指令区域。", status=Status.OBSERVED, dynamic_test="direct_or_indirect_prompt_injection")
+            self._emit("LLM-001", [*sorted(untrusted_producers), node.id], "不可信变量被插入系统或高权限指令区域。", status=Status.CONFIRMED, confidence=1.0, dynamic_test="direct_or_indirect_prompt_injection")
         if untrusted_producers and not _has_words(system_text, INJECTION_GUARD_WORDS):
             self._emit("LLM-002", [*sorted(untrusted_producers), node.id], "外部内容进入 LLM，但系统指令中未发现明确的数据/指令隔离约束。", status=Status.PROBABLE, confidence=0.72, dynamic_test="instruction_data_boundary")
         if contains_secret(node.text):
@@ -1624,7 +1659,9 @@ class SecurityEngine:
             self._emit(
                 "OUT-009", [node.id],
                 "动态 Markdown 链接或图片目标未受限，可通过客户端取链或 URL 路径编码形成隐蔽外带。",
-                status=Status.CONFIRMED,
+                status=Status.PROBABLE,
+                confidence=0.85,
+                missing_context=["需要确认实际渲染器是否自动请求远程资源，以及 CSP/代理策略是否阻断该请求。"],
                 dynamic_test="markdown_url_exfiltration",
             )
         if dynamic and _is_positive_trust_claim(output_template) and not _key_matches(
@@ -1860,7 +1897,7 @@ class SecurityEngine:
                     "LLM-006",
                     chain,
                     "模型自由文本被代码解析为结构化数据并进入机器消费路径，但未发现严格输出 Schema。",
-                    status=Status.PROBABLE if high_integrity else Status.CONFIRMED,
+                    status=Status.CONFIRMED,
                     severity=Severity.HIGH if high_integrity else Severity.MEDIUM,
                     confidence=0.92,
                     missing_context=[] if high_integrity else ["下游调用方是否把返回字段作为自动决策依据。"],
@@ -1919,7 +1956,8 @@ class SecurityEngine:
                     self._emit(
                         "IN-007", path,
                         "用户输入变量被插入系统/开发者指令区域。",
-                        status=Status.OBSERVED,
+                        status=Status.CONFIRMED,
+                        confidence=1.0,
                         dynamic_test="direct_prompt_injection",
                     )
 
@@ -2156,7 +2194,14 @@ class SecurityEngine:
             node for node in [*knowledge, *content_sources, *tools]
             if node.type in {NodeType.KNOWLEDGE.value, NodeType.CONTENT.value} or node.external or "NETWORK_READ" in node.capabilities
         ]
-        code_sinks = [node for node in tools if "CODE_EXECUTION" in node.capabilities]
+        code_sinks = []
+        for node in tools:
+            if "CODE_EXECUTION" not in node.capabilities:
+                continue
+            execution_refs = _refs_for_fields(node, ("command", "cmd", "script", "code", "expression"))
+            code_body = "\n".join(str(node.config.get(key) or "") for key in ("code", "script", "source"))
+            if execution_refs or contains_template(code_body):
+                code_sinks.append(node)
         for source in external_content:
             for llm in llms:
                 first = self.graph.path(source.id, llm.id, data_preferred=True)
@@ -2173,8 +2218,12 @@ class SecurityEngine:
                             dynamic_test="external_content_to_code_execution",
                         )
 
-        for first_llm in llms:
-            for second_llm in llms:
+        agent_llms = [
+            node for node in llms
+            if node.original_type.lower().replace("_", "-") in {"agent", "agent-v2"}
+        ]
+        for first_llm in agent_llms:
+            for second_llm in agent_llms:
                 if first_llm.id == second_llm.id:
                     continue
                 path = self.graph.path(first_llm.id, second_llm.id, data_preferred=True)
@@ -2255,7 +2304,7 @@ class SecurityEngine:
                     if _is_high_consequence_tool(tool):
                         has_deterministic_gate = any(item in controls for item in path[1:-1])
                         if not has_deterministic_gate:
-                            self._emit("LLM-008", path, "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。", status=Status.PROBABLE, confidence=0.88, dynamic_test="high_impact_model_decision")
+                            self._emit("LLM-008", path, "LLM 输出可触发高影响操作，路径中缺少确定性复核证据。", status=Status.CONFIRMED, confidence=1.0, dynamic_test="high_impact_model_decision")
 
         for output in outputs:
             for kb in knowledge:

@@ -9,7 +9,6 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from jsonschema import Draft202012Validator
 import yaml
 
 
@@ -35,7 +34,11 @@ from agent_workflow_scan.pipeline import (  # noqa: E402
     validate_seed_samples,
     verify_deterministic_findings,
 )
-from agent_workflow_scan.report import build_attack_surface  # noqa: E402
+from agent_workflow_scan.report import (  # noqa: E402
+    build_attack_surface,
+    render_risk_chain_svg,
+    render_workflow_svg,
+)
 
 
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -165,7 +168,7 @@ class RuleTests(unittest.TestCase):
         } & rule_ids)
         prompt_findings = [finding for finding in findings if "LLM-001" in {finding.rule_id, *finding.related_rule_ids}]
         self.assertEqual(1, len(prompt_findings))
-        self.assertEqual(("LOW", "OBSERVED"), (prompt_findings[0].severity, prompt_findings[0].status))
+        self.assertEqual(("MEDIUM", "CONFIRMED"), (prompt_findings[0].severity, prompt_findings[0].status))
         self.assertEqual([], ir.raw_metadata["secret_locations"])
         self.assertIn("API_RESPONSE", ir.node_map()["end"].capabilities)
         asset_facts = [fact for fact in facts if fact.kind == "sensitive_asset_classification"]
@@ -257,7 +260,7 @@ class RuleTests(unittest.TestCase):
             finding for finding in findings
             if "LLM-001" in {finding.rule_id, *finding.related_rule_ids}
         )
-        self.assertEqual(("HIGH", "PROBABLE"), (prompt.severity, prompt.status))
+        self.assertEqual(("HIGH", "CONFIRMED"), (prompt.severity, prompt.status))
 
     def test_unrelated_disclosure_negation_does_not_hide_authorization_delegation(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "dify-mixed-authorization-instruction-workflow.yml")
@@ -292,6 +295,15 @@ class RuleTests(unittest.TestCase):
         rows = re.findall(r"^\| ((?:FLOW|IN|LLM|TOOL|OUT|KB)-\d{3}) \|", matrix_text, re.MULTILINE)
         self.assertEqual(expected, set(rows))
         self.assertEqual(len(expected), len(rows))
+
+    def test_rule_examples_cover_every_catalog_rule_once(self) -> None:
+        catalog = yaml.safe_load(RULES.read_text(encoding="utf-8"))
+        expected = {item["id"] for item in catalog["rules"]}
+        examples = yaml.safe_load(
+            (ROOT / "references" / "rule-examples.yml").read_text(encoding="utf-8")
+        )["examples"]
+        self.assertEqual(expected, set(examples))
+        self.assertTrue(all(str(value).strip() for value in examples.values()))
 
     def test_every_catalog_rule_has_an_engine_evaluator_reference(self) -> None:
         catalog = yaml.safe_load(RULES.read_text(encoding="utf-8"))
@@ -342,8 +354,8 @@ class RuleTests(unittest.TestCase):
         _, findings, _ = execute_rules(ir, RULES)
         prompt_findings = [finding for finding in findings if finding.root_cause_id and "LLM-001" in {finding.rule_id, *finding.related_rule_ids}]
         self.assertEqual(1, len(prompt_findings))
-        self.assertEqual("OBSERVED", prompt_findings[0].status)
-        self.assertEqual("LOW", prompt_findings[0].severity)
+        self.assertEqual("CONFIRMED", prompt_findings[0].status)
+        self.assertEqual("MEDIUM", prompt_findings[0].severity)
         self.assertTrue({"IN-007", "IN-009", "LLM-002"}.issubset(set(prompt_findings[0].related_rule_ids)))
         self.assertFalse({"OUT-001", "OUT-008"} & all_rule_ids(findings))
         self.assertNotIn("IN-002", all_rule_ids(findings))
@@ -485,6 +497,7 @@ class RuleTests(unittest.TestCase):
         _, findings, _ = execute_rules(ir, RULES)
         rule_ids = all_rule_ids(findings)
         self.assertTrue({"LLM-006", "LLM-012", "OUT-011"}.issubset(rule_ids))
+        self.assertNotIn("FLOW-010", rule_ids)
         parser_contract = next(item for item in findings if "LLM-006" in {item.rule_id, *item.related_rule_ids})
         self.assertEqual(("MEDIUM", "CONFIRMED"), (parser_contract.severity, parser_contract.status))
         gaps = [item for item in findings if item.status == "COVERAGE_GAP"]
@@ -492,9 +505,25 @@ class RuleTests(unittest.TestCase):
         gate = evaluate_quality_gate(findings, load_baseline(BASELINE), {"applied": [], "rejected": []})
         self.assertEqual("REVIEW", gate["decision"])
 
+    def test_output_consumer_gap_does_not_depend_on_openai_compatible_provider(self) -> None:
+        document = yaml.safe_load(
+            (FIXTURES / "dify-llm-code-parser-workflow.yml").read_text(encoding="utf-8")
+        )
+        llm = next(item for item in document["workflow"]["graph"]["nodes"] if item["id"] == "llm")
+        llm["data"]["model"] = {"provider": "internal/registered", "name": "internal-model"}
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "internal-provider.yml"
+            path.write_text(yaml.safe_dump(document, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            ir, _ = parse_dify_dsl(path)
+            _, findings, _ = execute_rules(ir, RULES)
+        rule_ids = all_rule_ids(findings)
+        self.assertIn("OUT-011", rule_ids)
+        self.assertNotIn("LLM-012", rule_ids)
+
     def test_conflicting_business_state_prompt_edge_is_candidate_only(self) -> None:
         ir, _ = parse_dify_dsl(FIXTURES / "dify-conflicting-branch-prompts-workflow.yml")
         _, findings, _ = execute_rules(ir, RULES)
+        self.assertNotIn("FLOW-011", all_rule_ids(findings))
         branch = next(item for item in findings if "FLOW-016" in {item.rule_id, *item.related_rule_ids})
         self.assertEqual(("MEDIUM", "CANDIDATE"), (branch.severity, branch.status))
         self.assertEqual(["non-issue", "transferred"], branch.node_ids)
@@ -707,30 +736,29 @@ class PipelineTests(unittest.TestCase):
                 llm_mode="disabled",
                 scan_mode="assessment",
             )
-            self.assertEqual("PASS", result["quality_gate"])
-            self.assertEqual(1, result["observation_count"])
-            cluster = json.loads((Path(directory) / "05-test-cluster.json").read_text(encoding="utf-8"))["test_cluster"]
+            self.assertEqual("REVIEW", result["quality_gate"])
+            self.assertEqual(1, result["report_summary"]["action_item_count"])
+            self.assertEqual(0, result["observation_count"])
+            prompt_boundary = next(
+                finding for finding in result["_findings"]
+                if finding.control_domain == "instruction_boundary"
+            )
+            self.assertEqual(("MEDIUM", "CONFIRMED"), (prompt_boundary.severity, prompt_boundary.status))
+            cluster = result["_test_cluster"]
             self.assertTrue({"positive", "negative", "boundary"}.issubset({case["case_type"] for case in cluster["cases"]}))
             self.assertTrue(cluster["generation_audit"]["lineage_verified"])
             self.assertFalse(cluster["generation_audit"]["execution_evidence_present"])
             self.assertEqual(0, cluster["generation_audit"]["exact_duplicate_input_count"])
             self.assertEqual(0, cluster["generation_audit"]["unchanged_derived_case_count"])
             self.assertEqual(0, cluster["generation_audit"]["executed_case_count"])
-            verification = json.loads((Path(directory) / "07-verification.json").read_text(encoding="utf-8"))["verification"]
+            verification = result["_verification"]
             self.assertTrue(verification["coverage_accounting"]["lossless_root_cause_aggregation"])
             self.assertEqual([], verification["coverage_accounting"]["lost_rule_ids"])
             self.assertGreater(
                 verification["coverage_accounting"]["raw_match_count"],
                 verification["coverage_accounting"]["root_finding_count"],
             )
-            manifest = json.loads((Path(directory) / "00-scan-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual([
-                "1-resolve-explicit-dsl-or-ask-if-ambiguous-and-bind-internal-hash",
-                "2-confirm-seed-inputs-and-oracles",
-                "3-deterministic-static-analysis",
-                "4-generate-unexecuted-input-cluster",
-                "5-correlate-report-and-attack-surface",
-            ], manifest["pipeline_order"])
+            self.assertTrue(Path(result["report_path"]).is_file())
 
     def test_assessment_rejects_seed_confirmation_for_a_different_dsl(self) -> None:
         with TemporaryDirectory() as directory:
@@ -790,14 +818,14 @@ class PipelineTests(unittest.TestCase):
                     advisory_model="test-advisor",
                     **common,
                 )
-            disabled_findings = json.loads((root / "disabled" / "08-findings.json").read_text(encoding="utf-8"))["findings"]
-            enabled_findings = json.loads((root / "enabled" / "08-findings.json").read_text(encoding="utf-8"))["findings"]
+            disabled_findings = [(item.id, item.status, item.severity) for item in disabled["_findings"]]
+            enabled_findings = [(item.id, item.status, item.severity) for item in enabled["_findings"]]
             self.assertEqual(disabled_findings, enabled_findings)
             self.assertEqual(disabled["quality_gate"], enabled["quality_gate"])
-            advisory = json.loads((root / "enabled" / "06-model-advisory.json").read_text(encoding="utf-8"))["model_advisory"]
+            advisory = enabled["_verification"]["model_advisory"]
             self.assertEqual("none_over_findings_severity_or_gate", advisory["authority"])
 
-    def test_offline_scan_writes_all_artifacts(self) -> None:
+    def test_offline_scan_writes_only_named_html_report_with_visualizations(self) -> None:
         with TemporaryDirectory() as directory:
             output = Path(directory)
             result = run_scan(
@@ -809,42 +837,52 @@ class PipelineTests(unittest.TestCase):
                 llm_mode="disabled",
             )
             self.assertGreater(result["finding_count"], 0)
-            for filename in (
-                "00-scan-manifest.json", "01-workflow-ir.json", "02-security-facts.json",
-                "03-semantic-inventory.json", "04-rule-candidates.json", "05-test-cluster.json",
-                "06-model-advisory.json", "07-verification.json", "08-findings.json",
-                "09-attack-surface.json", "attack-surface.md", "10-dynamic-test-plan.json", "report.json", "report.md",
-                "11-quality-gate.json", "12-artifact-index.json",
-            ):
-                self.assertTrue((output / filename).exists(), filename)
-            artifact_schema = json.loads((ROOT / "schemas" / "intermediate-artifacts.schema.json").read_text(encoding="utf-8"))
-            artifact_validator = Draft202012Validator(artifact_schema)
-            for filename in (
-                "00-scan-manifest.json", "01-workflow-ir.json", "02-security-facts.json",
-                "03-semantic-inventory.json", "04-rule-candidates.json", "05-test-cluster.json",
-                "06-model-advisory.json", "07-verification.json", "08-findings.json",
-                "09-attack-surface.json", "10-dynamic-test-plan.json", "report.json",
-                "11-quality-gate.json", "12-artifact-index.json",
-            ):
-                payload = json.loads((output / filename).read_text(encoding="utf-8"))
-                self.assertFalse(list(artifact_validator.iter_errors(payload)), filename)
-            findings = json.loads((output / "08-findings.json").read_text(encoding="utf-8"))["findings"]
-            report_markdown = (output / "report.md").read_text(encoding="utf-8")
-            attack_surface_markdown = (output / "attack-surface.md").read_text(encoding="utf-8")
-            self.assertIn("| 风险项 | 责任节点 | 控制域 | 等级 / 状态 |", report_markdown)
-            self.assertIn("本次模式：`仅确定性扫描`", report_markdown)
-            self.assertIn("本次模式：`仅确定性扫描`", report_markdown)
-            self.assertNotIn("分析员", report_markdown)
-            self.assertNotIn("独立复核员", report_markdown)
-            self.assertIn("| 节点 | 类型 | 信任级别 | 证据位置 |", attack_surface_markdown)
-            self.assertIn("| 等级 | 状态 | 入口 → 目标 | 完整路径 |", attack_surface_markdown)
-            ir_text = (output / "01-workflow-ir.json").read_text(encoding="utf-8")
-            self.assertNotIn("ScannerSecret123", ir_text)
-            self.assertNotIn("scanner-test-token-123456", ir_text)
-            fact_ids = {
-                fact["id"] for fact in json.loads((output / "02-security-facts.json").read_text(encoding="utf-8"))["facts"]
-            }
-            self.assertTrue(all(set(item["evidence_refs"]).issubset(fact_ids) for item in findings))
+            report_dir = output / "risky-workflow"
+            report_path = report_dir / "risky-workflow-安全扫描报告.html"
+            self.assertEqual(report_path.resolve(), Path(result["report_path"]))
+            self.assertEqual([report_path], list(report_dir.iterdir()))
+            report_html = report_path.read_text(encoding="utf-8")
+            self.assertIn("工作流图", report_html)
+            self.assertIn("风险与逻辑链", report_html)
+            self.assertIn("对应逻辑链", report_html)
+            self.assertIn("最高风险程度", report_html)
+            self.assertIn("静态规则扫描", report_html)
+            self.assertIn("<dt>后续验证</dt>", report_html)
+            self.assertNotIn('id="chains"', report_html)
+            self.assertNotIn('class="badge validation"', report_html)
+            self.assertNotIn("动态验证未执行", report_html)
+            self.assertNotIn("计划用例", report_html)
+            self.assertIn("<svg", report_html)
+            self.assertNotIn("report.md", report_html)
+
+    def test_visuals_preserve_canvas_layout_and_focus_risk_chains(self) -> None:
+        workflow = {
+            "nodes": [
+                {"id": "start", "title": "用户输入", "type": "INPUT", "position": {"x": 0, "y": 100}},
+                {"id": "route", "title": "状态判断", "type": "CONDITION", "position": {"x": 300, "y": 100}, "condition_subject": "状态解析", "condition_case_count": 1, "branch_conditions": {"true": "等于「通过」", "false": "否则"}},
+                {"id": "yes", "title": "通过处理", "type": "LLM", "position": {"x": 600, "y": 0}},
+                {"id": "no", "title": "拒绝处理", "type": "OUTPUT", "position": {"x": 600, "y": 220}},
+            ],
+            "edges": [
+                {"source": "start", "target": "route", "source_handle": "source"},
+                {"source": "route", "target": "yes", "source_handle": "true"},
+                {"source": "route", "target": "no", "source_handle": "false"},
+            ],
+        }
+        full_svg = render_workflow_svg(workflow, [], "canvas-test")
+        self.assertIn('data-layout="dsl-canvas"', full_svg)
+        self.assertIn("等于「通过」", full_svg)
+        self.assertIn("否则", full_svg)
+        self.assertIn("条件 1", full_svg)
+        self.assertNotIn(" V ", full_svg)
+
+        focus_svg = render_risk_chain_svg(workflow, ["start", "route", "yes"], "focus-test", "MEDIUM")
+        self.assertIn("用户输入", focus_svg)
+        self.assertIn("状态判断", focus_svg)
+        self.assertIn("通过处理", focus_svg)
+        self.assertNotIn("拒绝处理", focus_svg)
+        self.assertIn("#b7791f", focus_svg)
+        self.assertNotIn("#dc2626", focus_svg)
 
     def test_quality_gate_and_audited_waiver(self) -> None:
         with TemporaryDirectory() as directory:
@@ -858,7 +896,7 @@ class PipelineTests(unittest.TestCase):
                 llm_mode="disabled",
             )
             self.assertEqual("FAIL", failed["quality_gate"])
-            workflow_hash = json.loads((root / "failed" / "00-scan-manifest.json").read_text(encoding="utf-8"))["workflow_hash"]
+            workflow_hash = failed["_workflow_hash"]
             invalid_waiver = root / "invalid-waivers.json"
             invalid_waiver.write_text(json.dumps({"waivers": [{
                 "waiver_id": "W-INVALID",
@@ -877,10 +915,10 @@ class PipelineTests(unittest.TestCase):
                 llm_mode="disabled",
             )
             self.assertEqual("FAIL", rejected["quality_gate"])
-            rejected_gate = json.loads((root / "rejected-waiver" / "11-quality-gate.json").read_text(encoding="utf-8"))
+            rejected_gate = rejected["_quality_gate"]
             self.assertTrue(any(
                 item["reason"] == "missing_workflow_hash"
-                for item in rejected_gate["quality_gate"]["waiver_audit"]["rejected"]
+                for item in rejected_gate["waiver_audit"]["rejected"]
             ))
             waiver = root / "waivers.json"
             waiver.write_text(json.dumps({"waivers": [{
@@ -901,8 +939,7 @@ class PipelineTests(unittest.TestCase):
                 llm_mode="disabled",
             )
             self.assertEqual("PASS", passed["quality_gate"])
-            payload = json.loads((root / "waived" / "08-findings.json").read_text(encoding="utf-8"))
-            self.assertTrue(payload["findings"][0]["waived"])
+            self.assertTrue(passed["_findings"][0].waived)
 
     def test_bounded_text_only_workflow_does_not_require_runtime_security_gaps(self) -> None:
         with TemporaryDirectory() as directory:
@@ -915,7 +952,7 @@ class PipelineTests(unittest.TestCase):
                 llm_mode="disabled",
             )
             self.assertEqual("PASS", result["quality_gate"])
-            gate = json.loads((Path(directory) / "11-quality-gate.json").read_text(encoding="utf-8"))["quality_gate"]
+            gate = result["_quality_gate"]
             self.assertEqual(0, gate["blocking_count"])
             self.assertEqual(0, gate["review_count"])
 
@@ -930,7 +967,7 @@ class PipelineTests(unittest.TestCase):
                 rules_path=RULES,
                 llm_mode="disabled",
             )
-            workflow_hash = json.loads((root / "initial" / "00-scan-manifest.json").read_text(encoding="utf-8"))["workflow_hash"]
+            workflow_hash = initial["_workflow_hash"]
             waiver = root / "ambiguous-waiver.json"
             waiver.write_text(json.dumps({"waivers": [{
                 "waiver_id": "W-AMBIGUOUS",
@@ -951,7 +988,7 @@ class PipelineTests(unittest.TestCase):
             )
             self.assertEqual("FAIL", initial["quality_gate"])
             self.assertEqual("FAIL", result["quality_gate"])
-            gate = json.loads((root / "waived" / "11-quality-gate.json").read_text(encoding="utf-8"))["quality_gate"]
+            gate = result["_quality_gate"]
             self.assertEqual(
                 "ambiguous_rule_scope_after_node_control_aggregation_use_finding_id",
                 gate["waiver_audit"]["rejected"][0]["reason"],

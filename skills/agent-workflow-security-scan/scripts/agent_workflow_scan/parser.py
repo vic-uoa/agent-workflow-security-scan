@@ -506,6 +506,21 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
                 "supported_contract": CURRENT_DIFY_APP_DSL_VERSION,
             })
     app = document.get("app") if isinstance(document.get("app"), dict) else {}
+    canvas_positions: dict[str, dict[str, float]] = {}
+    for raw_node in raw_nodes:
+        if not isinstance(raw_node, dict):
+            continue
+        node_id = str(raw_node.get("id", ""))
+        position = raw_node.get("positionAbsolute") or raw_node.get("position")
+        if not node_id or not isinstance(position, dict):
+            continue
+        try:
+            canvas_positions[node_id] = {
+                "x": float(position["x"]),
+                "y": float(position["y"]),
+            }
+        except (KeyError, TypeError, ValueError):
+            continue
     ir = WorkflowIR(
         workflow_id=workflow_id,
         workflow_hash=file_sha256(path),
@@ -524,6 +539,10 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
             "ir_node_count": len(nodes),
             "virtual_source_count": len(virtual_producers),
             "edge_count": len(edges),
+            # Canvas coordinates are presentation metadata from the imported
+            # DSL.  Keeping them in memory lets the HTML diagram preserve the
+            # author's branch layout without changing graph/security logic.
+            "canvas_positions": canvas_positions,
             "secret_locations": secret_locations(document),
         },
     )

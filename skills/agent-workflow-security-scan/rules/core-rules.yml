@@ -31,6 +31,10 @@ calibration_policy:
   fixed_code_is_not_a_validation_control_without_strict_parse_and_failure_semantics: true
   untrusted_text_to_parser_to_condition_is_a_derived_control_path: true
   semantic_branch_conflicts_are_candidates_until_business_intent_is_confirmed: true
+  privileged_prompt_interpolation_is_confirmed_configuration_evidence: true
+  dynamic_model_testing_does_not_downgrade_static_configuration_evidence: true
+  fixed_code_data_processing_is_not_dynamic_code_execution: true
+  inter_agent_rules_require_agent_nodes: true
 control_domains:
   structure_coverage: [FLOW-001, FLOW-002]
   input_contract: [IN-001, IN-002, IN-003, IN-004, IN-005, IN-006]
@@ -51,7 +55,7 @@ control_domains:
   agent_governance: [FLOW-013]
 rules:
   - {id: FLOW-001, title: "断裂节点或变量引用", severity: MEDIUM, detectability: S, standards: [AISVS-C9]}
-  - {id: FLOW-002, title: "未知节点造成扫描盲区", severity: MEDIUM, detectability: S, standards: [AISVS-C9]}
+  - {id: FLOW-002, title: "未知节点或 DSL 契约造成扫描盲区", severity: MEDIUM, detectability: S, standards: [AISVS-C9], applies_to: [unsupported_node_type, missing_or_future_dsl_version], unknown_policy: COVERAGE_GAP, exclusion_facts: [registered_node_capability, supported_dsl_version]}
   - {id: FLOW-003, title: "不可信输入到高危工具", severity: HIGH, detectability: S, standards: [AISVS-9.2, ASI02]}
   - {id: FLOW-004, title: "敏感数据可达外部边界", severity: HIGH, detectability: H, standards: [AISVS-C7, ASI03], required_facts: [typed_sensitive_asset, typed_data_path, external_write_or_attacker_observable_output], candidate_facts: [sensitive_field_name_with_typed_path, contextual_credential_candidate], unknown_policy: COVERAGE_GAP, gate_policy: "candidate evidence triggers REVIEW, never CONFIRMED or FAIL", exclusion_facts: [inert_labeled_example, caller_only_output, verified_mandatory_redaction_all_paths]}
   - {id: FLOW-005, title: "间接 Prompt Injection 工具链", severity: HIGH, detectability: H, standards: [ASI01, AISVS-9.3]}
@@ -59,8 +63,8 @@ rules:
   - {id: FLOW-007, title: "Dify Loop 最大次数无效", severity: MEDIUM, detectability: S, standards: [AISVS-9.1, ASI08], applies_to: [dify_loop], exclusion_facts: [positive_integer_loop_count, dify_iteration_uses_bounded_collection]}
   - {id: FLOW-008, title: "凭证进入模型可见上下文", severity: CRITICAL, detectability: S, standards: [AISVS-9.5.4, ASI03], required_facts: [credential_literal_or_classified_credential, typed_data_path_to_llm], exclusion_facts: [tool_only_credential, example_content, placeholder]}
   - {id: FLOW-009, title: "敏感资产经模型到外部通道的复合外泄链", severity: CRITICAL, detectability: S, standards: [ASI01, ASI03], attack_family: web_exfiltration, required_facts: [untrusted_source, prompt_binding, typed_sensitive_asset, same_model_context, typed_payload_path, attacker_observable_sink, no_mandatory_redaction], unknown_policy: CANDIDATE_OR_COVERAGE_GAP, exclusion_facts: [field_name_only, example_content, caller_only_output, mandatory_redaction_all_paths]}
-  - {id: FLOW-010, title: "外部不可信内容经模型到代码执行", severity: CRITICAL, detectability: S, standards: [ASI01, ASI05], attack_family: unexpected_code_execution}
-  - {id: FLOW-011, title: "跨 Agent 消息缺少结构与信任校验", severity: HIGH, detectability: S, standards: [ASI07], attack_family: inter_agent_communication}
+  - {id: FLOW-010, title: "外部不可信内容经模型到动态代码执行", severity: CRITICAL, detectability: S, standards: [ASI01, ASI05], attack_family: unexpected_code_execution, required_facts: [external_untrusted_content, llm_data_path, dynamic_command_or_code_sink], exclusion_facts: [fixed_code_receives_data, strict_parser_only]}
+  - {id: FLOW-011, title: "跨 Agent 消息缺少结构与信任校验", severity: HIGH, detectability: S, standards: [ASI07], attack_family: inter_agent_communication, applies_to: [agent_to_agent_message], exclusion_facts: [ordinary_llm_pipeline, strict_schema_and_source_binding]}
   - {id: FLOW-012, title: "多级副作用链缺少故障隔离", severity: HIGH, detectability: H, standards: [ASI08, AISVS-9.1], attack_family: cascading_failure}
   - {id: FLOW-013, title: "自主 Agent 缺少目标锁定和紧急停止边界", severity: HIGH, detectability: H, standards: [ASI10, AISVS-9.1], attack_family: rogue_agent}
   - {id: FLOW-014, title: "变量生产者与消费者类型契约不一致", severity: MEDIUM, detectability: S, standards: [AISVS-C7, AISVS-C9], required_facts: [declared_producer_type, declared_consumer_type, incompatible_types], gate_policy: "confirmed incompatible declared types trigger REVIEW", exclusion_facts: [unknown_type_on_either_side, compatible_numeric_or_generic_array_types]}
@@ -73,18 +77,18 @@ rules:
   - {id: IN-004, title: "未声明输入规范化", severity: LOW, detectability: M, standards: [AISVS-C2], root_cause_family: input_canonicalization, requires_dynamic_validation: true}
   - {id: IN-005, title: "对象输入允许未知字段", severity: MEDIUM, detectability: S, standards: [AISVS-C2]}
   - {id: IN-006, title: "敏感输入缺少保护", severity: HIGH, detectability: H, standards: [AISVS-C2, AISVS-C7]}
-  - {id: IN-007, title: "用户输入进入高权限 Prompt", severity: MEDIUM, detectability: S, standards: [ASI01], root_cause_family: prompt_boundary, requires_dynamic_validation: true}
+  - {id: IN-007, title: "用户输入进入高权限 Prompt", severity: MEDIUM, detectability: S, standards: [ASI01], root_cause_family: prompt_boundary, required_facts: [user_controlled_variable, system_or_developer_role_interpolation], gate_policy: "confirmed configuration evidence triggers REVIEW; escalate to HIGH when a high-integrity or high-impact sink is proven", requires_dynamic_validation: true}
   - {id: IN-008, title: "未验证输入被持久化", severity: HIGH, detectability: H, standards: [AISVS-C8]}
   - {id: IN-009, title: "直接 Prompt Injection 可达模型", severity: MEDIUM, detectability: S, standards: [ASI01], attack_family: direct_prompt_injection, root_cause_family: prompt_boundary, requires_dynamic_validation: true}
 
-  - {id: LLM-001, title: "不可信变量进入系统指令", severity: MEDIUM, detectability: S, standards: [ASI01], root_cause_family: prompt_boundary, requires_dynamic_validation: true}
+  - {id: LLM-001, title: "不可信变量进入系统指令", severity: MEDIUM, detectability: S, standards: [ASI01], root_cause_family: prompt_boundary, required_facts: [untrusted_variable, system_or_developer_role_interpolation], gate_policy: "confirmed configuration evidence triggers REVIEW; dynamic testing records exploitability separately", requires_dynamic_validation: true}
   - {id: LLM-002, title: "指令与外部数据未隔离", severity: MEDIUM, detectability: H, standards: [ASI01], root_cause_family: prompt_boundary, requires_dynamic_validation: true}
   - {id: LLM-003, title: "间接内容可控制工具", severity: HIGH, detectability: S, standards: [ASI01, ASI02]}
   - {id: LLM-004, title: "密钥或内部上下文暴露", severity: CRITICAL, detectability: S, standards: [ASI03]}
   - {id: LLM-005, title: "自由文本直接控制工具", severity: HIGH, detectability: S, standards: [AISVS-9.3]}
-  - {id: LLM-006, title: "下游依赖结构化数据但无输出 Schema", severity: HIGH, detectability: S, standards: [AISVS-C7]}
+  - {id: LLM-006, title: "下游依赖结构化数据但无输出 Schema", severity: HIGH, detectability: S, standards: [AISVS-C7], required_facts: [llm_output_data_path, structured_or_machine_consumer, missing_strict_output_schema], gate_policy: "confirmed contract defect; severity is MEDIUM for caller response and HIGH for conditions or effectful actions"}
   - {id: LLM-007, title: "模型承担授权决策", severity: HIGH, detectability: H, standards: [AISVS-9.5.3, ASI03]}
-  - {id: LLM-008, title: "高影响决策无确定性复核", severity: HIGH, detectability: S, standards: [AISVS-9.2]}
+  - {id: LLM-008, title: "高影响决策无确定性复核", severity: HIGH, detectability: S, standards: [AISVS-9.2], required_facts: [llm_output_path, high_consequence_action, no_mandatory_deterministic_gate], gate_policy: "confirmed HIGH blocks release"}
   - {id: LLM-009, title: "自主或副作用路径的模型资源预算不完整", severity: MEDIUM, detectability: S, standards: [AISVS-9.1], applies_to: [autonomous_agent, llm_reaching_side_effect], exclusion_facts: [single_step_text_only_llm]}
   - {id: LLM-010, title: "副作用路径的模型失败回退不明确", severity: MEDIUM, detectability: H, standards: [AISVS-9.6], applies_to: [llm_reaching_side_effect], exclusion_facts: [human_readable_text_only_output]}
   - {id: LLM-011, title: "系统指令凭证明文存在泄露面", severity: HIGH, detectability: H, standards: [ASI03], attack_family: data_leakage, required_facts: [credential_literal_in_instruction], candidate_facts: [provider_token_shape_in_example, credential_shape_in_unlabelled_code_block, credential_adjacent_to_security_instruction], gate_policy: "contextual credential candidates trigger REVIEW, not FAIL", exclusion_facts: [sensitive_field_name, placeholder, generic_assignment_in_explicitly_labeled_example]}
@@ -116,14 +120,14 @@ rules:
   - {id: OUT-006, title: "未验证输出进入下游执行者", severity: HIGH, detectability: S, standards: [AISVS-C7, ASI07]}
   - {id: OUT-007, title: "高信任 RAG 输出引用不可追踪", severity: MEDIUM, detectability: S, standards: [AISVS-C7], applies_to: [regulated_or_verified_rag_output], exclusion_facts: [ordinary_unregulated_knowledge_answer]}
   - {id: OUT-008, title: "低置信或失败输出无回退", severity: MEDIUM, detectability: H, standards: [AISVS-C7], applies_to: [end_to_end_failure_path], exclusion_facts: [upstream_default_or_fail_closed_strategy]}
-  - {id: OUT-009, title: "动态 Markdown 链接或图片可形成隐蔽外带", severity: HIGH, detectability: S, standards: [ASI03, AISVS-C7], attack_family: web_exfiltration}
+  - {id: OUT-009, title: "动态 Markdown 链接或图片可形成隐蔽外带", severity: HIGH, detectability: H, standards: [ASI03, AISVS-C7], attack_family: web_exfiltration, required_facts: [dynamic_remote_target, markdown_or_rich_rendering], unknown_policy: PROBABLE, gate_policy: "requires renderer fetch/CSP verification before exploitability is confirmed", requires_dynamic_validation: true, exclusion_facts: [plain_text_rendering, remote_images_disabled, fixed_allowlisted_target]}
   - {id: OUT-010, title: "面向人的高信任声明缺少来源证明", severity: MEDIUM, detectability: H, standards: [ASI09], attack_family: human_agent_trust_exploit}
   - {id: OUT-011, title: "结构化响应的调用方与下游消费边界不可验证", severity: INFO, detectability: M, standards: [AISVS-C7, AISVS-C9], applies_to: [structured_or_programmatically_parsed_end_response], unknown_policy: COVERAGE_GAP, gate_policy: "missing caller identity or downstream automation metadata does not itself trigger REVIEW or FAIL"}
 
   - {id: KB-001, title: "知识数据集范围可被动态改写", severity: HIGH, detectability: S, standards: [AISVS-8.1], applies_to: [dynamic_or_wildcard_dataset_scope], exclusion_facts: [static_dataset_ids, empty_dataset_configuration_error]}
   - {id: KB-002, title: "动态或多业务知识范围缺少分区过滤", severity: HIGH, detectability: S, standards: [AISVS-8.1], applies_to: [dynamic_dataset_scope, sensitive_multi_dataset_scope], exclusion_facts: [static_single_dataset]}
   - {id: KB-003, title: "敏感或副作用 RAG 的检索范围过宽", severity: MEDIUM, detectability: S, standards: [AISVS-C8], applies_to: [sensitive_knowledge, retrieval_reaching_side_effect], exclusion_facts: [ordinary_public_read_only_rag]}
-  - {id: KB-004, title: "知识内容进入高权限 Prompt", severity: HIGH, detectability: S, standards: [ASI01]}
+  - {id: KB-004, title: "知识内容进入高权限 Prompt", severity: MEDIUM, detectability: S, standards: [ASI01], root_cause_family: prompt_boundary, required_facts: [knowledge_content, system_or_developer_role_interpolation], gate_policy: "confirmed configuration evidence; escalate to HIGH when a high-integrity or high-impact sink is proven", requires_dynamic_validation: true}
   - {id: KB-005, title: "知识内容经模型控制工具", severity: HIGH, detectability: S, standards: [ASI01, ASI02]}
   - {id: KB-006, title: "知识敏感内容可达外部边界", severity: HIGH, detectability: H, standards: [AISVS-C8]}
   - {id: KB-007, title: "未验证内容写入可信记忆", severity: HIGH, detectability: H, standards: [AISVS-8.2.3]}
