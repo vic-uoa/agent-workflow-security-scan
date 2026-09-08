@@ -12,6 +12,7 @@ import yaml
 from .engine import execute_rules
 from .llm import (
     ModelAdvisor,
+    deterministic_seed_samples,
     deterministic_semantic_inventory,
     deterministic_test_cluster,
     validate_input_against_ir,
@@ -38,20 +39,16 @@ def load_samples(path: Path | None) -> dict[str, Any]:
 
 
 def validate_seed_samples(samples: dict[str, Any], ir: WorkflowIR) -> None:
-    if samples.get("confirmed_by_user") is not True:
-        raise ValueError("seed samples must set confirmed_by_user=true after user review")
     confirmed_hash = str(samples.get("confirmed_dsl_sha256") or "").strip().lower()
-    if not confirmed_hash:
+    if confirmed_hash and confirmed_hash != ir.workflow_hash.lower():
         raise ValueError(
-            "assessment requires confirmed_dsl_sha256 from the DSL selection checkpoint"
-        )
-    if confirmed_hash != ir.workflow_hash.lower():
-        raise ValueError(
-            "confirmed_dsl_sha256 does not match the DSL being scanned; reconfirm the DSL and seed inputs"
+            "confirmed_dsl_sha256 does not match the DSL being scanned"
         )
     cases = [item for item in samples.get("samples", []) if isinstance(item, dict)]
     if not cases:
-        raise ValueError("assessment requires at least one user-confirmed seed sample")
+        if samples.get("generation_source") == "dsl_contract":
+            return
+        raise ValueError("optional samples file must contain at least one usable seed sample")
     for index, item in enumerate(cases):
         if not isinstance(item.get("input"), dict) or not item["input"]:
             raise ValueError(f"seed sample {index + 1} requires a non-empty input object")
@@ -507,21 +504,21 @@ def run_scan(
         raise ValueError("scan_mode must be structure-only or assessment")
     if llm_mode not in {"disabled", "enabled"}:
         raise ValueError("llm_mode must be disabled or enabled")
-    if scan_mode == "assessment" and samples_path is None:
-        raise ValueError("assessment mode requires --samples with user-confirmed seed inputs and expected behavior")
     ir, _document = parse_dify_dsl(dsl_path)
     report_dir = output_dir / _report_directory_name(dsl_path)
     baseline = load_baseline(baseline_path)
     waivers = load_waivers(waivers_path)
     apply_baseline(ir, baseline)
     samples = load_samples(samples_path)
+    if not samples.get("samples"):
+        samples = deterministic_seed_samples(ir)
     if scan_mode == "assessment":
         validate_seed_samples(samples, ir)
     scan_id = stable_id("SCAN", ir.workflow_hash, utc_now())
     llm_enabled = llm_mode == "enabled"
 
-    # All parser, rule, test-cluster and verification artifacts remain in
-    # memory.  The scan directory receives only the final HTML report.
+    # Parser, rule and verification intermediates remain in memory. The scan
+    # directory receives only the HTML report and the verified input cluster.
     facts, initial_findings, candidates = execute_rules(ir, rules_path)
 
     advisory_pipeline = ModelAdvisor(llm_enabled, advisory_model, scan_id)
@@ -568,13 +565,29 @@ def run_scan(
 
     report = build_report_json(ir, final_findings, semantic, tests, attack_surface, explanation, verification, quality_gate)
     report_dir.mkdir(parents=True, exist_ok=True)
-    report_path = report_dir / f"{_report_directory_name(dsl_path)}-安全扫描报告.html"
+    output_name = _report_directory_name(dsl_path)
+    report_path = report_dir / f"{output_name}-安全扫描报告.html"
+    input_cluster_path = report_dir / f"{output_name}-输入测试簇.json"
     report_path.write_text(render_html_report(report), encoding="utf-8")
+    input_cluster_artifact = {
+        "artifact_type": "input_test_cluster",
+        "schema_version": "1.0.0",
+        "scan_id": scan_id,
+        "workflow_id": ir.workflow_id,
+        "workflow_hash": ir.workflow_hash,
+        "execution_status": "NOT_EXECUTED",
+        **tests,
+    }
+    input_cluster_path.write_text(
+        json.dumps(input_cluster_artifact, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     return {
         "scan_id": scan_id,
         "output_dir": str(report_dir.resolve()),
         "report_path": str(report_path.resolve()),
+        "input_cluster_path": str(input_cluster_path.resolve()),
         "finding_count": sum(finding.status != "COVERAGE_GAP" for finding in final_findings),
         "observation_count": sum(finding.status == "OBSERVED" for finding in final_findings),
         "coverage_gap_count": sum(finding.status == "COVERAGE_GAP" for finding in final_findings),

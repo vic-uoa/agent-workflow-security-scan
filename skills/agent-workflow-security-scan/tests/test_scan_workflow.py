@@ -20,6 +20,7 @@ from agent_workflow_scan.engine import RuleCatalog, execute_rules  # noqa: E402
 from agent_workflow_scan.llm import (  # noqa: E402
     ModelAdvisor,
     OpenAIResponsesClient,
+    deterministic_seed_samples,
     deterministic_semantic_inventory,
     deterministic_test_cluster,
     redact_for_model,
@@ -712,18 +713,36 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "max_length_3_exceeded"):
             validate_seed_samples(samples, ir)
 
-    def test_assessment_mode_requires_confirmed_complete_samples(self) -> None:
+    def test_dsl_seed_synthesis_ignores_empty_editor_defaults_and_builds_arrays(self) -> None:
+        ir, _ = parse_dify_dsl(FIXTURES / "array-input-workflow.yml")
+        start = next(node for node in ir.nodes if node.type == "INPUT")
+        for spec in start.config["variables"]:
+            spec["default"] = ""
+        samples = deterministic_seed_samples(ir)
+        generated = samples["samples"][0]["input"]
+        self.assertIsInstance(generated["content"], list)
+        self.assertIsInstance(generated["content"][0], dict)
+        self.assertEqual(1, generated["content"][0]["id"])
+        self.assertTrue(generated["content"][0]["text"])
+        self.assertTrue(generated["bugType"])
+        validate_seed_samples(samples, ir)
+
+    def test_assessment_mode_auto_generates_cluster_without_samples(self) -> None:
         with TemporaryDirectory() as directory:
-            with self.assertRaisesRegex(ValueError, "confirmed_by_user"):
-                run_scan(
-                    dsl_path=FIXTURES / "text-optimization-workflow.yml",
-                    samples_path=FIXTURES / "samples.json",
-                    baseline_path=BASELINE,
-                    output_dir=Path(directory),
-                    rules_path=RULES,
-                    llm_mode="disabled",
-                    scan_mode="assessment",
-                )
+            result = run_scan(
+                dsl_path=FIXTURES / "text-optimization-workflow.yml",
+                samples_path=None,
+                baseline_path=BASELINE,
+                output_dir=Path(directory),
+                rules_path=RULES,
+                llm_mode="disabled",
+                scan_mode="assessment",
+            )
+            cluster = result["_test_cluster"]
+            self.assertGreater(len(cluster["cases"]), 0)
+            self.assertEqual("dsl_contract", cluster["generation_audit"]["seed_generation_source"])
+            self.assertFalse(cluster["generation_audit"]["user_confirmation_required"])
+            self.assertTrue(Path(result["input_cluster_path"]).is_file())
 
     def test_assessment_mode_accepts_one_seed_and_generates_required_cluster(self) -> None:
         with TemporaryDirectory() as directory:
@@ -825,7 +844,7 @@ class PipelineTests(unittest.TestCase):
             advisory = enabled["_verification"]["model_advisory"]
             self.assertEqual("none_over_findings_severity_or_gate", advisory["authority"])
 
-    def test_offline_scan_writes_only_named_html_report_with_visualizations(self) -> None:
+    def test_offline_scan_writes_named_report_and_input_cluster_only(self) -> None:
         with TemporaryDirectory() as directory:
             output = Path(directory)
             result = run_scan(
@@ -839,8 +858,18 @@ class PipelineTests(unittest.TestCase):
             self.assertGreater(result["finding_count"], 0)
             report_dir = output / "risky-workflow"
             report_path = report_dir / "risky-workflow-安全扫描报告.html"
+            input_cluster_path = report_dir / "risky-workflow-输入测试簇.json"
             self.assertEqual(report_path.resolve(), Path(result["report_path"]))
-            self.assertEqual([report_path], list(report_dir.iterdir()))
+            self.assertEqual(input_cluster_path.resolve(), Path(result["input_cluster_path"]))
+            self.assertEqual({report_path, input_cluster_path}, set(report_dir.iterdir()))
+            input_cluster = json.loads(input_cluster_path.read_text(encoding="utf-8"))
+            self.assertEqual("input_test_cluster", input_cluster["artifact_type"])
+            self.assertEqual("NOT_EXECUTED", input_cluster["execution_status"])
+            self.assertGreater(len(input_cluster["cases"]), 0)
+            self.assertTrue(all(
+                case["execution_status"] == "NOT_EXECUTED"
+                for case in input_cluster["cases"]
+            ))
             report_html = report_path.read_text(encoding="utf-8")
             self.assertIn("工作流图", report_html)
             self.assertIn("风险与逻辑链", report_html)

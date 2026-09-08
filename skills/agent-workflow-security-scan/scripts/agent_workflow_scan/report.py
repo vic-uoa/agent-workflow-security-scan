@@ -960,7 +960,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "| 项目 | 结果 |",
         "|---|---|",
-        f"| 用户确认的正常样例 | {len(cluster.get('seed_sample_ids', []))} |",
+        f"| 基准输入 | {len(cluster.get('seed_sample_ids', []))} |",
         f"| 派生用例总数 | {cluster.get('case_count', 0)} |",
         f"| 实际不同输入 | {cluster.get('unique_input_count', 0)} |",
         f"| 完全重复输入 | {cluster.get('exact_duplicate_input_count', 0)} |",

@@ -13,7 +13,7 @@
 - Dify DSL 实现参考：[app_dsl_service.py](https://github.com/langgenius/dify/blob/main/api/services/app_dsl_service.py)
 - NIST TEVV：[AI Test, Evaluation, Validation and Verification](https://www.nist.gov/ai-test-evaluation-validation-and-verification-tevv) 与 [AI RMF Measure](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)。本 Skill 据此记录测试集、方法、适用上下文和测量限制，不把未执行用例当作测量结果。
 - OWASP Prompt Injection：[LLM01:2025](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)。提示注入需要持续渗透测试和边界验证，因此 DSL 可达性只形成静态前置条件，不能单独证明模型会服从攻击输入。
-- Promptfoo：[promptfoo/promptfoo](https://github.com/promptfoo/promptfoo)。参考其测试变量、断言和红队数据集分离方式；本 Skill 进一步将用户种子、派生方式、安全不变量与禁止副作用显式写入每个用例。
+- Promptfoo：[promptfoo/promptfoo](https://github.com/promptfoo/promptfoo)。参考其测试变量、断言和红队数据集分离方式；本 Skill 进一步将 DSL 自动基准输入、派生方式、安全不变量与禁止副作用显式写入每个用例。
 
 ## 独立校准依据
 
@@ -50,9 +50,9 @@
 ## 五阶段的本地映射
 
 1. 用户已明确指定唯一 YAML/YML 时直接进入流程；仅在目标缺失或歧义时询问。扫描器在后台记录文件名和哈希以防对象被替换，不要求用户确认哈希。
-2. 用户提供并确认业务种子输入及预期行为；不要求用户预先编写攻击集。
+2. 扫描器根据 DSL 输入契约自动构造惰性基准输入；不要求用户提供或确认输入簇。
 3. `01` 至 `04` 完成确定性静态解析、事实提取、全规则匹配和根因聚合；`04` 同时保留聚合前的全部命中。模型不参与规则裁决、状态、严重度或门禁。
-4. `05-test-cluster.json` 从种子和静态根因派生正例、反例、边界、变形和规则定向用例；每项保留血缘与 `NOT_EXECUTED` 状态。
+4. 输入测试簇从自动基准输入和静态根因派生正例、反例、边界、变形和规则定向用例；每项保留血缘与 `NOT_EXECUTED` 状态。
 5. `08` 与 `09` 将静态根因和测试覆盖关联成报告及攻击面；可选模型只能补充未执行测试建议和非权威表述。
 
 该顺序保证先检测再生成测试，避免模型根据自己生成的攻击样例反向证明风险。动态执行结果只有在独立沙盒记录请求、响应、断言和副作用证据后，才可进入后续验证流程。

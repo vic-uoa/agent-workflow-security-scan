@@ -22,7 +22,7 @@ Use this scanner as a pre-release static architecture and data-flow gate for com
 - Keywords may classify a capability candidate but cannot establish an approval, validation or authorization control.
 - An optional model advisor may add inert test suggestions or non-authoritative wording only; it cannot change any Finding field or the quality gate.
 - A generated input is a test hypothesis, not execution evidence. Do not use it to establish applicability, exploitability or mitigation.
-- Bind the user's DSL selection and seed confirmation with `confirmed_dsl_sha256`; assessment must stop if the selected file changes afterward.
+- Derive inert baseline inputs from the selected DSL contract without a user-confirmation checkpoint. If an optional seed override includes `confirmed_dsl_sha256`, assessment must stop when it does not match the selected file.
 - Complete deterministic applicability, path and control evaluation before generating the input cluster. Do not use model voting to change a status.
 - False-positive reduction must be lossless at rule-coverage level: retain raw matches, merge only aliases sharing the same root family and source/sink, and fail if a matched rule ID disappears from primary/related mappings.
 
