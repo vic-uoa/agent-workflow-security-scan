@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 import json
+import hashlib
 import re
 
 import yaml
@@ -347,15 +348,22 @@ def apply_baseline(ir: WorkflowIR, baseline: dict[str, Any]) -> None:
     if not isinstance(registry, list):
         return
     for node in ir.nodes:
+        node.config.pop('_scanner_registry', None)
         if node.type not in {"TOOL", "CODE"}:
             continue
         fields = {
             "original_type": node.original_type.lower(),
             "title": node.title.lower(),
-            "provider_id": " ".join(str(value).lower() for value in _baseline_values(node.config, ("provider_id", "provider_name"))),
-            "tool_name": " ".join(str(value).lower() for value in _baseline_values(node.config, ("tool_name", "name"))),
+            "provider_id": str(node.config.get('provider_id') or node.config.get('provider_name') or '').lower(),
+            "tool_name": str(node.config.get('tool_name') or node.config.get('name') or '').lower(),
+            "url": str(node.config.get('url') or '').lower(),
+            "plugin_unique_identifier": str(node.config.get('plugin_unique_identifier') or '').lower(),
+            "method": str(node.config.get('method') or '').lower(),
+            "code_sha256": hashlib.sha256('\n'.join(str(node.config.get(k) or '') for k in ('code', 'script', 'source')).encode('utf-8')).hexdigest(),
         }
-        for item in registry:
+        # Specific API/plugin contracts take precedence over generic http-request.
+        ordered_registry = sorted(registry, key=lambda item: 0 if isinstance(item, dict) and item.get('match_field') in {'url', 'plugin_unique_identifier', 'tool_name', 'code_sha256'} else 1)
+        for item in ordered_registry:
             if not isinstance(item, dict):
                 continue
             match = str(item.get("match", "")).lower()
@@ -373,6 +381,9 @@ def apply_baseline(ir: WorkflowIR, baseline: dict[str, Any]) -> None:
                 matched = any(match == value for value in values)
             if not match or not matched:
                 continue
+            constraints = item.get('match_fields') or {}
+            if not isinstance(constraints, dict) or any(str(fields.get(key, '')).lower() != str(value).lower() for key, value in constraints.items()):
+                continue
             configured = {str(value) for value in item.get("capabilities", [])}
             node.capabilities = sorted((set(node.capabilities) - {"UNKNOWN_TOOL_CAPABILITY"}) | configured)
             node.external = bool(item.get("external", node.external))
@@ -383,6 +394,20 @@ def apply_baseline(ir: WorkflowIR, baseline: dict[str, Any]) -> None:
                 "definition_version": item.get("definition_version"),
                 "integrity_control": item.get("integrity_control"),
             }
+            # Only operator-controlled, versioned registry evidence may refine
+            # transport-level guesses. DSL self-assertions cannot erase effects.
+            if item.get('trusted_source') and item.get('definition_version') and item.get('integrity_control'):
+                if item.get('effect') == 'read_only' and node.original_type == 'http-request':
+                    node.capabilities = sorted((set(node.capabilities) - {'NETWORK_WRITE'}) | {'NETWORK_READ'})
+                if item.get('effect') == 'deferred_execution':
+                    node.capabilities = sorted(set(node.capabilities) | {'DEFERRED_EXECUTION'})
+                    node.high_impact = True
+                for key in ('memory_mode', 'execution_fields'):
+                    if key in item:
+                        node.config['_scanner_registry'][key] = item[key]
+                code_pinned = (match_field == 'code_sha256' and match_type == 'exact') or 'code_sha256' in constraints
+                if code_pinned and item.get('strict_parser_contract') is True:
+                    node.config['_scanner_registry']['strict_parser_contract'] = True
             break
 
 

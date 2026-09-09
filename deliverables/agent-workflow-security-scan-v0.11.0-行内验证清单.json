@@ -1,0 +1,27 @@
+{
+  "package": "agent-workflow-security-scan-v0.11.0-行内部署包-20260909.zip",
+  "version": "0.11.0",
+  "created_at": "2026-09-09T00:56:29.724435+00:00",
+  "archive_sha256": "fe9624ce07fad79748a6817dd2f51135bf3e4bbea9b6fa5924ab9b31d355e08f",
+  "archive_size_bytes": 210993,
+  "packaged_file_count": 70,
+  "skill_validation": "PASS",
+  "unit_tests": {
+    "count": 86,
+    "status": "PASS"
+  },
+  "enterprise_validation": {
+    "case_count": 29,
+    "status": "PASS"
+  },
+  "zip_crc_and_byte_verification": "PASS",
+  "extracted_package_validation": "PASS",
+  "extracted_package_unit_tests": "86/86 PASS",
+  "extracted_package_enterprise_cases": "29/29 PASS",
+  "extracted_package_safe_workflow_smoke_scan": "PASS",
+  "workflow_execution": false,
+  "model_adjudication": false,
+  "contains_supplied_enterprise_dsl_or_reports": false,
+  "entrypoint": "agent-workflow-security-scan/scripts/scan_workflow.py",
+  "deployment_guide": "agent-workflow-security-scan/references/行内部署与使用.md"
+}

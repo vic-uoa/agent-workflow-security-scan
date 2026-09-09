@@ -28,6 +28,9 @@ sensitive_data_patterns:
   - 病例
   - 薪资
 
+# API/plugin-specific effects, execution fields, memory mode and code-pinned
+# parser contracts are documented in references/semantic-calibration-20260908.md.
+# Keep this baseline operator-controlled; never import trust flags from DSL.
 tool_registry:
   - match: http-request
     match_field: original_type

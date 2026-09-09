@@ -12,6 +12,7 @@ from jsonschema import Draft202012Validator
 
 from .models import Fact, Finding, Node, NodeType, Severity, Status, WorkflowIR, stable_id
 from .parser import classify_secret_occurrences, contains_secret, contains_template, flatten_text, walk
+from .semantics import analyze_code, field_matches, memory_mode, url_target_kind
 from .dify_contract import (
     file_contract_issues,
     has_dify_tool_parameter_contract,
@@ -135,11 +136,6 @@ MODEL_OUTPUT_PARSER_WORDS = (
     "json.loads", "json.parse", "parse_json", "from_json", "yaml.safe_load",
     "re.search", "re.match", "regex", "正则",
 )
-STRICT_PARSER_WORDS = (
-    "jsonschema", "draft202012validator", "model_validate", "parse_obj", "additionalproperties",
-    "allowed_keys", "allowed_fields", "required_fields", "valid_values", "allowed_values",
-    "fail_closed", "raise valueerror", "拒绝未知字段", "字段白名单",
-)
 
 
 @dataclass(frozen=True)
@@ -226,6 +222,23 @@ def _normalize_contract_type(value: Any) -> str:
 
 
 def _declared_output_type(node: Node, variable_name: str) -> str:
+    if '.' in variable_name:
+        root, *parts = variable_name.split('.')
+        specs = node.config.get('outputs') or node.config.get('variables') or []
+        spec = specs.get(root) if isinstance(specs, dict) else next((s for s in specs if isinstance(s, dict) and str(s.get('variable', s.get('name', ''))) == root), None)
+        for part in parts:
+            if not isinstance(spec, dict):
+                return ''
+            schema = spec.get('schema') if isinstance(spec.get('schema'), dict) else {}
+            properties = spec.get('properties') or schema.get('properties') or {}
+            if not isinstance(properties, dict):
+                return ''
+            children = spec.get('children') or []
+            if isinstance(children, dict):
+                spec = properties.get(part) or children.get(part)
+            else:
+                spec = properties.get(part) or next((s for s in children if isinstance(s, dict) and str(s.get('variable', s.get('name', ''))) == part), None)
+        return _normalize_contract_type(spec.get('value_type') or spec.get('type')) if isinstance(spec, dict) else ''
     wanted = variable_name.lower()
     outputs = node.config.get("outputs")
     if isinstance(outputs, dict):
@@ -262,7 +275,7 @@ def _declared_consumer_type(node: Node, producer_id: str, variable_name: str) ->
         selector = value.get("value_selector") or value.get("variable_selector")
         if not isinstance(selector, list) or len(selector) < 2:
             continue
-        actual = [str(selector[0]).lower(), str(selector[1]).lower()]
+        actual = [str(selector[0]).lower(), '.'.join(str(p).lower() for p in selector[1:])]
         if actual != wanted:
             continue
         return _normalize_contract_type(
@@ -291,12 +304,15 @@ def _code_parser_features(node: Node) -> list[str]:
     code = str(node.config.get("code") or "")
     lowered = code.lower()
     features: list[str] = []
-    if any(word in lowered for word in ("json.loads", "json.parse", "parse_json", "from_json", "yaml.safe_load")):
+    calls = set(analyze_code(code, str(node.config.get('code_language') or 'python3')).calls)
+    if calls & {"json.loads", "yaml.safe_load"}:
         features.append("structured_text_parse")
-    if any(word in lowered for word in ("re.search", "re.match", "regex")):
+    if calls & {"re.search", "re.match", "re.fullmatch", "re.findall"}:
         features.append("regex_text_parse")
-    if "re.search" in lowered:
+    if 're.search' in calls:
         features.append("unanchored_search")
+    if not features:
+        return []
     if ".*?" in code or ".*" in code:
         features.append("delimiter_capture")
     if "\\s" in code:
@@ -307,10 +323,9 @@ def _code_parser_features(node: Node) -> list[str]:
 
 
 def _code_has_strict_parser_contract(node: Node) -> bool:
-    if _has_schema(node):
-        return True
-    code = str(node.config.get("code") or "").lower()
-    return any(word in code for word in STRICT_PARSER_WORDS)
+    # Output declarations and words in comments don't prove input validation.
+    # Custom validators need an operator-reviewed implementation contract.
+    return _has_registry_integrity(node) and node.config['_scanner_registry'].get('strict_parser_contract') is True
 
 
 def _has_timeout(node: Node) -> bool:
@@ -608,8 +623,24 @@ def _refs_for_fields(node: Node, words: Iterable[str]) -> list[Any]:
     wanted = tuple(word.lower() for word in words)
     return [
         ref for ref in node.variable_refs
-        if any(word in ref.consumer_field.lower() for word in wanted)
+        if field_matches(ref.consumer_field, wanted)
     ]
+
+
+def _execution_refs(node: Node, capability: str = "CODE_EXECUTION") -> list[Any]:
+    if node.type == NodeType.CODE.value:
+        code = "\n".join(str(node.config.get(k) or '') for k in ('code', 'script', 'source'))
+        summary = analyze_code(code, str(node.config.get('code_language') or 'python3'))
+        used = {name.lower() for name in summary.inputs.get(capability, set())}
+        return [ref for ref in node.variable_refs if ref.consumer_field.lower() in used]
+    if capability not in node.capabilities:
+        return []
+    if _has_registry_integrity(node):
+        fields = node.config['_scanner_registry'].get('execution_fields', {})
+        if isinstance(fields, dict) and isinstance(fields.get(capability), list):
+            names = {str(name).lower() for name in fields[capability]}
+            return [ref for ref in node.variable_refs if ref.consumer_field.lower() in names]
+    return _refs_for_fields(node, ('command', 'cmd', 'script', 'code', 'expression') if capability == 'CODE_EXECUTION' else ('sql', 'query', 'statement'))
 
 
 def _has_registry_integrity(node: Node) -> bool:
@@ -629,7 +660,7 @@ def _is_effectful_tool(node: Node) -> bool:
         node.high_impact
         or set(node.capabilities) & {
             "NETWORK_WRITE", "MESSAGE_SEND", "FILE_WRITE", "DATABASE_WRITE",
-            "RESOURCE_DELETE", "PERMISSION_CHANGE", "CODE_EXECUTION",
+            "RESOURCE_DELETE", "PERMISSION_CHANGE", "CODE_EXECUTION", "DATABASE_EXECUTION", "DEFERRED_EXECUTION",
         }
     )
 
@@ -665,9 +696,20 @@ def _system_prompt_text(node: Node) -> str:
     return prompt_instruction_text(node)
 
 
-def _prompt_references_node(prompt: str, node_id: str) -> bool:
+def _prompt_references_node(prompt: str, node_id: str, node: Node | None = None) -> bool:
     escaped = re.escape(node_id)
-    return bool(re.search(rf"\{{\{{#?\s*{escaped}\.", prompt))
+    if re.search(rf"\{{\{{#?\s*{escaped}\.", prompt):
+        return True
+    if node is not None:
+        for _, value in walk(node.config.get('prompt_config', {})):
+            if not isinstance(value, dict):
+                continue
+            selector = value.get('value_selector') or value.get('variable_selector')
+            alias = str(value.get('variable') or value.get('name') or '')
+            if alias and isinstance(selector, list) and selector and str(selector[0]) == node_id:
+                if re.search(r'\{\{\s*' + re.escape(alias) + r'(?=[\s.|}\[])', prompt):
+                    return True
+    return False
 
 
 def _input_variables(node: Node) -> list[dict[str, Any]]:
@@ -701,13 +743,14 @@ class GraphIndex:
         target: str,
         *,
         data_preferred: bool = False,
+        control_only: bool = False,
         excluded: set[str] | None = None,
         max_depth: int = 64,
     ) -> list[str] | None:
         excluded = excluded or set()
         if source in excluded or target in excluded:
             return None
-        adjacency = self.data if data_preferred else self.combined
+        adjacency = self.control if control_only else (self.data if data_preferred else self.combined)
         queue: deque[list[str]] = deque([[source]])
         visited = {source}
         while queue:
@@ -857,6 +900,16 @@ class SecurityEngine:
             node.id: _sensitive_assets(node) for node in ir.nodes
         }
 
+    def _security_condition(self, node: Node) -> bool:
+        """An if/else is security-relevant only with material downstream effect."""
+        if _key_matches(node.config, ('decision_output', 'authorization_policy', 'security_decision')):
+            return True
+        return any(
+            _is_high_consequence_tool(target)
+            and self.graph.path(node.id, target.id, control_only=True)
+            for target in self.ir.nodes
+        )
+
     def _emit(
         self,
         rule_id: str,
@@ -994,7 +1047,7 @@ class SecurityEngine:
         if domain == "memory_identity_scope":
             for node_id in finding.node_ids:
                 node = self.graph.nodes.get(node_id)
-                if node and _has_words(f"{node.original_type} {node.title}", MEMORY_WRITE_WORDS):
+                if node and memory_mode(node.config, node.capabilities) == 'persistent':
                     return node_id
         if domain == "input_contract":
             return finding.node_ids[0]
@@ -1198,7 +1251,7 @@ class SecurityEngine:
                     asset.qualifies_for_egress and asset.confirmed
                     for asset in self.asset_inventory.get(sink, [])
                 )
-                high_integrity_sink = bool(downstream_conditions) or any(
+                high_integrity_sink = any(self._security_condition(n) for n in downstream_conditions) or any(
                     _key_matches(node.config, ("decision_output", "automated_decision"))
                     for node in automated_outputs
                 )
@@ -1438,12 +1491,21 @@ class SecurityEngine:
 
     def _llm_rules(self, node: Node) -> None:
         system_text = _system_prompt_text(node)
+        untrusted_roots = [item for item in self.ir.nodes if item.type in {NodeType.INPUT.value, NodeType.KNOWLEDGE.value, NodeType.CONTENT.value, NodeType.TOOL.value}]
+        def carries_untrusted(producer: Node) -> bool:
+            if producer in untrusted_roots:
+                return True
+            if producer.type not in {NodeType.CODE.value, NodeType.TEMPLATE.value, NodeType.LLM.value}:
+                return False
+            if producer.type == NodeType.CODE.value and not analyze_code(str(producer.config.get('code') or ''), str(producer.config.get('code_language') or 'python3')).return_inputs:
+                return False
+            return bool(self.graph.any_path(untrusted_roots, [producer], data_preferred=True))
         untrusted_producers = {
             ref.producer_node_id for ref in node.variable_refs
             if self.graph.nodes.get(ref.producer_node_id)
-            and self.graph.nodes[ref.producer_node_id].type in {NodeType.INPUT.value, NodeType.KNOWLEDGE.value, NodeType.CONTENT.value, NodeType.TOOL.value}
+            and carries_untrusted(self.graph.nodes[ref.producer_node_id])
         }
-        system_has_ref = any(_prompt_references_node(system_text, producer) for producer in untrusted_producers)
+        system_has_ref = any(_prompt_references_node(system_text, producer, node) for producer in untrusted_producers)
         if system_has_ref:
             self._emit("LLM-001", [*sorted(untrusted_producers), node.id], "不可信变量被插入系统或高权限指令区域。", status=Status.CONFIRMED, confidence=1.0, dynamic_test="direct_or_indirect_prompt_injection")
         if untrusted_producers and not _has_words(system_text, INJECTION_GUARD_WORDS):
@@ -1496,11 +1558,13 @@ class SecurityEngine:
         dynamic = bool(node.variable_refs) or contains_template(node.config)
         dangerous_refs = _refs_for_fields(node, DANGEROUS_ARG_WORDS)
         url_refs = _refs_for_fields(node, ("url", "uri", "host", "endpoint", "callback"))
-        exec_refs = _refs_for_fields(node, ("command", "cmd", "script", "code", "expression"))
-        query_refs = _refs_for_fields(node, ("sql", "query", "statement", "filter"))
+        exec_refs = _execution_refs(node)
+        query_refs = _execution_refs(node, 'DATABASE_EXECUTION')
         path_refs = _refs_for_fields(node, ("path", "file", "filename", "directory", "archive"))
         if "UNKNOWN_TOOL_CAPABILITY" in node.capabilities:
             self._emit("TOOL-001", [node.id], "工具能力无法从内部基线或 DSL 描述中确定。", status=Status.COVERAGE_GAP, confidence=1.0, missing_context=["需要在 internal-baseline.yml 登记工具能力和副作用。"])
+        if "UNKNOWN_CODE_SEMANTICS" in node.capabilities:
+            self._emit("TOOL-001", [node.id], "代码语言、语法或动态反射超出静态语义分析范围；未将未知代码判为安全或已确认执行漏洞。", status=Status.COVERAGE_GAP, severity=Severity.MEDIUM, missing_context=["需要受支持的语法、调用目标或二开执行器的能力定义。"])
         unsafe_dangerous_refs = [
             ref for ref in dangerous_refs
             if self.graph.nodes.get(ref.producer_node_id)
@@ -1509,11 +1573,14 @@ class SecurityEngine:
         if _is_high_consequence_tool(node) and unsafe_dangerous_refs:
             refs = unsafe_dangerous_refs
             self._emit("TOOL-002", [*sorted({ref.producer_node_id for ref in refs}), node.id], "高影响工具的安全敏感参数由模型或上游变量控制。", status=Status.CONFIRMED, dynamic_test="model_controlled_tool_argument")
-        if url_refs and not _key_matches(node.config, ("allowlist", "allowed_hosts", "allowed_domains", "network_policy")):
+        dynamic_target = url_refs and url_target_kind(node.config) != 'fixed_authority'
+        if dynamic_target and not _key_matches(node.config, ("allowlist", "allowed_hosts", "allowed_domains", "network_policy")):
+            deployment_only = all(ref.producer_node_id in {'env', 'environment'} for ref in url_refs)
             self._emit(
                 "TOOL-003", [node.id],
-                "DSL 确认 URL/Host 可动态控制，但 Dify 节点本身不携带可验证的域名/IP 出站策略。",
-                status=Status.OBSERVED,
+                "地址来自部署配置，终端用户可控性未得到证明。" if deployment_only else "请求地址包含动态主机/完整地址；实际出站限制仍需结合运行时核验。",
+                status=Status.COVERAGE_GAP if deployment_only else Status.OBSERVED,
+                severity=Severity.LOW if deployment_only else Severity.HIGH,
                 confidence=0.9,
                 missing_context=["需要核验 Dify SSRF 代理、网络出口策略或内部工具注册表。"],
                 dynamic_test="ssrf",
@@ -1522,11 +1589,11 @@ class SecurityEngine:
         templated_dangerous_code = (
             node.type == NodeType.CODE.value
             and "CODE_EXECUTION" in node.capabilities
-            and contains_template(code_body)
+            and analyze_code(code_body, str(node.config.get('code_language') or 'python3')).templated_source
         )
         if exec_refs or templated_dangerous_code:
-            self._emit("TOOL-004", [node.id], "动态变量可到达命令、代码或脚本执行能力。", status=Status.CONFIRMED, severity=Severity.CRITICAL, dynamic_test="command_injection")
-        if query_refs and any(word in text for word in ("sql", "database", "query")) and not _key_matches(node.config, ("parameters", "parameterized", "prepared_statement")):
+            self._emit("TOOL-004", [node.id], "动态变量可到达命令、代码或脚本执行能力；宿主权限与沙箱逃逸未由 DSL 证明。", status=Status.CONFIRMED, severity=Severity.HIGH if node.type == NodeType.CODE.value else Severity.CRITICAL, dynamic_test="command_injection")
+        if query_refs:
             self._emit("TOOL-005", [node.id], "动态变量可能拼接进入 SQL/查询。", status=Status.PROBABLE, confidence=0.85, dynamic_test="sql_injection")
         if path_refs and not _key_matches(node.config, ("base_directory", "allowed_paths", "path_allowlist")):
             self._emit("TOOL-006", [node.id], "动态文件路径缺少固定根目录或路径 Allowlist。", status=Status.PROBABLE, confidence=0.85, dynamic_test="path_traversal")
@@ -1541,7 +1608,7 @@ class SecurityEngine:
                     NodeType.CONTENT.value, NodeType.LLM.value,
                 }
             ]
-            path = self.graph.any_path(untrusted, [node], excluded=deterministic_controls)
+            path = self.graph.any_path(untrusted, [node], excluded=deterministic_controls, control_only=True)
             if path:
                 self._emit(
                     "TOOL-008", path,
@@ -1611,14 +1678,18 @@ class SecurityEngine:
                 missing_context=["平台统一身份认证不等同于对象级授权；需要确认工具执行端是否重新授权。"],
                 dynamic_test="authorization_bypass",
             )
-        ref_names = f"{_ref_names(node)} {' '.join(ref.consumer_field for ref in node.variable_refs)}"
-        if _has_words(ref_names, IDENTITY_RESOURCE_WORDS):
-            producers = sorted({ref.producer_node_id for ref in node.variable_refs})
+        identity_refs = [ref for ref in node.variable_refs
+                         if field_matches(ref.variable_name, IDENTITY_RESOURCE_WORDS) or field_matches(ref.consumer_field, IDENTITY_RESOURCE_WORDS)]
+        if identity_refs:
+            producers = sorted({ref.producer_node_id for ref in identity_refs})
             if any(self.graph.nodes.get(item) and self.graph.nodes[item].type == NodeType.INPUT.value for item in producers):
+                context_only = all(item in {'sys', 'env', 'environment'} for item in producers)
                 self._emit(
                     "TOOL-016", [*producers, node.id],
-                    "用户输入中的身份、租户、角色或资源标识直接绑定到工具参数。",
-                    status=Status.CONFIRMED,
+                    "身份、租户、角色或资源标识绑定到工具参数；实际可篡改性和执行端授权尚未验证。",
+                    status=Status.COVERAGE_GAP if context_only else Status.PROBABLE,
+                    severity=Severity.MEDIUM if context_only else Severity.HIGH,
+                    missing_context=["需要核验主体绑定、调用方是否能篡改标识，以及服务端对象级授权。"],
                     attack_preconditions=["攻击者可修改对象标识", "工具端未重新执行对象级授权"],
                     dynamic_test="cross_tenant_object_access",
                 )
@@ -1892,7 +1963,7 @@ class SecurityEngine:
                 target = next((node for node in downstream_targets if node in dangerous_tools or node.type == NodeType.CONDITION.value), downstream_targets[0])
                 second = self.graph.path(parser_node.id, target.id, data_preferred=True) or [parser_node.id]
                 chain = [*first, *second[1:]]
-                high_integrity = target in dangerous_tools or target.type == NodeType.CONDITION.value
+                high_integrity = _is_high_consequence_tool(target) or (target.type == NodeType.CONDITION.value and self._security_condition(target))
                 self._emit(
                     "LLM-006",
                     chain,
@@ -1915,6 +1986,7 @@ class SecurityEngine:
                 downstream_path = self.graph.any_path(
                     [self.graph.nodes[edge.target]] if edge.target in self.graph.nodes else [],
                     dangerous_tools,
+                    control_only=True,
                 )
                 if not downstream_path:
                     continue
@@ -1952,7 +2024,7 @@ class SecurityEngine:
                         status=Status.OBSERVED,
                         dynamic_test="direct_prompt_injection",
                     )
-                if path and _prompt_references_node(_system_prompt_text(llm), source.id):
+                if path and _prompt_references_node(_system_prompt_text(llm), source.id, llm):
                     self._emit(
                         "IN-007", path,
                         "用户输入变量被插入系统/开发者指令区域。",
@@ -1963,7 +2035,9 @@ class SecurityEngine:
 
         for source in [*inputs, *knowledge, *content_sources]:
             for sink in dangerous_tools:
-                path = self.graph.path(source.id, sink.id, excluded=controls)
+                if not _is_high_consequence_tool(sink):
+                    continue
+                path = self.graph.path(source.id, sink.id, excluded=controls, control_only=True)
                 if path:
                     self._emit("FLOW-003", path, "不可信数据存在绕开确定性校验/审批到达高危工具的路径。", status=Status.CONFIRMED, dynamic_test="source_to_high_impact_sink")
 
@@ -1972,7 +2046,7 @@ class SecurityEngine:
                 first = self.graph.path(kb.id, llm.id, data_preferred=True)
                 if not first:
                     continue
-                if _prompt_references_node(_system_prompt_text(llm), kb.id):
+                if _prompt_references_node(_system_prompt_text(llm), kb.id, llm):
                     self._emit("KB-004", first, "知识检索内容被插入 LLM 高权限 Prompt。", status=Status.CONFIRMED, dynamic_test="rag_system_prompt_injection")
                 for tool in dangerous_tools:
                     second = self.graph.path(llm.id, tool.id)
@@ -2198,9 +2272,9 @@ class SecurityEngine:
         for node in tools:
             if "CODE_EXECUTION" not in node.capabilities:
                 continue
-            execution_refs = _refs_for_fields(node, ("command", "cmd", "script", "code", "expression"))
+            execution_refs = _execution_refs(node)
             code_body = "\n".join(str(node.config.get(key) or "") for key in ("code", "script", "source"))
-            if execution_refs or contains_template(code_body):
+            if execution_refs or (node.type == NodeType.CODE.value and analyze_code(code_body, str(node.config.get('code_language') or 'python3')).templated_source):
                 code_sinks.append(node)
         for source in external_content:
             for llm in llms:
@@ -2214,7 +2288,7 @@ class SecurityEngine:
                         self._emit(
                             "FLOW-010", chain,
                             "外部或检索内容可经模型输出进入代码/命令执行节点。",
-                            status=Status.CONFIRMED, severity=Severity.CRITICAL,
+                            status=Status.CONFIRMED, severity=Severity.HIGH if sink.type == NodeType.CODE.value else Severity.CRITICAL,
                             dynamic_test="external_content_to_code_execution",
                         )
 
@@ -2317,7 +2391,11 @@ class SecurityEngine:
 
         for node in nodes:
             memory_capable = node.type in {NodeType.TOOL.value, NodeType.KNOWLEDGE.value, NodeType.AGGREGATOR.value}
-            if memory_capable and _has_words(f"{node.title}\n{node.text}", MEMORY_WRITE_WORDS):
+            mode = memory_mode(node.config, node.capabilities)
+            if memory_capable and mode in {'session', 'unknown'}:
+                if not _key_matches(node.config, MEMORY_SCOPE_KEYS):
+                    self._emit("KB-011", [node.id], "会话保持已启用或动态配置，但插件身份绑定和会话隔离实现未在 DSL 中导出。", status=Status.COVERAGE_GAP, severity=Severity.MEDIUM, missing_context=["插件运行时的 user/tenant/conversation 键及有效配置。"])
+            if memory_capable and mode == 'persistent':
                 incoming_untrusted = self.graph.any_path([*inputs, *knowledge, *content_sources, *tools], [node], data_preferred=True)
                 if incoming_untrusted and not _is_validation(node):
                     rule_id = "KB-007" if any(self.graph.nodes[item].type == NodeType.KNOWLEDGE.value for item in incoming_untrusted if item in self.graph.nodes) else "IN-008"
@@ -2326,7 +2404,9 @@ class SecurityEngine:
                     self._emit(
                         "KB-011", [node.id],
                         "持久记忆节点未声明用户、租户或会话命名空间。",
-                        status=Status.CONFIRMED,
+                        status=Status.COVERAGE_GAP,
+                        severity=Severity.MEDIUM,
+                        missing_context=["持久存储实现中的用户/租户隔离策略未导出。"],
                         dynamic_test="cross_user_memory_isolation",
                     )
                 if incoming_untrusted:
@@ -2337,7 +2417,8 @@ class SecurityEngine:
                         self._emit(
                             "KB-012", chain,
                             "不可信内容可写入持久记忆并被后续 Agent 读取，形成可持续指令投毒闭环。",
-                            status=Status.CONFIRMED,
+                            status=Status.PROBABLE,
+                            missing_context=["需要验证跨会话保存、后续读取与实际指令影响；可达性不是投毒成功证据。"],
                             dynamic_test="persistent_memory_poisoning",
                         )
 

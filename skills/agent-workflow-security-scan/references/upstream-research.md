@@ -56,3 +56,14 @@
 5. `08` 与 `09` 将静态根因和测试覆盖关联成报告及攻击面；可选模型只能补充未执行测试建议和非权威表述。
 
 该顺序保证先检测再生成测试，避免模型根据自己生成的攻击样例反向证明风险。动态执行结果只有在独立沙盒记录请求、响应、断言和副作用证据后，才可进入后续验证流程。
+
+## 2026-09-08：静态语义与误报校准参考
+
+本轮再次核对以下上游资料，采用设计思路并独立实现，没有引入第三方运行依赖、模型裁决或上传工作流：
+
+- [Tencent AI-Infra-Guard](https://github.com/Tencent/AI-Infra-Guard)：参考 Agent/Skill/MCP 风险覆盖与攻击测试的分层；动态红队的攻击成功条件不能直接转换成 DSL 已确认漏洞。
+- [Invariant](https://github.com/invariantlabs-ai/invariant)：参考围绕具体调用、内容和轨迹建立策略的做法；本地将可执行控制边与变量引用分开，避免拼接出虚假的执行路径。
+- [Dify Sandbox](https://github.com/langgenius/dify-sandbox)：官方代码执行环境支持多个语言。由此区分固定沙箱代码与输入驱动解释器，不依据 Code 节点存在就推断宿主执行或沙箱逃逸。
+- [CodeQL Python data flow](https://codeql.github.com/docs/codeql-language-guides/analyzing-data-flow-in-python/)：参考源、汇与数据传播的基本建模。本地新增有界 AST 调用/参数摘要，并区分 SQL 源和绑定值；这不等于集成 CodeQL，也不具备其完整分析能力。
+
+本地实现、正反例和剩余覆盖限制见 [v0.11.0 语义校准](semantic-calibration-20260908.md)。

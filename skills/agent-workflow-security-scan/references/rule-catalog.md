@@ -94,3 +94,7 @@ DSL-only scanning does not prove actual IAM, knowledge ACLs, plugin implementati
 5. Emit a Fact before a Finding and preserve DSL pointers.
 6. Add positive, negative, mitigated, coverage-gap, and official-Dify-contract fixtures.
 7. Map a safe dynamic test type when runtime confirmation is needed.
+
+## v0.11.0 semantic calibration
+
+The [calibration notes](semantic-calibration-20260908.md) define the current execution, URL, memory and authorization applicability refinements. Python code uses bounded AST call/argument summaries. Raw field-name substrings, schema descriptions and output declarations cannot prove executable source, persistent memory or enforced input validation. Generic POST and display-only conditions do not establish privileged effects. Native Code findings do not prove host-level access. Operator-reviewed parser exemptions require exact code hashes. Unknown runtime enforcement is coverage/probable evidence, not a confirmed bypass.

@@ -11,6 +11,7 @@ from jsonschema import Draft202012Validator
 from yaml.events import AliasEvent
 
 from .models import Edge, Node, NodeType, VariableRef, WorkflowIR, file_sha256, stable_id
+from .semantics import analyze_code
 from .dify_contract import (
     CURRENT_DIFY_APP_DSL_VERSION,
     VIRTUAL_SOURCE_NAMESPACES,
@@ -168,14 +169,10 @@ EXTERNAL_WORDS = {
 HIGH_IMPACT_ACTION_WORDS = {
     "delete", "remove", "drop", "terminate", "destroy", "purge",
     "payment", "transfer", "refund", "withdraw", "charge",
-    "permission", "grant", "revoke", "role", "admin",
+    "grant", "revoke",
     "deploy", "publish", "send-email", "send email", "broadcast",
     "删除", "销毁", "转账", "付款", "退款", "授权", "提权", "管理员", "发布", "群发",
 }
-DANGEROUS_CODE_PATTERNS = (
-    r"\b(?:eval|exec)\s*\(", r"\bsubprocess\b", r"\bos\.system\s*\(",
-    r"\bpopen\s*\(", r"shell\s*=\s*true", r"\b(?:socket|requests|urllib)\b",
-)
 
 
 def _json_pointer(parts: list[Any]) -> str:
@@ -285,12 +282,11 @@ def _classify_capabilities(node_type: NodeType, original_type: str, config: dict
         # command injection.  Escalate only when dangerous interpreters, process
         # launchers or network primitives are actually present.
         capabilities.add("SANDBOXED_CODE")
-        code_text = "\n".join(
-            str(config.get(key) or "") for key in ("code", "script", "source")
-        ).lower()
-        if contains_template(code_text) or any(re.search(pattern, code_text) for pattern in DANGEROUS_CODE_PATTERNS):
-            capabilities.add("CODE_EXECUTION")
-            high_impact = True
+        summary = analyze_code("\n".join(str(config.get(key) or "") for key in ("code", "script", "source")), str(config.get("code_language") or "python3"))
+        capabilities.update(summary.capabilities)
+        high_impact = explicit_high_impact or bool(summary.capabilities & {"CODE_EXECUTION", "RESOURCE_DELETE"})
+        if (not summary.parsed and not summary.templated_source) or summary.unknown_calls:
+            capabilities.add("UNKNOWN_CODE_SEMANTICS")
     if node_type == NodeType.KNOWLEDGE:
         capabilities.add("DATABASE_READ")
     if node_type == NodeType.OUTPUT:
@@ -326,7 +322,7 @@ def _classify_capabilities(node_type: NodeType, original_type: str, config: dict
         if any(word in identity_text for word in ("delete", "remove", "drop", "terminate", "destroy", "purge")):
             capabilities.add("RESOURCE_DELETE")
             high_impact = True
-        if any(word in identity_text for word in ("permission", "role", "admin", "grant", "revoke")):
+        if any(word in identity_text for word in ("grant", "revoke", "set_permission", "change_role", "提权")):
             capabilities.add("PERMISSION_CHANGE")
             high_impact = True
         if not capabilities:
@@ -379,6 +375,8 @@ def parse_dify_dsl(path: Path) -> tuple[WorkflowIR, dict[str, Any]]:
             continue
         node_id = str(raw_node.get("id", f"missing-{index}"))
         config = raw_node.get("data") if isinstance(raw_node.get("data"), dict) else {}
+        # Reserved scanner evidence is never accepted from a submitted DSL.
+        config.pop('_scanner_registry', None)
         raw_type = str(config.get("type") or raw_node.get("type") or "unknown")
         mapped_type = _map_type(raw_type)
         pointer = f"/workflow/graph/nodes/{index}"
