@@ -1,0 +1,51 @@
+{
+  "package": "agent-workflow-security-scan-v0.11.1-SKILL.zip",
+  "version": "0.11.1",
+  "created_at": "2026-09-10T07:32:21.3381517Z",
+  "archive_sha256": "1b599d69e493837a6bbc73fc2a9e509492910b5125a60b318623e7226d1d6f06",
+  "archive_size_bytes": 215490,
+  "zip_entry_count": 70,
+  "packaged_source_file_count": 69,
+  "internal_checksum_verification": "69/69 PASS",
+  "skill_validation": "PASS",
+  "unit_tests": {
+    "count": 86,
+    "status": "PASS"
+  },
+  "enterprise_validation": {
+    "case_count": 29,
+    "status": "PASS"
+  },
+  "extracted_package_validation": "PASS",
+  "safe_workflow_smoke_scan": {
+    "gate": "PASS",
+    "finding_count": 0,
+    "html_report_count": 1,
+    "input_cluster_count": 1
+  },
+  "report_ui": {
+    "top_metrics": [
+      "总风险数",
+      "严重个数",
+      "高危个数",
+      "工作流节点与连线"
+    ],
+    "evidence_status_location": "展开后的风险概述",
+    "workflow_diagram": [
+      "点击打开大图",
+      "放大",
+      "缩小",
+      "还原",
+      "滚动查看",
+      "关闭"
+    ],
+    "keyboard_access": "PASS",
+    "duplicate_html_ids": 0,
+    "inline_javascript_syntax": "PASS"
+  },
+  "workflow_execution": false,
+  "model_adjudication": false,
+  "contains_supplied_enterprise_dsl_or_reports": false,
+  "entrypoint": "agent-workflow-security-scan/scripts/scan_workflow.py",
+  "deployment_guide": "agent-workflow-security-scan/references/行内部署与使用.md"
+}

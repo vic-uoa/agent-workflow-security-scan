@@ -429,9 +429,9 @@ def render_html_report(report: dict[str, Any]) -> str:
         return str(node.get("title") or node_id or "工作流")
 
     metrics = [
-        ("需处理", summary.get("action_item_count", 0)),
-        ("已确认", summary.get("status_counts", {}).get("CONFIRMED", 0)),
-        ("较可能", summary.get("status_counts", {}).get("PROBABLE", 0)),
+        ("总风险数", summary.get("finding_count", 0)),
+        ("严重个数", severity_counts.get("CRITICAL", 0)),
+        ("高危个数", severity_counts.get("HIGH", 0)),
         ("工作流", f"{summary.get('node_count', 0)} 节点 · {summary.get('edge_count', 0)} 连线"),
     ]
     metrics_html = "".join(
@@ -439,10 +439,6 @@ def render_html_report(report: dict[str, Any]) -> str:
         for label, value in metrics
     )
 
-    severity_cards = "".join(
-        f'<span class="count-chip {esc(level)}">{esc(severity_label(level))} {esc(count)}</span>'
-        for level, count in sorted(severity_counts.items(), key=lambda item: _severity_rank(item[0]), reverse=True)
-    ) or '<span class="muted">未形成风险项</span>'
     highest_severity = max(
         (level for level, count in severity_counts.items() if count),
         key=_severity_rank,
@@ -502,11 +498,13 @@ def render_html_report(report: dict[str, Any]) -> str:
             f'data-severity="{esc(severity)}" data-status="{esc(status)}">'
             '<summary>'
             '<span class="disclosure" aria-hidden="true">›</span>'
-            f'<div class="finding-heading"><div class="badge-row">{severity_badge(severity)}{status_badge(status)}</div>'
+            f'<div class="finding-heading"><div class="badge-row">{severity_badge(severity)}</div>'
             f'<div class="finding-title">{esc(finding.get("title"))}</div>'
             f'<div class="finding-path">{esc(path_labels)}</div></div>'
             f'<span class="finding-side"><span>{esc(str(len(related_chains)))} 条逻辑链</span></span></summary>'
-            '<div class="finding-body"><div class="evidence-panel"><h4>判定依据</h4>'
+            '<div class="finding-body"><div class="evidence-panel"><h4>风险概述</h4>'
+            f'<div class="overview-meta"><span>证据状态</span>{status_badge(status)}'
+            f'<span class="confidence">置信度 {confidence:.2f}</span></div>'
             f'<p>{esc(finding.get("message"))}</p>'
             '</div><div class="remediation-panel"><h4>修复建议</h4>'
             f'<p>{esc(remediation)}</p></div>'
@@ -514,7 +512,6 @@ def render_html_report(report: dict[str, Any]) -> str:
             f'<dt>风险编号</dt><dd>{esc(finding.get("id"))}</dd>'
             f'<dt>责任节点</dt><dd>{esc(node_label(finding.get("anchor_node_id")))}</dd>'
             f'<dt>规则映射</dt><dd>{esc(rules or "—")}</dd>'
-            f'<dt>证据状态</dt><dd>{esc(status)} · 置信度 {confidence:.2f}</dd>'
             f'<dt>后续验证</dt><dd>{esc(validation)}</dd>'
             f'<dt>攻击前提</dt><dd>{esc(preconditions)}</dd>'
             f'<dt>待核实信息</dt><dd>{esc(missing_context)}</dd>'
@@ -524,6 +521,7 @@ def render_html_report(report: dict[str, Any]) -> str:
     findings_html = "".join(finding_rows) or '<div class="empty">未发现需要处理的风险项。</div>'
 
     workflow_svg = render_workflow_svg(workflow, [], "workflow")
+    workflow_zoom_svg = render_workflow_svg(workflow, [], "workflow-zoom")
     gate_copy = {
         "FAIL": "存在已确认的高危或严重风险，建议阻断发布。",
         "REVIEW": "存在中危以上的静态证据，需要人工复核后决定是否发布。",
@@ -536,14 +534,22 @@ a{color:inherit}header{background:var(--navy);color:#fff;padding:28px max(24px,c
 main{max-width:1220px;margin:-38px auto 0;padding:0 22px 32px}.summary-shell{display:grid;grid-template-columns:300px 1fr;background:#fff;border:1px solid rgba(203,213,225,.85);border-radius:16px;overflow:hidden}.decision{padding:20px 24px;background:#f8fafc;border-right:1px solid var(--line)}.decision>small{display:block;color:var(--muted);font-weight:700}.decision>strong{display:block;margin:4px 0;font-size:28px}.decision.REVIEW>strong{color:#9a6700}.decision.FAIL>strong{color:#b42318}.decision.PASS>strong{color:#157f3d}.decision p{margin:4px 0 0;color:#475569;font-size:13px}.decision-risk{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.decision-risk>span:first-child{color:#475569;font-size:12px}.decision-risk .badge{font-size:12px}.no-risk{color:#157f3d;font-size:12px;font-weight:800}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center}.metric{padding:20px;border-right:1px solid #edf1f6}.metric:last-child{border:0}.metric span{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;margin-top:4px;font-size:19px;line-height:1.3}
 .jump-nav{display:flex;gap:8px;margin:16px 0 2px;overflow:auto}.jump-nav a{text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 13px;color:#475569;font-size:13px;white-space:nowrap}.jump-nav a:hover{border-color:#94a3b8;color:#0f172a}.report-section{padding:30px 0;border-bottom:1px solid var(--line);scroll-margin-top:12px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:16px}.section-head h2{margin:0;font-size:22px;letter-spacing:-.015em}.section-head p{max-width:720px;margin:4px 0 0;color:var(--muted)}
 .count-row,.badge-row{display:flex;gap:7px;flex-wrap:wrap}.badge,.count-chip{display:inline-flex;align-items:center;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800;white-space:nowrap}.severity.CRITICAL,.count-chip.CRITICAL{background:#fee2e2;color:#991b1b}.severity.HIGH,.count-chip.HIGH{background:#ffedd5;color:#9a3412}.severity.MEDIUM,.count-chip.MEDIUM{background:#fef3c7;color:#854d0e}.severity.LOW,.count-chip.LOW{background:#e0f2fe;color:#075985}.severity.INFO,.count-chip.INFO{background:#dcfce7;color:#166534}.status{background:#eef2f7;color:#475569}.status.CONFIRMED{background:#fee2e2;color:#991b1b}.status.PROBABLE{background:#fff7d6;color:#7c5700}.status.OBSERVED{background:#e0f2fe;color:#075985}.status.CANDIDATE{background:#f1f5f9;color:#475569}
-.diagram-frame{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}.workflow-svg{display:block;min-width:780px;width:100%;height:auto}.diagram-note{display:flex;justify-content:flex-end;margin-top:10px;color:var(--muted);font-size:12px}.legend{display:flex;flex-wrap:wrap;gap:12px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.diagram-actions{display:flex;align-items:center;gap:8px}.diagram-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;border:1px solid #cbd5e1;border-radius:8px;padding:7px 12px;background:#fff;color:#334155;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.diagram-button:hover{border-color:#94a3b8;background:#f8fafc}.diagram-button:focus-visible,.diagram-frame:focus-visible,.zoom-close:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}.diagram-frame{position:relative;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}.diagram-frame.interactive{cursor:zoom-in}.diagram-frame.interactive:hover{border-color:#94a3b8}.workflow-svg{display:block;min-width:780px;width:100%;height:auto}.diagram-note{display:flex;justify-content:space-between;gap:16px;margin-top:10px;color:var(--muted);font-size:12px}.diagram-hint{white-space:nowrap}.legend{display:flex;flex-wrap:wrap;gap:12px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.workflow-dialog{width:min(96vw,1600px);height:min(92vh,1000px);padding:0;border:0;border-radius:14px;background:#fff;color:var(--ink);box-shadow:0 24px 72px rgba(15,23,42,.28)}.workflow-dialog::backdrop{background:rgba(15,23,42,.62)}.zoom-shell{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%}.zoom-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:13px 16px;border-bottom:1px solid var(--line)}.zoom-head h3{margin:0;font-size:17px}.zoom-controls{display:flex;align-items:center;gap:7px}.zoom-level{min-width:52px;text-align:center;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}.zoom-close{width:36px;height:36px;border:0;border-radius:8px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.zoom-close:hover{background:#e2e8f0}.zoom-viewport{overflow:auto;padding:22px;background:#f8fafc;overscroll-behavior:contain}.zoom-canvas{min-width:100%;width:100%}.zoom-canvas .workflow-svg{max-width:none;min-width:900px;width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;transition:width .18s ease}
 .filters{display:flex;gap:10px;flex-wrap:wrap}.filters label{display:grid;gap:4px;color:var(--muted);font-size:12px}.filters select{height:36px;min-width:140px;border:1px solid #cbd5e1;border-radius:8px;padding:0 9px;background:#fff;color:var(--ink)}#findings{display:grid;gap:10px}.finding{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}.finding>summary{cursor:pointer;list-style:none;padding:15px 17px;display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:12px;align-items:center}.finding>summary::-webkit-details-marker,.technical>summary::-webkit-details-marker,.bound-chain>summary::-webkit-details-marker{display:none}.disclosure{font-size:24px;color:#94a3b8;transition:transform .18s}.finding[open] .disclosure{transform:rotate(90deg)}.finding-heading{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;align-items:center}.finding-heading .badge-row{grid-row:1/3}.finding-title{font-weight:800}.finding-path{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.finding-side{display:grid;justify-items:end;color:#64748b;font-size:11px}.finding-body{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;padding:0 17px 17px 47px;border-top:1px solid #edf1f6}.finding-body h4{margin:14px 0 6px}.finding-body p{margin:0}.technical{grid-column:1/-1;border-top:1px dashed var(--line);padding-top:10px}.technical>summary{cursor:pointer;color:#475569;font-size:13px}.technical dl{display:grid;grid-template-columns:84px 1fr;gap:5px 10px;margin:10px 0 0;font-size:12px}.technical dt{color:var(--muted)}.technical dd{margin:0;word-break:break-word}.bound-chain{grid-column:1/-1;margin-top:2px;padding-top:14px;border-top:1px solid var(--line)}.bound-chain-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:10px;cursor:pointer;list-style:none}.bound-chain-head h4{margin:0}.bound-chain-head p{margin-top:2px;color:#475569;font-size:12px}.bound-chain-head>span{color:var(--muted);font-size:11px}.bound-chain[open] .bound-chain-head>span{color:#334155}.bound-chain-frame{overflow:auto;background:#f8fafc;border-radius:8px}.bound-chain-frame .workflow-svg{min-width:720px}.bound-chain-meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:8px;color:#64748b;font-size:11px}.bound-chain-meta b{margin-right:5px;color:#334155}.bound-chain-empty{grid-column:1/-1;padding-top:12px;border-top:1px solid var(--line);color:#64748b;font-size:12px}.bound-chain-empty strong{color:#334155}.empty{padding:26px;text-align:center;color:var(--muted)}footer{padding:18px 0;color:var(--muted);font-size:12px}
-@media(max-width:880px){header{padding:26px 18px 58px}main{padding:0 12px 24px}.summary-shell{grid-template-columns:1fr}.decision{border-right:0;border-bottom:1px solid var(--line)}.metrics{grid-template-columns:1fr 1fr}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid #edf1f6}.finding-body{grid-template-columns:1fr;padding-left:17px}.technical{grid-column:auto}.finding-heading{display:block}.finding-path{margin-top:5px}.section-head{display:block}.filters{margin-top:12px}}@media print{body{background:#fff}header{padding:18px 20px 48px}main{max-width:none}.jump-nav,.filters{display:none}.report-section{break-inside:avoid}.diagram-frame{box-shadow:none}details{display:block}}
+.overview-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px}.overview-meta>span:first-child{color:var(--muted);font-size:12px}.overview-meta .confidence{color:#64748b;font-size:12px;font-variant-numeric:tabular-nums}
+@media(max-width:880px){header{padding:26px 18px 58px}main{padding:0 12px 24px}.summary-shell{grid-template-columns:1fr}.decision{border-right:0;border-bottom:1px solid var(--line)}.metrics{grid-template-columns:1fr 1fr}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid #edf1f6}.finding-body{grid-template-columns:1fr;padding-left:17px}.technical{grid-column:auto}.finding-heading{display:block}.finding-path{margin-top:5px}.section-head{display:block}.diagram-actions,.filters{margin-top:12px}.diagram-note{display:block}.diagram-hint{display:block;margin-bottom:6px}.workflow-dialog{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}.zoom-head{align-items:flex-start}.zoom-controls{flex-wrap:wrap;justify-content:flex-end}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.disclosure,.zoom-canvas .workflow-svg{transition:none}}@media print{body{background:#fff}header{padding:18px 20px 48px}main{max-width:none}.jump-nav,.filters,.diagram-actions,.workflow-dialog{display:none}.report-section{break-inside:avoid}.diagram-frame{box-shadow:none}details{display:block}}
 """
     script = """
 const sf=document.getElementById('severityFilter');const st=document.getElementById('statusFilter');
 function filterFindings(){document.querySelectorAll('.issue-item').forEach(x=>{x.hidden=!!((sf.value&&x.dataset.severity!==sf.value)||(st.value&&x.dataset.status!==st.value))})}
 sf.addEventListener('change',filterFindings);st.addEventListener('change',filterFindings);
+const workflowFrame=document.getElementById('workflowFrame');const workflowExpand=document.getElementById('workflowExpand');const workflowDialog=document.getElementById('workflowDialog');const workflowClose=document.getElementById('workflowClose');const zoomSvg=document.querySelector('#workflowZoomCanvas .workflow-svg');const zoomLevel=document.getElementById('zoomLevel');let workflowZoom=1;
+function applyWorkflowZoom(){zoomSvg.style.width=`${Math.round(workflowZoom*100)}%`;zoomLevel.textContent=`${Math.round(workflowZoom*100)}%`}
+function openWorkflow(){workflowZoom=1;applyWorkflowZoom();if(typeof workflowDialog.showModal==='function'){workflowDialog.showModal()}else{workflowDialog.setAttribute('open','')}}
+function closeWorkflow(){if(typeof workflowDialog.close==='function'){workflowDialog.close()}else{workflowDialog.removeAttribute('open')}}
+workflowExpand.addEventListener('click',openWorkflow);workflowFrame.addEventListener('click',openWorkflow);workflowFrame.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openWorkflow()}});workflowClose.addEventListener('click',closeWorkflow);workflowDialog.addEventListener('click',event=>{if(event.target===workflowDialog)closeWorkflow()});
+document.getElementById('zoomIn').addEventListener('click',()=>{workflowZoom=Math.min(3,workflowZoom+.25);applyWorkflowZoom()});document.getElementById('zoomOut').addEventListener('click',()=>{workflowZoom=Math.max(.5,workflowZoom-.25);applyWorkflowZoom()});document.getElementById('zoomReset').addEventListener('click',()=>{workflowZoom=1;applyWorkflowZoom()});
 """
     return f'''<!doctype html>
 <html lang="zh-CN">
@@ -556,10 +562,11 @@ sf.addEventListener('change',filterFindings);st.addEventListener('change',filter
 <main>
 <section class="summary-shell" id="overview"><div class="decision {esc(gate)}"><small>发布门禁</small><strong>{esc(gate_label(gate))}</strong><p>{esc(gate_copy)}</p><div class="decision-risk"><span>最高风险程度</span>{highest_risk_html}</div></div><div class="metrics">{metrics_html}</div></section>
 <nav class="jump-nav" aria-label="报告导航"><a href="#overview">概览</a><a href="#workflow">工作流图</a><a href="#findings-section">风险与逻辑链</a></nav>
-<section class="report-section" id="workflow"><div class="section-head"><h2>工作流图</h2><div class="count-row">{severity_cards}</div></div><div class="diagram-frame">{workflow_svg}</div><div class="diagram-note"><span class="legend"><span><i style="background:#dbeafe"></i>输入/内容</span><span><i style="background:#ede9fe"></i>LLM/处理</span><span><i style="background:#fef3c7"></i>条件</span><span><i style="background:#dcfce7"></i>输出/工具</span></span></div></section>
+<section class="report-section" id="workflow"><div class="section-head"><h2>工作流图</h2><div class="diagram-actions"><button class="diagram-button" id="workflowExpand" type="button" aria-haspopup="dialog" aria-controls="workflowDialog">放大查看</button></div></div><div class="diagram-frame interactive" id="workflowFrame" role="button" tabindex="0" aria-label="放大查看完整工作流图">{workflow_svg}</div><div class="diagram-note"><span class="diagram-hint">点击工作流图可打开大图</span><span class="legend"><span><i style="background:#dbeafe"></i>输入/内容</span><span><i style="background:#ede9fe"></i>LLM/处理</span><span><i style="background:#fef3c7"></i>条件</span><span><i style="background:#dcfce7"></i>输出/工具</span></span></div></section>
 <section class="report-section" id="findings-section"><div class="section-head"><div><h2>风险与逻辑链</h2><p>严重度表示可证明的潜在影响；已确认表示静态事实确认，不代表攻击已复现。覆盖缺口与加固建议单列，不计为已确认漏洞。</p></div><div class="filters"><label>严重度<select id="severityFilter"><option value="">全部</option><option value="CRITICAL">严重</option><option value="HIGH">高危</option><option value="MEDIUM">中危</option><option value="LOW">低危</option><option value="INFO">信息</option></select></label><label>证据状态<select id="statusFilter"><option value="">全部</option><option value="CONFIRMED">已确认</option><option value="PROBABLE">较可能</option><option value="OBSERVED">加固项</option><option value="CANDIDATE">待验证</option></select></label></div></div><div id="findings">{findings_html}</div></section>
 <footer>静态安全扫描</footer>
 </main>
+<dialog class="workflow-dialog" id="workflowDialog" aria-labelledby="workflowDialogTitle"><div class="zoom-shell"><div class="zoom-head"><h3 id="workflowDialogTitle">完整工作流图</h3><div class="zoom-controls"><button class="diagram-button" id="zoomOut" type="button" aria-label="缩小工作流图">缩小</button><span class="zoom-level" id="zoomLevel" aria-live="polite">100%</span><button class="diagram-button" id="zoomIn" type="button" aria-label="放大工作流图">放大</button><button class="diagram-button" id="zoomReset" type="button">还原</button><button class="zoom-close" id="workflowClose" type="button" aria-label="关闭大图">×</button></div></div><div class="zoom-viewport"><div class="zoom-canvas" id="workflowZoomCanvas">{workflow_zoom_svg}</div></div></div></dialog>
 <script>{script}</script>
 </body></html>'''
 

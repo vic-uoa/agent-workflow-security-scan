@@ -35,6 +35,12 @@ python scripts/scan_workflow.py scan --mode assessment --dsl <workflow.yml> --ou
 - HTTP `timeout.max_*` 是编辑器或部署上限，不等于节点实际超时。Dify 插件 Schema、SSRF 代理、IAM、知识库 ACL、工作流总步骤/时间等若不在导出 DSL 中，只能作为 `COVERAGE_GAP` 或缺失上下文，不能仅凭字段缺失给出 `CONFIRMED`。
 - `CONFIRMED` 必须来自确定的 Dify 字段值、结构错误、明确数据/控制路径或已登记的确定性控制证据。Dify 原生 DSL 不支持的企业控制字段不能被当作合法工作流的必填字段。
 
+## v0.11.1 报告交互要求
+
+- 报告概览优先展示总风险数、严重个数和高危个数；证据状态计数不占用顶部核心指标。
+- 风险卡片折叠态只展示严重度、标题、责任路径和逻辑链数量。`CONFIRMED`、`PROBABLE` 等证据状态及置信度放在展开后的“风险概述”中。
+- 完整工作流图必须支持点击或键盘打开大图，并提供放大、缩小、还原、关闭和可滚动查看能力；报告仍须保持单文件、离线可用。
+
 ## v0.11.0 语义校准要求
 
 - 先阅读 `references/semantic-calibration-20260908.md`。执行/SQL 必须绑定实际调用或操作员登记的执行参数；描述、参数名子串、JSON/HTML/URL 编码本身不证明危险能力。

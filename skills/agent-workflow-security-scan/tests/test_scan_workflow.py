@@ -872,6 +872,24 @@ class PipelineTests(unittest.TestCase):
             ))
             report_html = report_path.read_text(encoding="utf-8")
             self.assertIn("工作流图", report_html)
+            self.assertIn("总风险数", report_html)
+            self.assertIn("严重个数", report_html)
+            self.assertIn("高危个数", report_html)
+            self.assertIn(
+                f'<div class="metric"><span>总风险数</span><strong>{result["report_summary"]["finding_count"]}</strong></div>',
+                report_html,
+            )
+            self.assertIn(
+                f'<div class="metric"><span>严重个数</span><strong>{result["report_summary"]["severity_counts"].get("CRITICAL", 0)}</strong></div>',
+                report_html,
+            )
+            self.assertIn(
+                f'<div class="metric"><span>高危个数</span><strong>{result["report_summary"]["severity_counts"].get("HIGH", 0)}</strong></div>',
+                report_html,
+            )
+            self.assertNotIn('<div class="metric"><span>需处理</span>', report_html)
+            self.assertNotIn('<div class="metric"><span>已确认</span>', report_html)
+            self.assertNotIn('<div class="metric"><span>较可能</span>', report_html)
             self.assertIn("风险与逻辑链", report_html)
             self.assertIn("对应逻辑链", report_html)
             self.assertIn("最高风险程度", report_html)
@@ -882,6 +900,16 @@ class PipelineTests(unittest.TestCase):
             self.assertNotIn("动态验证未执行", report_html)
             self.assertNotIn("计划用例", report_html)
             self.assertIn("<svg", report_html)
+            self.assertIn('id="workflowDialog"', report_html)
+            self.assertIn('id="workflowExpand"', report_html)
+            self.assertIn('id="zoomIn"', report_html)
+            self.assertIn('id="zoomOut"', report_html)
+            self.assertIn('id="zoomReset"', report_html)
+            self.assertIn('<h4>风险概述</h4>', report_html)
+            first_finding_summary = re.search(r'<details class="finding issue-item".*?<summary>(.*?)</summary>', report_html, re.S)
+            self.assertIsNotNone(first_finding_summary)
+            self.assertNotIn('badge status', first_finding_summary.group(1))
+            self.assertRegex(report_html, r'<div class="overview-meta"><span>证据状态</span><span class="badge status [A-Z]+">')
             self.assertNotIn("report.md", report_html)
 
     def test_visuals_preserve_canvas_layout_and_focus_risk_chains(self) -> None:
